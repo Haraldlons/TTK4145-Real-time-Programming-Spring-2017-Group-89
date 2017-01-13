@@ -20,14 +20,17 @@ func thread2(i *int) {
 }
 
 func someGoroutine() {
-	Println("Hello from a goRoutine!")
+	// Println("Hello from a goRoutine!")
 }
 
 func main() {
-	//
-	i float64 = 0 
+	Println("main function started")
+	// Something something CPU-cycles
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	Println("Hello World1!")
+
+	var i int = 0
+	// Or i := 0
+
 	go someGoroutine()
 	time.Sleep(100 * time.Millisecond)
 	go thread1(&i)
