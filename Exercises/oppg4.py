@@ -1,4 +1,7 @@
 from threading import Thread
+# To compile and run
+# python oppg4.py
+
 
 i = 0
 

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//* is a reference
+//* is a rteference
 func thread1(i *int) {
 	for j := 0; j < 1000000; j++ {
 		*i++

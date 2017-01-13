@@ -1,6 +1,10 @@
 #include <pthread.h>
 #include <stdio.h>
 
+/*To compile the file
+gcc -pthread -o oppg4 oppg4.c
+*/
+
 int i = 0;
 
 void *threadFunc1(){
