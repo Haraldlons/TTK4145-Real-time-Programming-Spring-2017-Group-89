@@ -25,3 +25,4 @@ main:
 	.seh_endproc
 	.ident	"GCC: (GNU) 5.4.0"
 	.def	printf;	.scl	2;	.type	32;	.endef
+

@@ -3,7 +3,7 @@ package main
 import (
 	. "fmt"
 	"runtime"
-	"time"
+	// "time"
 )
 
 func someGoroutine() {
@@ -14,7 +14,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	Println("Hello World1!")
 	go someGoroutine()
-	time.Sleep(2000 * time.Millisecond)
+	// time.Sleep(2000 * time.Millisecond)
 	Println("Hello World2!")
 
 }
