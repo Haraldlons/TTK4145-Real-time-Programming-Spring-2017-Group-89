@@ -1,0 +1,15 @@
+How to compile and run c-program.
+
+install gcc and cygwin
+
+with Cygwin64 Terminal it starts at a cygwin folder.
+cd ../../cygdrive/c/Users/Harald/Desktop/TTK4145-Spring-2017-Group-89/
+
+Compile a program
+gcc yo.c -o yo
+Then "yo.c" is the c file you want to compile and "yo.exe" will be the compiled executable program
+Run program
+./yo
+Searches first in the current folder for the "yo.exe" file, and then runs it
+
+

@@ -10,6 +10,7 @@ void *print_hello(void *threadid)
 }
 int main (int argc, char *argv[])
 {
+	printf("Hei, dette er en test fra Harald. Kult!\n");
 	pthread_t threads[NUM_THREADS];
 	int rc;
 	long t;
@@ -18,7 +19,7 @@ int main (int argc, char *argv[])
 		rc = pthread_create(threads + t, NULL, print_hello, (void *) t);
 		if (rc){
 			printf("ERROR; return code from pthread_create() is %d\n", rc);
-			exit(-1);
+			// exit(-1);
 		}
 	}
 pthread_exit(NULL);
