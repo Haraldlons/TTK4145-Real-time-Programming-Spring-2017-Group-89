@@ -1,9 +1,5 @@
 Go Tutorials 
 
-Go Sublime Tips and Trixs
-ctr - b + enter to quickly compile and run your program
-
-
 https://www.youtube.com/watch?v=CF9S4QZuV30&t=923s
 "Go Programming" - Youtube Tutorial
 golang.org for install
@@ -15,7 +11,7 @@ import "fmt" //format package
 /*  comment */
 func main(){
 	fmt.Println("Hello World")
-	var age int = 40
+	var age int = 40;
 	var favNum float64 = 1.6180339
 	fmt.Println(age, favNum)
 	
@@ -72,7 +68,7 @@ func main(){
 	yourAge := 5
 	switch yourAge {
 		case 16: fmt.Println("Go drive")
-		case 18: fmt.Println("Go vite")
+		case 18: fmt.Println("Go vite");
 		default: fmt.Println("Go have fun")
 	}
 	
@@ -119,7 +115,7 @@ func main(){
 	fmt.Println(presAge["ThieodoreRoosevelt"])
 	leng(presAge) //1
 	presAge["John F. Kennedy"] = 43
-	delete(presAge, "John F. Kennedy") //Delete
+	delete(presAge, "John F. Kennedy"); //Delete
 	
 	//functions
 	
@@ -243,7 +239,7 @@ func main(){
 	changeXVal(x)//Send value of x
 	fmt.Println("x =", x)
 }
-func changeXVal(x int) {
+func chagneXVal(x int) {
 	x = 2//Only effect inside function
 }
 //With pointers
@@ -300,7 +296,7 @@ func main(){
 }
 
 type Shape interface {
-	area() float64
+	are() float64
 }
 type Rectangle struct {
 	height float64
