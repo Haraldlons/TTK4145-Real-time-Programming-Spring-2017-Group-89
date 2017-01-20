@@ -1,0 +1,13 @@
+	Mutex and Channel basics
+
+First some theory. What is:
+
+* An atomic operation?
+	En operasjon hvor prosessoren kan både lese og skrive data til en buss. Dette hindrer andre I/O-enhet presesser fra å skrive eller lese intill operasjonen er avsluttet.
+* A semaphore?
+	Er en variabel eller en abstrakt datatype som bestemmer kontrollen til en felles ressurs for flere prosesser i en 
+* A mutex?
+	Også kalt Mutual exclusion. 
+	Er en egenskap i concurrent control, for å forhindre "race conditions". Det er nødvendig at en tråd ikke kommer i sin kritiske fase akkurat samtidig som en annen tråd gjør det samme.
+* A critical section?
+	Når programmet/prosessen prøver å aksessere et minne eller en ressurs.

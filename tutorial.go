@@ -1,5 +1,8 @@
 package main
 
+// Følger følende tutorial
+// https://www.youtube.com/watch?v=CF9S4QZuV30&t=923s
+
 // import (
 // 	"fmt"
 // 	"strings"
