@@ -390,19 +390,124 @@ func function_name(parameter_name []array_type) return_type{
 // 	fmt.Println(readString)
 // }
 
+// import (
+// 	"fmt"
+// 	"strconv"
+// )
+
+// func main() {
+// 	randInt := 5
+// 	randFloat := 10.5
+// 	randString := "100"
+// 	randString2 := "250.5"
+
+// 	/*Cast from int to float64*/
+// 	fmt.Println(float64(randInt))
+// 	fmt.Println(int(randFloat))
+
+// 	newInt, _ := strconv.ParseInt(randString, 0, 64)
+// 	fmt.Println(newInt)
+
+// 	newFloat, _ := strconv.ParseFloat(randString2, 64)
+// 	fmt.Println(newFloat)
+
+// }
+
+//Network-Server
+// import (
+// 	"fmt"
+// 	"net/http"
+// )
+
+// func main() {
+
+// 	http.HandleFunc("/", handler)
+
+// 	http.HandleFunc("/earth", handler2)
+
+// 	http.ListenAndServe(":8000", nil)
+
+// }
+
+// func handler(w http.ResponseWriter, r *http.Request) {
+// 	fmt.Fprintf(w, "Hello World\n")
+// }
+// func handler2(w http.ResponseWriter, r *http.Request) {
+// 	fmt.Fprintf(w, "Hello Earth\n")
+// }
+
+//Routines
+
+// import (
+// 	"fmt"
+// 	"time"
+// )
+
+// func count(id int) {
+// 	for i := 0; i < 10; i++ {
+// 		fmt.Println(id, ": ", i)
+// 		time.Sleep(time.Millisecond * 1000)
+// 	}
+// }
+
+// func main() {
+// 	for i := 0; i < 10; i++ {
+// 		go count(i)
+// 		time.Sleep(time.Millisecond * 10)
+// 	}
+
+// 	time.Sleep(time.Millisecond * 11000)
+// }
+
 import (
 	"fmt"
-	// "strconv"
+	"strconv"
+	"time"
 )
 
-func main() {
-	randInt := 5
-	randFloat := 10.5
-	// randString := "100"
-	// randString2 := "250.5"
+var pizzaNum = 0
+var pizzaName = ""
 
-	/*Cast from int to float64*/
-	fmt.Println(float64(randInt))
-	fmt.Println(int(randFloat))
+//GO routines
+func makeDough(stringChan chan string) {
+	pizzaNum++
+	pizzaName = "Pizza #" + strconv.Itoa(pizzaNum)
+	fmt.Println("Make Dough and Send for Sauce")
+
+	stringChan <- pizzaName
+
+	time.Sleep(time.Millisecond * 10)
+}
+
+func addSauce(stringChan chan string) {
+	pizza := <-stringChan
+
+	fmt.Println("Add Toppings to", pizza, "and ship")
+
+	stringChan <- pizzaName
+
+	time.Sleep(time.Millisecond * 10)
+}
+
+func addToppings(stringChan chan string) {
+	pizza := <-stringChan
+
+	fmt.Println("Add Sauce and Send", pizza, " for toppings")
+
+	stringChan <- pizzaName
+
+	time.Sleep(time.Millisecond * 10)
+}
+
+func main() {
+	stringChan := make(chan string)
+
+	for i := 0; i < 3; i++ {
+		go makeDough(stringChan)
+		go addSauce(stringChan)
+		go addToppings(stringChan)
+
+		time.Sleep(time.Millisecond * 5000)
+	}
 
 }

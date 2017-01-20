@@ -26,6 +26,7 @@ int main(void){
 	pthread_t thread1;
 	pthread_t thread2;
 
+
 	//Create threads
 	pthread_create(&thread1, NULL, threadFunc1, "Creating thread 1"); //Create thread 1
 	pthread_create(&thread2, NULL, threadFunc2, "Creating thread 2"); //Create thread 2
@@ -35,6 +36,6 @@ int main(void){
 	pthread_join(thread2, NULL);
 
 	printf("%i\n", i);
-	
+
 	return 0;
 }
