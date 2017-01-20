@@ -1,20 +1,39 @@
+1: Thinking about elevators
+
+Not for handing in, just for thinking about. Talk to other groups, assistants, or even people who have taken the course in previous years.
+
+Brainstorm some techniques you could use to prevent Sverre from being hopelessly stranded, waiting for an elevator that will never arrive. Think about the worst-case behaviour of the system.
+
+* What if the software controlling one of the elvators suddeny crashes?
+	Vi "hører" hele tiden etter heisene, og om vi ikke får svar fra en av heisene over lengre tid(definert tidslengde), så definerer vi den som død. Da overfører vi ordnene til de andre heise
+* What if it doesn't crash, but hangs?
+	Kan registrere hvor heisen sist var med sensorene. Hvis vi oppdager feil, kan vi også overføre ordrene til de andre heisene.
+* What if a message between machines is lost?
+	Kan sende melding tilbake og si at man har fått meldingen. Hvis senderen ikke får melding om at meldingen er mottatt, kan den sende på nytt igjen.
+* What if the network cable is suddenly disconnected? Then re-connected?
+	Hver heis har lokalt minne, så da gjør de ferdig ordnene for så å gå "idle". Kjører på en måte en "Initialize" funksjon når kabelen kobles inn igjen.
+* What if a user of the system is being a troll?
+	Om bruker f.eks. trykker på alle knappene resetter vi 
+* What if the elevator car never arrives at its destination?
+	En annen lift tar over. SJekker hele tiden hvor heisene sist var, og kan beregne når den skal være på neste etasje.
+
 3)
 
 * Concurrency vs. Parallelism:
-	Concurrency is the simultanious execution of tasks.
+	Concurrency is the simultanious execution of tasks. 
 	Parallelism is performing several computations in parallel (using multiple hardware implementations of processing units).
 	(Concurrency is the concept of running multiple tasks at once, while paralleliism is the implementation).
 * Multicore:
 	Multicore has become more common as the performance gain of a single core is limited by heat/physical limitations. 
 * Concurrency helps solving:
-	
+	Any kind of real life happenings. 
 * Programmer life:
 	Concurrency can make the programmer's life easier or harder.
 * Diffs between processes, threads, green threads, coroutines:
 	Processes: The execution of instructions. May be made up of multiple threads of execution in some OS. 
 	Threads: The smallest sequence of programmed instructions. Multiple threads can exist within one process.
-	Green threads: Threads that are scheduled by a runtime library or a VM instead of natively by the OS. 
-	Coroutines: TJA...
+	Green threads: Threads that are scheduled by a runtime library or a VM instead of natively by the OS. Low-level routines
+	Coroutines: Generalize subroutines for nonpreemptive multitasking, by allowing multiple entry points 
 * Commands:
 	pthread_create() (C/POSIX): Creates a thread.
 	threading.Thread() (Python): Class that represents a thread. (POSIX threads)
@@ -26,5 +45,9 @@
 * func GOMAXPROCS(n int) int:
 	Sets the maximum number of CPUs that can be executing simultaneously and returns the previous setting. 
 	https://golang.org/pkg/runtime/#GOMAXPROCS
+
+	GOMAXPROCS sets the maximum number of CPUs that can be executing simultaneously and returns the previous setting. If n < 1, it does not change the current setting. The number of logical CPUs on the local machine can be queried with NumCPU. This call will go away when the scheduler improves.
+
+	 scheduler improves.??
 
 	
