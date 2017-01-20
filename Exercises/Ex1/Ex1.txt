@@ -7,7 +7,7 @@
 * Multicore:
 	Multicore has become more common as the performance gain of a single core is limited by heat/physical limitations. 
 * Concurrency helps solving:
-	awdawdawdawd
+	
 * Programmer life:
 	Concurrency can make the programmer's life easier or harder.
 * Diffs between processes, threads, green threads, coroutines:
@@ -17,12 +17,12 @@
 	Coroutines: TJA...
 * Commands:
 	pthread_create() (C/POSIX): Creates a thread.
-	threading.Thread() (Python): Class that represents a thread. (Green thread (?))
-	go (Go): Spawn thread (?)
+	threading.Thread() (Python): Class that represents a thread. (POSIX threads)
+	go (Go): Create a goroutine. (Multiplex coroutines onto a set of threads).
 * Python GIL influences the way a Python thread behaves:
 	The GIL prevents multiple native threads from executing Python Bytecodes at once. Decreases performance in multithreaded programs.
 * Workaround for the GIL (module):
-	Multiprocessing module (?)
+	Multiprocessing module, multiple interpreters. Share memory between interpreters.
 * func GOMAXPROCS(n int) int:
 	Sets the maximum number of CPUs that can be executing simultaneously and returns the previous setting. 
 	https://golang.org/pkg/runtime/#GOMAXPROCS
