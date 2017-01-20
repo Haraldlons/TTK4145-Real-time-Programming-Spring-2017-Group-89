@@ -32,9 +32,8 @@ func main() {
 	i := make(chan int, 2)
 	i <- 0
 
-	wg.Add(1)
+	wg.Add(2)
 	go thread1(i, &wg)
-	wg.Add(1)
 	go thread2(i, &wg)
 
 	//time.Sleep(700 * time.Millisecond)
