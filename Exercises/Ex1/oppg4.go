@@ -2,7 +2,7 @@ package main
 
 import (
 	. "fmt"
-	"runtime"
+	// "runtime"
 	"time"
 )
 
@@ -21,12 +21,13 @@ func thread2(i *int) {
 
 func someGoroutine() {
 	// Println("Hello from a goRoutine!")
+
 }
 
 func main() {
 	Println("main function started")
 	// Something something CPU-cycles
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	// runtime.GOMAXPROCS(runtime.NumCPU())
 
 	var i int = 0
 	// Or i := 0
@@ -38,5 +39,6 @@ func main() {
 	time.Sleep(100 * time.Millisecond)
 	// Println("Hello World2!")
 	Println("i: ", i)
-
+	Println("helo")
+	Println("grer")
 }

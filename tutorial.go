@@ -402,6 +402,4 @@ func main() {
 	fmt.Println(float64(randInt))
 	fmt.Println(int(randFloat))
 
-	newInt
-
 }

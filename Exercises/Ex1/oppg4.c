@@ -35,5 +35,6 @@ int main(void){
 	pthread_join(thread2, NULL);
 
 	printf("%i\n", i);
+	
 	return 0;
 }
