@@ -1,19 +1,19 @@
 package main
 
-package network
 
 import (
 	"fmt"
 	"net"
 	"os"
 	"time"
+	"strconv"
 )
 
 const(
-	hostaddr = "123123.123.123.132"
+	hostaddr = "129.241.187.155:20020"
 )
 
-func checkError(err error) {
+func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 		os.Exit(0)
@@ -25,10 +25,11 @@ func udpListen(port string) {
 
 	//Prepare address
 	serverAddr, err := net.ResolveUDPAddr("udp4", ":" + port)
+	CheckError(err)
 
 	//Listen at selected port
 	serverConn, err := net.ListenUDP("udp4", serverAddr)
-	checkError(err)
+	CheckError(err)
 	defer serverConn.Close()
 
 	for {
@@ -41,8 +42,8 @@ func udpListen(port string) {
 	}
 }
 
-func udpSend(port string) {
-	ServerAddr, err := net.ResolveUDPAddr("udp4", hostaddr + ":" + port)
+func udpSend() {
+	ServerAddr, err := net.ResolveUDPAddr("udp4", hostaddr)
     CheckError(err)
  
     LocalAddr, err := net.ResolveUDPAddr("udp4", hostaddr)
@@ -66,11 +67,11 @@ func udpSend(port string) {
         time.Sleep(time.Second * 1)
     }
 }
-}
+
 
 func main() {
-	port := 20020
-	udpSend(port)
+	udpSend()
+	udpListen("20020")
 }
 
 
