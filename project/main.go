@@ -1,15 +1,15 @@
 package main
 
 import (
-	".controller"
-	".master"
-	".network"
-	".watchdog"
+	//"controller"
+	//"master"
+	"./src/network"
 	"fmt"
-	"os"
-	"time"
+	//"os"
+	//"time"
 )
 
 func main() {
-	//Do something
+	fmt.Println("Test")
+	network.Run()
 }
