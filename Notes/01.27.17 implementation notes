@@ -1,0 +1,5 @@
+Implementasjonsnotater
+
+watchdog implementasjon. Om en heis ikke svarer på etter et gitt tidsperiode, erklæres død. 
+
+Staten til 

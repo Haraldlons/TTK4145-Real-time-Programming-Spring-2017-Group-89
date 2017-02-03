@@ -1,0 +1,28 @@
+Ressurser tilgjengelig? 
+Har alle heiser internt minne.
+
+Overordnet minne?
+
+Hvor kjører prorgammet? 
+Fra egen pc? 
+Laster vi opp programmet til et sted?
+
+Sensorer. Oransje greier? Eneste vi vet er når den svarte greia går forbi en sensor. Eller også om den står på?
+
+Hva er det som sender tilbake til oss over nettet? 
+
+Hva gjør den svarte boksen?
+Hvilke lys er relevante?
+Hvilke knapper kan man bruke ('interface' til brukeren).
+
+Hva skje om nettverkskabelen kobles ut? Skal programmet fortsette å kjøre, eller vil heisene stoppe. 
+
+network topology? module responsibilities?
+
+
+Svar:
+Funksjoner gjør 
+
+Interface
+Svar studass:
+store forbokstaver på funksjoner er public som kan kalles av alle. Små forbokstaver er helper-functions som kun kan kalles i samme pakke. 
