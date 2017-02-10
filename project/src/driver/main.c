@@ -3,8 +3,8 @@
 
 #include "elev.h"
 
-func main() {
-    driver.Elev_init();
+int main() {
+    elev_init();
 
     printf("Press STOP button to stop elevator and exit program.\n");
 

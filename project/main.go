@@ -3,7 +3,7 @@ package main
 import (
 	//"controller"
 	//"master"
-	"./src/elevator/driver"
+	"./src/driver"
 	//"./src/network"
 	"fmt"
 	//"os"
@@ -12,5 +12,5 @@ import (
 
 func main() {
 	fmt.Println("Test")
-	network.Run()
+	//network.Run()
 }
