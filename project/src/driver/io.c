@@ -28,7 +28,10 @@ int io_init(void) {
 
 
 void io_set_bit(int channel) {
+
     comedi_dio_write(it_g, channel >> 8, channel & 0xff, 1);
+    printf("%d\n", channel);
+    //printf("%d\n", it_g);
 }
 
 

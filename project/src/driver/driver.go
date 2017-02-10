@@ -1,9 +1,11 @@
 package driver
 
+import "fmt"
+
 const (
 	MOTOR_SPEED      = 2800
-	N_FLOORS         = 3
-	N_BUTTONS        = 4
+	N_FLOORS         = 4
+	N_BUTTONS        = 3
 	DIRECTION_DOWN   = -1
 	DIRECTION_STOP   = 0
 	DIRECTION_UP     = 1
@@ -53,10 +55,13 @@ func Elev_init() int {
 func Elev_set_motor_direction(direction int) {
 	if direction == 0 {
 		Io_write_analog(MOTOR, 0)
-	} else if dirn > 0 {
+	} else if direction > 0 {
+		fmt.Println("Direction Up")
 		Io_clear_bit(MOTORDIR)
 		Io_write_analog(MOTOR, MOTOR_SPEED)
-	} else if dirn < 0 {
+	} else if direction < 0 {
+		fmt.Println("Direction Down")
+		fmt.Printf("Motor direction: %d\n", MOTORDIR)
 		Io_set_bit(MOTORDIR)
 		Io_write_analog(MOTOR, MOTOR_SPEED)
 	}
@@ -83,17 +88,18 @@ func Elev_set_floor_indicator(floor int) int {
 	}
 
 	//Binary encoding. One light must always be on (??????Petter notes)
-	if floor & 0x02 {
+	if (floor & 0x02) != 0  {
 		Io_set_bit(LIGHT_FLOOR_IND1)
 	} else {
 		Io_clear_bit(LIGHT_FLOOR_IND1)
 	}
 
-	if floor & 0x01 {
+	if (floor & 0x01) != 0 {
 		Io_set_bit(LIGHT_FLOOR_IND2)
 	} else {
 		Io_clear_bit(LIGHT_FLOOR_IND2)
 	}
+	return 1
 }
 
 //Turn on stop-light if value != 0
@@ -124,13 +130,13 @@ func Elev_get_button_signal(button int, floor int) int {
 }
 
 func Elev_get_floor_sensor_signal() int {
-	if Io_read_bit(SENSOR_FLOOR1) {
+	if Io_read_bit(SENSOR_FLOOR1) != 0 {
 		return 0
-	} else if Io_read_bit(SENSOR_FLOOR2) {
+	} else if Io_read_bit(SENSOR_FLOOR2) != 0 {
 		return 1
-	} else if Io_read_bit(SENSOR_FLOOR3) {
+	} else if Io_read_bit(SENSOR_FLOOR3) != 0 {
 		return 2
-	} else if Io_read_bit(SENSOR_FLOOR4) {
+	} else if Io_read_bit(SENSOR_FLOOR4) != 0 {
 		return 3
 	} else {
 		return -1

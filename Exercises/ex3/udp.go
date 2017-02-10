@@ -10,7 +10,7 @@ import (
 )
 
 const(
-	hostaddr = "129.241.187.155:20020"
+	hostaddr = "129.241.187.255:20020"
 )
 
 func CheckError(err error) {
