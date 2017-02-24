@@ -88,7 +88,7 @@ func Elev_set_floor_indicator(floor int) int {
 	}
 
 	//Binary encoding. One light must always be on (??????Petter notes)
-	if (floor & 0x02) != 0  {
+	if (floor & 0x02) != 0 {
 		Io_set_bit(LIGHT_FLOOR_IND1)
 	} else {
 		Io_clear_bit(LIGHT_FLOOR_IND1)

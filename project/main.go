@@ -1,10 +1,14 @@
 package main
 
 import (
-	//"controller"
 	//"master"
 	"./src/driver"
 	"./src/definitions"
+	//"./src/buttons"
+	//"./src/driver"
+	// "./src/storage"
+	//"./src/master"
+	//"./src/watchdog"
 	//"./src/network"
 	"fmt"
 	//"os"
@@ -12,6 +16,7 @@ import (
 )
 
 func main() {
+<<<<<<< HEAD
 	fmt.Println("Main function started")
 	//network.Run()
 
@@ -46,6 +51,7 @@ func main() {
 			return
 		}
 	}
+
 }
 
 func printLastFloorIfChanged(elevatorState *definitions.ElevatorState) {
