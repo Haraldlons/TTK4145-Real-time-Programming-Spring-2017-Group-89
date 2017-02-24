@@ -81,16 +81,20 @@ func main() {
 		goToFourthFloor = driver.Elev_get_button_signal(2, 3)
 
 		if goToFirstFloor == 1 {
-			go goToFloor(0, &elevatorState)
+			// go goToFloor(0, &elevatorState)
+			setOrderOverNetwork(0)
 		}
 		if goToSecondFloor == 1 {
-			go goToFloor(1, &elevatorState)
+			// go goToFloor(1, &elevatorState)
+			setOrderOverNetwork(1)
 		}
 		if goToThirdFloor == 1 {
-			go goToFloor(2, &elevatorState)
+			// go goToFloor(2, &elevatorState)
+			setOrderOverNetwork(2)
 		}
 		if goToFourthFloor == 1 {
-			go goToFloor(3, &elevatorState)
+			// go goToFloor(3, &elevatorState)
+			setOrderOverNetwork(3)
 		}
 
 		if endProgram {
@@ -101,7 +105,7 @@ func main() {
 
 		stopSignal = driver.Elev_get_stop_signal()
 		if stopSignal != 0 {
-			setOrderOverNetwork(2)
+			setOrderOverNetwork(0)
 			driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
 			fmt.Println("Stopping program, with stop signal: ", stopSignal)
 			fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())
