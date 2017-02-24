@@ -1,18 +1,18 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net"
 	"time"
-	"encoding/binary"
 )
 
 var address string = "localhost"
 var bcAddress string = "129.241.187.255"
 var port string = "20020"
-var delay = 100*time.Millisecond
+var delay = 100 * time.Millisecond
 
-func check(err error){
+func check(err error) {
 	if err != nil {
 		panic(err)
 	}
@@ -22,41 +22,52 @@ func slave(udpListen *net.UDPConn) int {
 	listenChan := make(chan int, 1)
 	slaveCount := 0
 
-	// Run goroutine listening for sent values
-	go listen(listenChan, udpListen) 
+	// Run goroutine listening for sent values from master.
+	go listen(listenChan, udpListen)
 
-	for {	
+	for {
 		select {
-		case slaveCount <- listenChan:
-			time.Sleep(delay/2) // wait 50 ms 
+		case slaveCount = <-listenChan:
+			time.Sleep(delay / 2) // wait 50 ms
 			break
-		case <- time.After(10*delay) // Wait 10 cycles (1 second)
+		case <-time.After(10 * delay): // Wait 10 cycles (1 second). Master assumed dead
+			// When master dies, slavecount is returned so that a new process of master -> slave
+			// can continue from the last value sent over the network.
 			fmt.Println("Mufasa is dead. Long live the king.")
 			return slaveCount
- 		}
+		}
 	}
 }
 
-func master(startCount int, udpBroadcast *net.UDPconn) {
-	
+func master(startCount int, udpBroadcast *net.UDPConn) {
+	/*
+
+	 */
+	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+	err := newSlave.Run()
+	check(err)
+
+	count := startCount
 	msg := make([]byte, 1)
 
 	for {
-		count++
-		fmt.Println(count)
-		msg[0] = byte(count) 
+		msg[0] = byte(count)
 		udpBroadcast.Write(msg)
-		time.Sleep(delay)
+
+		fmt.Println(count)
+		count++
+
+		time.Sleep(delay) // Wait 1 cycle (100 ms)
 	}
 }
 
-func listen(listenChan chan int ,udpListen *net.UDPConn){
-	buf := make(byte[], 1024)
+func listen(listenChan chan int, udpListen *net.UDPConn) {
+	buf := make([]byte, 1024)
 	for {
 		udpListen.ReadFromUDP(buf)
 
 		// Convert byte from buf to int and send over channel.
-		listenChan <- binary.BigEndian.Uint64(buf) 
+		listenChan <- int(binary.BigEndian.Uint64(buf))
 		time.Sleep(delay) // Wait 1 cycle (100 ms)
 	}
 }
@@ -77,7 +88,7 @@ func main() {
 
 	udpListen.Close()
 
-	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress + ":" + port)
+	udpAddr, err = net.ResolveUDPAddr("udp", bcAddress+":"+port)
 	check(err)
 
 	// Create bcast Conn
@@ -87,6 +98,6 @@ func main() {
 	fmt.Println("Run master")
 	master(count, udpBroadcast)
 
-	fmt.Println("Close connections")
+	fmt.Println("Close broadcast")
 	udpBroadcast.Close()
 }
