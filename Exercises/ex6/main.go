@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
-	"time"
 	"os/exec"
+	"time"
 )
 
 var bcAddress string = "129.241.187.255"
@@ -53,7 +53,7 @@ func master(startCount int, udpBroadcast *net.UDPConn) {
 
 	for {
 		// Convert count from int to binary/byte and place in msg
-		binary.BigEndian.PutUint64(msg, uint64(count)) 
+		binary.BigEndian.PutUint64(msg, uint64(count))
 		udpBroadcast.Write(msg)
 
 		fmt.Println(count)
