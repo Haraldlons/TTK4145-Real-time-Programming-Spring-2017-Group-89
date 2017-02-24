@@ -1,6 +1,6 @@
 package driver
 
-import "fmt"
+// import "fmt"
 
 const (
 	MOTOR_SPEED      = 2800
@@ -56,12 +56,12 @@ func Elev_set_motor_direction(direction int) {
 	if direction == 0 {
 		Io_write_analog(MOTOR, 0)
 	} else if direction > 0 {
-		fmt.Println("Direction Up")
+		// fmt.Println("Direction Up")
 		Io_clear_bit(MOTORDIR)
 		Io_write_analog(MOTOR, MOTOR_SPEED)
 	} else if direction < 0 {
-		fmt.Println("Direction Down")
-		fmt.Printf("Motor direction: %d\n", MOTORDIR)
+		// fmt.Println("Direction Down")
+		// fmt.Printf("Motor direction: %d\n", MOTORDIR)
 		Io_set_bit(MOTORDIR)
 		Io_write_analog(MOTOR, MOTOR_SPEED)
 	}
