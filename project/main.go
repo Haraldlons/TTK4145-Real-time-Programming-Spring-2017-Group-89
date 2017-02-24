@@ -16,7 +16,6 @@ import (
 )
 
 func main() {
-<<<<<<< HEAD
 	fmt.Println("Main function started")
 	//network.Run()
 

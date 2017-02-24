@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net"
 	"time"
+	"os/exec"
 )
 
-var address string = "localhost"
 var bcAddress string = "129.241.187.255"
-var port string = "20020"
-var delay = 100 * time.Millisecond
+var port string = ":55555"
+var delay = 300 * time.Millisecond
 
 func check(err error) {
 	if err != nil {
@@ -28,6 +28,7 @@ func slave(udpListen *net.UDPConn) int {
 	for {
 		select {
 		case slaveCount = <-listenChan:
+			// fmt.Println("slaveCount: ", slaveCount)
 			time.Sleep(delay / 2) // wait 50 ms
 			break
 		case <-time.After(10 * delay): // Wait 10 cycles (1 second). Master assumed dead
@@ -40,18 +41,19 @@ func slave(udpListen *net.UDPConn) int {
 }
 
 func master(startCount int, udpBroadcast *net.UDPConn) {
-	/*
-
+	/* Launch new instance of "main".
+	 * This creates the corresponding slave which will loop on listen until master dies
 	 */
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 	err := newSlave.Run()
 	check(err)
 
 	count := startCount
-	msg := make([]byte, 1)
+	msg := make([]byte, 8)
 
 	for {
-		msg[0] = byte(count)
+		// Convert count from int to binary/byte and place in msg
+		binary.BigEndian.PutUint64(msg, uint64(count)) 
 		udpBroadcast.Write(msg)
 
 		fmt.Println(count)
@@ -62,7 +64,7 @@ func master(startCount int, udpBroadcast *net.UDPConn) {
 }
 
 func listen(listenChan chan int, udpListen *net.UDPConn) {
-	buf := make([]byte, 1024)
+	buf := make([]byte, 8)
 	for {
 		udpListen.ReadFromUDP(buf)
 
@@ -88,7 +90,7 @@ func main() {
 
 	udpListen.Close()
 
-	udpAddr, err = net.ResolveUDPAddr("udp", bcAddress+":"+port)
+	udpAddr, err = net.ResolveUDPAddr("udp", bcAddress+port)
 	check(err)
 
 	// Create bcast Conn
