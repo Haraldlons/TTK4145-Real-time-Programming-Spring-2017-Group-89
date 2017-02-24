@@ -21,7 +21,10 @@ func check(err error){
 func slave(udpListen *net.UDPConn) int {
 	listenChan := make(chan int, 1)
 	slaveCount := 0
-	go listen(listenChan, udpListen)
+
+	// Run goroutine listening for sent values
+	go listen(listenChan, udpListen) 
+
 	for {	
 		select {
 		case slaveCount <- listenChan:
@@ -49,18 +52,13 @@ func master(startCount int, udpBroadcast *net.UDPconn) {
 
 func listen(listenChan chan int ,udpListen *net.UDPConn){
 	buf := make(byte[], 1024)
-
 	for {
 		udpListen.ReadFromUDP(buf)
 
 		// Convert byte from buf to int and send over channel.
 		listenChan <- binary.BigEndian.Uint64(buf) 
-		time.Sleep(delay)
+		time.Sleep(delay) // Wait 1 cycle (100 ms)
 	}
-}
-
-func changeMaster(){
-	fmt.Println("Changing master")
 }
 
 func main() {
@@ -73,7 +71,9 @@ func main() {
 	check(err)
 
 	// Initialize slave
-	count := slave(udpListen, )
+	// First run of program will return 0 and initialize master->slave topology
+	fmt.Println("Run slave")
+	count := slave(udpListen)
 
 	udpListen.Close()
 
@@ -84,7 +84,7 @@ func main() {
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 	check(err)
 
-	fmt.Println("Run primary")
+	fmt.Println("Run master")
 	master(count, udpBroadcast)
 
 	fmt.Println("Close connections")
