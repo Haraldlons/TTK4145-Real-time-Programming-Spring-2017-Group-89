@@ -31,7 +31,7 @@ import (
 func Run() bool {
 	// Initializing
 	// orderList := make(chan, 
-	internalButtonsChan := make(chan int)
+	internalButtonsChan := make(chan [][]int)
 	// orderList <- storage.GetOrdersFromFile(3)
 	go buttons.Check_button_external(internalButtonsChan)
 	// go elevator.ExecuteOrders(channel )
@@ -40,7 +40,6 @@ func Run() bool {
 	printInternalPresses(internalButtonsChan)
 
 
-	
 
 
 	return true
@@ -54,8 +53,8 @@ func printInternalPresses(internalButtonsChan chan int) {
 	for {
 		select {
 			case <-internalButtonsChan:
-				// fmt.Println("Internal button pressed: ", <-internalButtonsChan)
-				// time.Sleep(time.Millisecond*40)
+				fmt.Println("Internal button pressed: ", <-internalButtonsChan)
+				time.Sleep(time.Millisecond*40)
 				
 			// default:
 				// fmt.Println("No button pressed")
