@@ -1,4 +1,3 @@
-
 // #include <stdio.h>
 
 // #include "elev.h"
@@ -8,7 +7,7 @@
 
 //     printf("Press STOP button to stop elevator and exit program.\n");
 
-//     elev_set_motor_direction(DIRN_UP);
+//     elev_set_motor_direction(DIRN_DOWN);
 
 //     while (1) {
 //         // Change direction when we reach top/bottom floor

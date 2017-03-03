@@ -1,6 +1,6 @@
 package definitions
 
-import "fmt"
+// import "fmt"
 
 const (
 	//General constants
@@ -12,8 +12,8 @@ const (
 	DIR_UP           int  = 1
 	DIR_DOWN         int  = -1
 	DIR_STOP         int  = 0
-	ON               bool = 1
-	OFF              bool = 0
+	ON               bool = true
+	OFF              bool = false
 
 	//States
 	IDLE      int = 0
@@ -28,6 +28,11 @@ const (
 type Order struct {
 	Floor     int
 	Direction bool
+}
+
+type ElevatorState struct {
+	LastFloor int
+	Direction int
 }
 
 type MSG struct {
