@@ -1,9 +1,9 @@
 package main
 
 import (
-	"./src/definitions"
-	"./src/driver"
 	"./src/controller"
+	// "./src/definitions"
+	"./src/driver"
 	// "./src/elevator"
 	// "./src/network"
 	//"./src/buttons"
@@ -22,7 +22,8 @@ import (
 var delay = 50 * time.Millisecond
 var endProgram = false
 var elevatorActive = false
-var elevatorState = definitions.ElevatorState{2, 0}
+
+// var elevatorState = definitions.ElevatorState{2, 0}
 var msg = make([]byte, 8)
 
 func main() {
@@ -31,9 +32,9 @@ func main() {
 	driver.Elev_init()
 	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
 
-	elevatorState := definitions.ElevatorState{2, 0}
+	// elevatorState := definitions.ElevatorState{2, 0}
 	// storage.readElevatorStateFromFile(&elevatorState)
-	fmt.Println("elevatorState during initialization: ", elevatorState)
+	// fmt.Println("elevatorState during initialization: ", elevatorState)
 
 	stopSignal := 0
 	// buttonSignal := driver.Elev_get_button_signal(0,0)
@@ -45,7 +46,7 @@ func main() {
 	// goToThirdFloor := 0
 	// goToFourthFloor := 0
 
-	controller.Run()
+	go controller.Run()
 	// go network.setupNetwork()
 
 	for {
