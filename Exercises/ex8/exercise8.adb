@@ -14,6 +14,7 @@ procedure exercise8 is
         Finished_Gate_Open  : Boolean := False;
         Aborted             : Boolean := False;
     end Transaction_Manager;
+
     protected body Transaction_Manager is
         entry Finished when Finished_Gate_Open or Finished'Count = N is
         begin
@@ -72,7 +73,7 @@ procedure exercise8 is
             select
                 Manager.Wait_Until_Aborted; --Do forward recovery
                 Num := Num + 5;
-                Put_Line ("  Worker" & Integer'Image(Initial) & " performs forward recovery, and comitted" & Integer'Image(Num));
+                Put_Line ("  Worker" & Integer'Image(Initial) & " performed forward recovery, and comitted" & Integer'Image(Num));
             then abort
                 begin
                     Num := Unreliable_Slow_Add(Num);
