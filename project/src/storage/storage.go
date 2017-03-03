@@ -104,3 +104,81 @@ func StoreOrders(elevatorNum int) bool {
 func LoadOrders(elvatorNum int) bool {
 	return true
 }
+
+// Harald spagetti code
+func testFileWriting() {
+	inputFile, err := os.Open("input.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer inputFile.Close()
+
+	outputFile, err := os.OpenFile("output.txt", os.O_WRONLY, 0666)
+	defer outputFile.Close()
+
+	var a, b int
+	var itemCount int
+	itemCount, err = fmt.Fscanf(inputFile, "%d %d\n", &a, &b)
+	// fmt.Println("err: ", err.Error())
+	for itemCount > 0 && err == nil {
+		fmt.Println("itemCount: ", itemCount, "a: ", a, "b: ", b)
+		fmt.Fprintln(outputFile, "B value is: ", b, ", and A value is: ", a)
+		// fmt.Fprintln(w, ...)
+		itemCount, err = fmt.Fscanln(inputFile, &a, &b)
+	}
+
+}
+
+func readElevatorStateFromFile(elevatorState *definitions.ElevatorState) {
+	inputFile, err := os.Open("output.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer inputFile.Close()
+
+	var lastFloor, direction int
+	var firstValue int
+	firstValue, err = fmt.Fscanf(inputFile, "%d %d", &lastFloor, &direction)
+	fmt.Println("firstValue: ", firstValue, ", lastFloor: ", lastFloor, ", direction: ", direction)
+	fmt.Println(elevatorState)
+	elevatorState.LastFloor = lastFloor
+	elevatorState.Direction = direction
+
+}
+
+func saveElevatorStateToFile(lastFloor int, direction int) {
+	outputFile, err := os.OpenFile("output.txt", os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer outputFile.Close()
+
+	fmt.Fprintln(outputFile, lastFloor, direction)
+	fmt.Println(outputFile, lastFloor, direction)
+}
+
+func saveOrderToFile(order int) {
+	outputFile, err := os.OpenFile("lastOrder.txt", os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer outputFile.Close()
+
+	fmt.Fprintln(outputFile, order)
+	fmt.Println(outputFile, order)
+}
+
+func getOrderFromFile() int {
+	inputFile, err := os.Open("lastOrder.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer inputFile.Close()
+
+	var order int
+	// var uselessVariable int
+	fmt.Fscanf(inputFile, "%d", &order)
+	fmt.Println(", order: ", order)
+
+	return order
+}
