@@ -26,8 +26,8 @@ const (
 )
 
 type Order struct {
-	Floor     int
-	Direction bool
+	floor     int
+	// Direction bool
 }
 
 type ElevatorState struct {
@@ -36,6 +36,6 @@ type ElevatorState struct {
 }
 
 type MSG struct {
-	State int
+	state int
 	//Add more when more flushed out
 }

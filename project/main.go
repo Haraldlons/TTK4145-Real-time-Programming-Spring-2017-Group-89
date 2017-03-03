@@ -1,22 +1,21 @@
 package main
 
 import (
-	//"master"
 	"./src/definitions"
 	"./src/driver"
+	"./src/controller"
+	// "./src/elevator"
 	// "./src/network"
 	//"./src/buttons"
 	//"./src/driver"
 	// "./src/storage"
 	//"./src/master"
 	//"./src/watchdog"
-	"encoding/binary"
 	"fmt"
-	"log"
-	"os"
+	// "log"
+	// "os"
 	"time"
 	// "fmt"
-	"net"
 	// "os/exec"
 )
 
@@ -32,8 +31,8 @@ func main() {
 	driver.Elev_init()
 	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
 
-	// elevatorState := definitions.ElevatorState{2, 0}
-	readElevatorStateFromFile(&elevatorState)
+	elevatorState := definitions.ElevatorState{2, 0}
+	// storage.readElevatorStateFromFile(&elevatorState)
 	fmt.Println("elevatorState during initialization: ", elevatorState)
 
 	stopSignal := 0
@@ -41,15 +40,16 @@ func main() {
 
 	// go goToFloor(3, &elevatorState)
 
-	goToFirstFloor := 0
-	goToSecondFloor := 0
-	goToThirdFloor := 0
-	goToFourthFloor := 0
+	// goToFirstFloor := 0
+	// goToSecondFloor := 0
+	// goToThirdFloor := 0
+	// goToFourthFloor := 0
 
-	go setupNetwork()
+	controller.Run()
+	// go network.setupNetwork()
 
 	for {
-		printLastFloorIfChanged(&elevatorState)
+		// elevator.PrintLastFloorIfChanged(&elevatorState)
 		// updateElevatorStateIfChanged(&elevatorState)
 
 		// if driver.Elev_get_floor_sensor_signal() == driver.N_FLOORS - 1 {
@@ -60,27 +60,27 @@ func main() {
 		// 	driver.Elev_set_motor_direction(driver.DIRECTION_UP)
 		// }
 
-		goToFirstFloor = driver.Elev_get_button_signal(2, 0)
-		goToSecondFloor = driver.Elev_get_button_signal(2, 1)
-		goToThirdFloor = driver.Elev_get_button_signal(2, 2)
-		goToFourthFloor = driver.Elev_get_button_signal(2, 3)
+		// goToFirstFloor = driver.Elev_get_button_signal(2, 0)
+		// goToSecondFloor = driver.Elev_get_button_signal(2, 1)
+		// goToThirdFloor = driver.Elev_get_button_signal(2, 2)
+		// goToFourthFloor = driver.Elev_get_button_signal(2, 3)
 
-		if goToFirstFloor == 1 {
-			// go goToFloor(0, &elevatorState)
-			setOrderOverNetwork(0)
-		}
-		if goToSecondFloor == 1 {
-			// go goToFloor(1, &elevatorState)
-			setOrderOverNetwork(1)
-		}
-		if goToThirdFloor == 1 {
-			// go goToFloor(2, &elevatorState)
-			setOrderOverNetwork(2)
-		}
-		if goToFourthFloor == 1 {
-			// go goToFloor(3, &elevatorState)
-			setOrderOverNetwork(3)
-		}
+		// if goToFirstFloor == 1 {
+		// 	go goToFloor(0, &elevatorState)
+		// 	// setOrderOverNetwork(0)
+		// }
+		// if goToSecondFloor == 1 {
+		// 	go goToFloor(1, &elevatorState)
+		// 	// setOrderOverNetwork(1)
+		// }
+		// if goToThirdFloor == 1 {
+		// 	go goToFloor(2, &elevatorState)
+		// 	// setOrderOverNetwork(2)
+		// }
+		// if goToFourthFloor == 1 {
+		// 	go goToFloor(3, &elevatorState)
+		// 	// setOrderOverNetwork(3)
+		// }
 
 		if endProgram {
 			driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
@@ -90,7 +90,7 @@ func main() {
 
 		stopSignal = driver.Elev_get_stop_signal()
 		if stopSignal != 0 {
-			setOrderOverNetwork(0)
+			// setOrderOverNetwork(0)
 			driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
 			fmt.Println("Stopping program, with stop signal: ", stopSignal)
 			fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())

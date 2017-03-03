@@ -1,10 +1,21 @@
 package storage
 
 import (
+	"../definitions"
+	// "../driver"
+	// "./../controller"
+	// "./src/network"
+	// "../buttons"
+	//"./src/driver"
+	// "../storage"
+	//"./src/master"
+	//"./src/watchdog"
 	"bufio"
 	"fmt"
 	//"io/ioutil"
 	"os"
+	"log"
+
 )
 
 const (
@@ -56,7 +67,7 @@ func LoadInternalButtonPresses() bool {
 		return false
 	}
 
-	defer f.close()
+	defer f.Close()
 	r1 := bufio.NewReader(f)
 
 	b1, err := r1.Peek(5)
@@ -79,7 +90,7 @@ func StoreExternalButtonPresses() bool {
 		return false
 	}
 	defer f.Close()
-	w := bufio.NewWriter(f)
+	// w := bufio.NewWriter(f)
 
 	return true
 }
@@ -93,7 +104,7 @@ func LoadExternalButtonPresses() bool {
 		return false
 	}
 	defer f.Close()
-	r := bufio.NewReader(f)
+	// r := bufio.NewReader(f)
 	return true
 }
 
@@ -126,7 +137,6 @@ func testFileWriting() {
 		// fmt.Fprintln(w, ...)
 		itemCount, err = fmt.Fscanln(inputFile, &a, &b)
 	}
-
 }
 
 func readElevatorStateFromFile(elevatorState *definitions.ElevatorState) {
