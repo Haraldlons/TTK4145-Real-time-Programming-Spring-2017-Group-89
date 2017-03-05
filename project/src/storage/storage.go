@@ -31,83 +31,7 @@ func check(err error) {
 	}
 }
 
-//Internal button presses:
-func StoreInternalButtonPresses() bool {
-	fileName := FILENAME_INTERNAL_BUTTON_PRESSES
 
-	f, err := os.Create(FILEPATH + fileName)
-	check(err) //Remove when testing is done
-	if err != nil {
-		return false
-	}
-
-	defer f.Close()
-	w := bufio.NewWriter(f)
-
-	buttonPresses := []byte{'A', 'B', 'C', 'D'}
-
-	n1, err := w.WriteString("Internal button presses:\n")
-	check(err)
-	if err != nil {
-		return false
-	}
-
-	fmt.Printf("Wrote %d bytes\n", n1)
-	w.Write(buttonPresses)
-
-	w.Flush()
-	return true
-}
-
-func LoadInternalButtonPresses() bool {
-	fileName := FILENAME_INTERNAL_BUTTON_PRESSES
-
-	f, err := os.Create(FILEPATH + fileName)
-	check(err) //remove later
-	if err != nil {
-		return false
-	}
-
-	defer f.Close()
-	r1 := bufio.NewReader(f)
-
-	b1, err := r1.Peek(5)
-	check(err) //remove later
-	if err != nil {
-		return false
-	}
-	fmt.Printf("5 bytes: %s\n", string(b1))
-
-	return true
-}
-
-//External button presses:
-func StoreExternalButtonPresses() bool {
-	fileName := FILENAME_EXTERNAL_BUTTON_PRESSES
-
-	f, err := os.Create(FILEPATH + fileName)
-	check(err) //remove later
-	if err != nil {
-		return false
-	}
-	defer f.Close()
-	// w := bufio.NewWriter(f)
-
-	return true
-}
-
-func LoadExternalButtonPresses() bool {
-	fileName := FILENAME_EXTERNAL_BUTTON_PRESSES
-
-	f, err := os.Open(FILEPATH + fileName)
-	check(err) //remove later
-	if err != nil {
-		return false
-	}
-	defer f.Close()
-	// r := bufio.NewReader(f)
-	return true
-}
 
 func GetOrdersFromFile(elevatorNum int) (orders [definitions.ELEVATOR_ORDER_SIZE]definitions.Order) {
 	orders = [definitions.ELEVATOR_ORDER_SIZE]definition.Order{}
@@ -182,7 +106,7 @@ func ReadElevatorStateFromFile(elevatorState *definitions.ElevatorState) {
 	firstValue++
 	elevatorState.LastFloor = lastFloor
 	elevatorState.Direction = direction
-
+|
 }
 
 func SaveElevatorStateToFile(lastFloor int, direction int) {
@@ -220,4 +144,90 @@ func getOrderFromFile() int {
 	fmt.Println(", order: ", order)
 
 	return order
+}
+
+
+// NEW FUNCTIONS
+
+func SaveOrdersToFile(elevatorNum int, orders interface{}) {
+	fileName := FILENAME + strconv.Itoa(elevatorNum)
+	outFile, err := os.Create(fileName)
+	defer outFile.Close()
+	checkError(err)
+
+	encoder := json.NewEncoder(outFile)
+	err = encoder.Encode(orders)
+	checkError(err)
+}
+
+//Takes pointer as input arg
+func LoadOrdersFromFile(elevatorNum int, orders interface{}) {
+	fileName := FILENAME + strconv.Itoa(elevatorNum)
+	inFile, err := os.Open(fileName)
+	defer inFile.Close()
+	checkError(err)
+
+	decoder := json.NewDecoder(inFile)
+	err = decoder.Decode(orders)
+	checkError(err)
+}
+
+func SaveButtonPresses(typeOfButton string, buttonPresses interface{}) {
+	fileName := "blank"
+	if typeOfButton == "internal" {
+		fileName = "internal_button_presses"
+	} else if typeOfButton == "external" {
+		fileName = "external_button_presses"
+	} else {
+		fmt.Println("Not a valid button type.")
+	}
+
+	outFile, err := os.Create(fileName)
+	defer outFile.Close()
+	checkError(err)
+
+	encoder := json.NewEncoder(outFile)
+	err = encoder.Encode(buttonPresses)
+	checkError(err)
+}
+
+func LoadButtonPresses(typeOfButton string, buttonPresses interface{}) {
+	fileName := "blank"
+	if typeOfButton == "internal" {
+		fileName = "internal_button_presses"
+	} else if typeOfButton == "external" {
+		fileName = "external_button_presses"
+	} else {
+		fmt.Println("Not a valid button type.")
+	}
+
+	inFile, err := os.Open(fileName)
+	defer inFile.Close()
+	checkError(err)
+
+	decoder := json.NewDecoder(inFile)
+	err = decoder.Decode(buttonPresses)
+	checkError(err)
+}
+
+func SaveStateToFile(state interface{}) {
+	fileName := "state"
+	outFile, err := os.Create(fileName)
+	defer outFile.Close()
+	checkError(err)
+
+	encoder := json.NewEncoder(outFile)
+	err = encoder.Encode(state)
+	checkError(err)
+}
+
+func LoadStateFromFile(state interface{}) {
+	fileName := "state"
+	inFile, err := os.Open(fileName)
+	defer inFile.Close()
+	checkError(err)
+
+	decoder := json.NewDecoder(inFile)
+	err = decoder.Decode(state)
+	checkError(err)
 }
