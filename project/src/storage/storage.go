@@ -11,9 +11,8 @@ import (
 	//"./src/master"
 	//"./src/watchdog"
 	"bufio"
-	"definitions"
 	"fmt"
-	"io/ioutil"
+	// "io/ioutil"
 	"log"
 	"os"
 )
@@ -109,40 +108,40 @@ func LoadExternalButtonPresses() bool {
 	return true
 }
 
-func GetOrdersFromFile(elevatorNum int) (orders [definitions.ELEVATOR_ORDER_SIZE]definitions.Order) {
-	orders = [definitions.ELEVATOR_ORDER_SIZE]definition.Order{}
-	fileName := FILENAME_ELEVATOR_ORDERS
+// func GetOrdersFromFile(elevatorNum int) (orders [definitions.ELEVATOR_ORDER_SIZE]definitions.Order) {
+// 	orders = [definitions.ELEVATOR_ORDER_SIZE]definition.Order{}
+// 	fileName := FILENAME_ELEVATOR_ORDERS
 
-	// Open file
-	file, _ := os.Open(fileName)
-	defer file.Close()
+// 	// Open file
+// 	file, _ := os.Open(fileName)
+// 	defer file.Close()
 
-	// Initialize reader object
-	reader := bufio.NewReader(file)
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanWords)
+// 	// Initialize reader object
+// 	reader := bufio.NewReader(file)
+// 	scanner := bufio.NewScanner(reader)
+// 	scanner.Split(bufio.ScanWords)
 
-	elevatorCount := 0 // Counter to keep track of which elevator's orders are being read
-	i := 0
-	for scanner.Scan() { // Scan every line
-		line := scanner.Text()
-		if line == "*" {
-			elevatorFile++
-			break
-		}
+// 	elevatorCount := 0 // Counter to keep track of which elevator's orders are being read
+// 	i := 0
+// 	for scanner.Scan() { // Scan every line
+// 		line := scanner.Text()
+// 		if line == "*" {
+// 			elevatorFile++
+// 			break
+// 		}
 
-		floor, _ := strconv.Atoi(line) // Convert string to int
-		orders[i].floor = floor
-		i++
-	}
+// 		floor, _ := strconv.Atoi(line) // Convert string to int
+// 		orders[i].floor = floor
+// 		i++
+// 	}
 
-	for i := 0; i < 10; i++ {
-		fmt.Println(orders[i].floor)
-	}
+// 	for i := 0; i < 10; i++ {
+// 		fmt.Println(orders[i].floor)
+// 	}
 
-	fmt.Println(orders)
-	return orders
-}
+// 	fmt.Println(orders)
+// 	return orders
+// }
 
 // Harald spagetti code
 func testFileWriting() {
