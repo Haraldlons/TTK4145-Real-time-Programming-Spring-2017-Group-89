@@ -24,6 +24,7 @@ func main() {
 	var id string
 	flag.StringVar(&id, "id", "", "id of this peer")
 	flag.Parse()
+	fmt.Printf("id has value: %s\n", id)
 
 	// ... or alternatively, we can use the local IP address.
 	// (But since we can run multiple programs on the same PC, we also append the
@@ -53,7 +54,7 @@ func main() {
 	// These functions can take any number of channels! It is also possible to
 	//  start multiple transmitters/receivers on the same port.
 	go bcast.Transmitter(16569, helloTx)
-	go bcast.Receiver(16569, helloRx)	
+	go bcast.Receiver(16569, helloRx)
 
 	// The example message. We just send one of these every second.
 	go func() {

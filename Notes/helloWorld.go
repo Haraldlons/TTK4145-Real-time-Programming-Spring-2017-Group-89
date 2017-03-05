@@ -3,7 +3,7 @@ package main
 import (
 	. "fmt"
 	"runtime"
-	// "time"
+	"time"
 )
 
 func someGoroutine() {
