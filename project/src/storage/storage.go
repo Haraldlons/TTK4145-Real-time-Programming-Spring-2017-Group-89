@@ -14,9 +14,8 @@ import (
 	"definitions"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"log"
-
+	"os"
 )
 
 const (
@@ -168,35 +167,36 @@ func testFileWriting() {
 	}
 }
 
-func readElevatorStateFromFile(elevatorState *definitions.ElevatorState) {
-	inputFile, err := os.Open("output.txt")
+func ReadElevatorStateFromFile(elevatorState *definitions.ElevatorState) {
+	inputFile, err := os.Open("output.txt") // output.txt is in the project folder. This still works
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer inputFile.Close()
 
 	var lastFloor, direction int
-	var firstValue int
-	firstValue, err = fmt.Fscanf(inputFile, "%d %d", &lastFloor, &direction)
-	fmt.Println("firstValue: ", firstValue, ", lastFloor: ", lastFloor, ", direction: ", direction)
-	fmt.Println(elevatorState)
+	// var firstValue int
+	firstValue, err := fmt.Fscanf(inputFile, "%d %d", &lastFloor, &direction)
+	fmt.Println("Reading ElevatorState from File, lastFloor: ", lastFloor, ", direction: ", direction)
+	// fmt.Println(elevatorState)
+	firstValue++
 	elevatorState.LastFloor = lastFloor
 	elevatorState.Direction = direction
 
 }
 
-func saveElevatorStateToFile(lastFloor int, direction int) {
-	outputFile, err := os.OpenFile("output.txt", os.O_WRONLY, 0666)
+func SaveElevatorStateToFile(lastFloor int, direction int) {
+	outputFile, err := os.OpenFile("output.txt", os.O_WRONLY, 0666) //This file is in project folder
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer outputFile.Close()
 
 	fmt.Fprintln(outputFile, lastFloor, direction)
-	fmt.Println(outputFile, lastFloor, direction)
+	fmt.Println("saving ElevatorState to File, lastFloor: ", lastFloor, ", direction: ", direction)
 }
 
-func saveOrderToFile(order int) {
+func SaveOrderToFile(order int) {
 	outputFile, err := os.OpenFile("lastOrder.txt", os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
@@ -204,7 +204,7 @@ func saveOrderToFile(order int) {
 	defer outputFile.Close()
 
 	fmt.Fprintln(outputFile, order)
-	fmt.Println(outputFile, order)
+	fmt.Println("Saving order to file. Order: ", order)
 }
 
 func getOrderFromFile() int {
