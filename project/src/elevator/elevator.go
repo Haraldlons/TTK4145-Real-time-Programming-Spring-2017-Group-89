@@ -29,7 +29,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 	storage.SaveOrderToFile(destinationFloor)
 	// elevatorActive = true
 
-	fmt.Println("Going to floor: ", destinationFloor+1)
+	fmt.Println("Going to floor: ", destinationFloor, " (0-3)")
 	direction := elevatorState.Direction
 	lastFloor := elevatorState.LastFloor
 
@@ -57,51 +57,45 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 		} else {
 			driver.Elev_set_motor_direction(driver.DIRECTION_DOWN)
 		}
-		// time.Sleep(time.Millisecond * 400)
-
-		go func() {
-			select {
-			case <-stopCurrentOrder: // When orderList changes, we return the function
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				fmt.Println("Exeting with: ", destinationFloor)
-				return
-			}
-		}()
 		for {
-			fmt.Println("Floor: ", driver.Elev_get_floor_sensor_signal())
-			// fmt.Println("Testing")
-			if driver.Elev_get_floor_sensor_signal() == destinationFloor {
-				// orderList <- orderList[1:]
-				fmt.Println("You reached your desired floor. Walk out\n")
+			select {
+				case <- stopCurrentOrder:
+					fmt.Println("stopCurrentOrder recieved. Stopping to floor: ", destinationFloor)
+					return
+				default:
+					fmt.Println("Floor: ", driver.Elev_get_floor_sensor_signal())
+					// fmt.Println("Testing")
+					if driver.Elev_get_floor_sensor_signal() == destinationFloor {
+						// orderList <- orderList[1:]
+						fmt.Println("You reached your desired floor. Walk out\n")
 
-				time.Sleep(time.Millisecond * 150) //So the elevator stops in the middle of the sensor
-				// elevatorActive = false
-				// driver.Elev_set_button_lamp(1,1,1)
-				// driver.Elev_set_button_lamp(0,1,1)
-				driver.Elev_set_floor_indicator(destinationFloor)
-				driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
-				// endProgram = true
-				time.Sleep(delay * 10)
-				driver.Elev_set_door_open_lamp(1)
-				storage.SaveOrderToFile(-1)
-				return
-			} else if driver.Elev_get_floor_sensor_signal() == 0 { /*This is just to be fail safe*/
-				driver.Elev_set_motor_direction(driver.DIRECTION_UP)
-			} else if driver.Elev_get_floor_sensor_signal() == 3 {
-				driver.Elev_set_motor_direction(driver.DIRECTION_DOWN)
-			} else {
-				time.Sleep(delay) // 50ms
+						time.Sleep(time.Millisecond * 150) //So the elevator stops in the middle of the sensor
+						// elevatorActive = false
+						// driver.Elev_set_button_lamp(1,1,1)
+						// driver.Elev_set_button_lamp(0,1,1)
+						driver.Elev_set_floor_indicator(destinationFloor)
+						driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
+						// endProgram = true
+						time.Sleep(delay * 10)
+						driver.Elev_set_door_open_lamp(1)
+						storage.SaveOrderToFile(-1)
+							for {
+								select {
+								case <- stopCurrentOrder:
+									fmt.Println("Finially got message to stop going to floor, ", destinationFloor)
+									return
+								case <- time.After(2000 * time.Millisecond):
+									fmt.Println("Still have not got message to kill this order to floor: ", destinationFloor)
+								}
+							}
+						return
+					} else if driver.Elev_get_floor_sensor_signal() == 0 { /*This is just to be fail safe*/
+						driver.Elev_set_motor_direction(driver.DIRECTION_UP)
+					} else if driver.Elev_get_floor_sensor_signal() == 3 {
+						driver.Elev_set_motor_direction(driver.DIRECTION_DOWN)
+					} else {
+						time.Sleep(delay) // 50ms
+					}
 			}
 		}
 	}

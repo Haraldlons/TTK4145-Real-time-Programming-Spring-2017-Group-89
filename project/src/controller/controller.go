@@ -72,18 +72,16 @@ func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int)
 }
 
 func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
-	stopCurrentOrder := make(chan int)
+	stopCurrentOrder := make(chan int) // Doesn't matter which data type. 
+	isFirstButtonPress := true
 	for {
 		select {
 		case internalButtonPresses := <-internalButtonsChan:
 			fmt.Println("Internal button pressed: ", internalButtonPresses)
-
-			fmt.Println("Yomam")
-			go findFloorAndGoTo(internalButtonsChan, internalButtonPresses, stopCurrentOrder)
-			close(stopCurrentOrder)
-			fmt.Println("yo")
+			if(!isFirstButtonPress){ stopCurrentOrder <- 1 } //Value in channel doesn't matter
+ 			go findFloorAndGoTo(internalButtonsChan, internalButtonPresses, stopCurrentOrder)
 			time.Sleep(time.Millisecond * 100)
-
+			isFirstButtonPress = false
 			// default:
 			// fmt.Println("No button pressed")
 		}
@@ -91,7 +89,7 @@ func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
 }
 
 func findFloorAndGoTo(kanal chan [definitions.N_FLOORS]int, buttonPresses [definitions.N_FLOORS]int, stopCurrentOrder chan int) {
-	fmt.Println("ButtonPresses: ", buttonPresses)
+	// fmt.Println("ButtonPresses: ", buttonPresses)
 	array := buttonPresses
 	for i := 0; i < definitions.N_FLOORS; i++ {
 		if array[i] == 1 {

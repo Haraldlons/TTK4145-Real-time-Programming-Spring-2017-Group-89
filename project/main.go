@@ -47,7 +47,7 @@ func main() {
 	// goToFourthFloor := 0
 
 	go controller.Run()
-	// go network.setupNetwork()
+	// go network.SetupNetwork()
 
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)
