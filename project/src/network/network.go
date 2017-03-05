@@ -20,8 +20,8 @@ import (
 )
 
 
-// var bcAddress string = "129.241.187.255"
-var bcAddress string = "localhost"
+var bcAddress string = "129.241.187.255"
+//var bcAddress string = "localhost"
 var port string = ":55555"
 var slaveSendPort string = ":55758"
 var jsonSendPort string = ":55656"
