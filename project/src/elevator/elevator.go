@@ -26,16 +26,15 @@ var msg = make([]byte, 8)
 
 func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, stopCurrentOrder chan int) {
 	defer fmt.Println("Exeting goToFloor to floor: ", destinationFloor)
-	storage.SaveOrderToFile(destinationFloor)
+	// storage.SaveOrderToFile(destinationFloor)
 	// elevatorActive = true
 
-	fmt.Println("Going to floor: ", destinationFloor, " (0-3)")
+	fmt.Println("Going to floor: ", destinationFloor, " (0-3) ")
 	direction := elevatorState.Direction
 	lastFloor := elevatorState.LastFloor
 
 	if driver.Elev_get_floor_sensor_signal() == destinationFloor {
-		storage.SaveOrderToFile(-1)
-
+		// storage.SaveOrderToFile(-1)
 		fmt.Println("You are allready on the desired floor")
 		// elevatorActive = false
 		driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
@@ -51,8 +50,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 			} else {
 				driver.Elev_set_motor_direction(driver.DIRECTION_UP)
 			}
-		}
-		if lastFloor < destinationFloor {
+		} else if lastFloor < destinationFloor {
 			driver.Elev_set_motor_direction(driver.DIRECTION_UP)
 		} else {
 			driver.Elev_set_motor_direction(driver.DIRECTION_DOWN)
@@ -78,7 +76,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 						// endProgram = true
 						time.Sleep(delay * 10)
 						driver.Elev_set_door_open_lamp(1)
-						storage.SaveOrderToFile(-1)
+						// storage.SaveOrderToFile(-1)
 							for {
 								select {
 								case <- stopCurrentOrder:
@@ -119,7 +117,7 @@ func PrintLastFloorIfChanged(elevatorState *definitions.ElevatorState) {
 				elevatorState.Direction = definitions.DIR_UP
 				elevatorState.LastFloor = 0
 				fmt.Println("Last Floor: 1. Direction: ", elevatorState.Direction)
-				storage.SaveElevatorStateToFile(elevatorState.LastFloor, elevatorState.Direction)
+				storage.SaveElevatorStateToFile(elevatorState)
 			}
 		case 1:
 			if elevatorState.LastFloor != 1 {
@@ -130,7 +128,7 @@ func PrintLastFloorIfChanged(elevatorState *definitions.ElevatorState) {
 				}
 				elevatorState.LastFloor = 1
 				fmt.Println("Last Floor: 2. Direction: ", elevatorState.Direction)
-				storage.SaveElevatorStateToFile(elevatorState.LastFloor, elevatorState.Direction)
+				storage.SaveElevatorStateToFile(elevatorState)
 			}
 		case 2:
 			if elevatorState.LastFloor != 2 {
@@ -142,14 +140,14 @@ func PrintLastFloorIfChanged(elevatorState *definitions.ElevatorState) {
 
 				elevatorState.LastFloor = 2
 				fmt.Println("Last Floor: 3. Direction: ", elevatorState.Direction)
-				storage.SaveElevatorStateToFile(elevatorState.LastFloor, elevatorState.Direction)
+				storage.SaveElevatorStateToFile(elevatorState)
 			}
 		case 3:
 			if elevatorState.LastFloor != 3 {
 				elevatorState.Direction = definitions.DIR_DOWN
 				elevatorState.LastFloor = 3
 				fmt.Println("Last Floor: 4. Direction: ", elevatorState.Direction)
-				storage.SaveElevatorStateToFile(elevatorState.LastFloor, elevatorState.Direction)
+				storage.SaveElevatorStateToFile(elevatorState)
 			}
 
 		default:

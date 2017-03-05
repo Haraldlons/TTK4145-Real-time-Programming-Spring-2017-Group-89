@@ -5,7 +5,7 @@ import (
 	// "./src/definitions"
 	"./src/driver"
 	// "./src/elevator"
-	// "./src/network"
+	"./src/network"
 	//"./src/buttons"
 	//"./src/driver"
 	// "./src/storage"
@@ -47,7 +47,7 @@ func main() {
 	// goToFourthFloor := 0
 
 	go controller.Run()
-	// go network.SetupNetwork()
+	go network.SetupNetwork()
 
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)

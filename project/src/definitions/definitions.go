@@ -39,3 +39,14 @@ type MSG struct {
 	state int
 	//Add more when more flushed out
 }
+
+
+type Orders struct {
+	Orders []Order
+}
+
+type TestMessage struct {
+    Name string
+    Body string
+    Time int64
+}

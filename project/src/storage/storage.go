@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"../definitions"
+	// "../definitions"
 	// "../driver"
 	// "./../controller"
 	// "./src/network"
@@ -10,11 +10,13 @@ import (
 	// "../storage"
 	//"./src/master"
 	//"./src/watchdog"
-	"bufio"
+	// "bufio"
 	"fmt"
 	// "io/ioutil"
-	"log"
+	// "log"
 	"os"
+	"strconv"
+	"encoding/json"
 )
 
 const (
@@ -24,7 +26,7 @@ const (
 	FILENAME_ELEVATOR_ORDERS         = "elevatorOrders"
 )
 
-func check(err error) {
+func checkError(err error) {
 	if err != nil {
 		panic(err)
 	}
@@ -68,88 +70,88 @@ func check(err error) {
 // }
 
 // Harald spagetti code
-func testFileWriting() {
-	inputFile, err := os.Open("input.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer inputFile.Close()
+// func testFileWriting() {
+// 	inputFile, err := os.Open("input.txt")
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer inputFile.Close()
 
-	outputFile, err := os.OpenFile("output.txt", os.O_WRONLY, 0666)
-	defer outputFile.Close()
+// 	outputFile, err := os.OpenFile("output.txt", os.O_WRONLY, 0666)
+// 	defer outputFile.Close()
 
-	var a, b int
-	var itemCount int
-	itemCount, err = fmt.Fscanf(inputFile, "%d %d\n", &a, &b)
-	// fmt.Println("err: ", err.Error())
-	for itemCount > 0 && err == nil {
-		fmt.Println("itemCount: ", itemCount, "a: ", a, "b: ", b)
-		fmt.Fprintln(outputFile, "B value is: ", b, ", and A value is: ", a)
-		// fmt.Fprintln(w, ...)
-		itemCount, err = fmt.Fscanln(inputFile, &a, &b)
-	}
-}
+// 	var a, b int
+// 	var itemCount int
+// 	itemCount, err = fmt.Fscanf(inputFile, "%d %d\n", &a, &b)
+// 	// fmt.Println("err: ", err.Error())
+// 	for itemCount > 0 && err == nil {
+// 		fmt.Println("itemCount: ", itemCount, "a: ", a, "b: ", b)
+// 		fmt.Fprintln(outputFile, "B value is: ", b, ", and A value is: ", a)
+// 		// fmt.Fprintln(w, ...)
+// 		itemCount, err = fmt.Fscanln(inputFile, &a, &b)
+// 	}
+// }
 
-func ReadElevatorStateFromFile(elevatorState *definitions.ElevatorState) {
-	inputFile, err := os.Open("output.txt") // output.txt is in the project folder. This still works
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer inputFile.Close()
+// func ReadElevatorStateFromFile(elevatorState *definitions.ElevatorState) {
+// 	inputFile, err := os.Open("output.txt") // output.txt is in the project folder. This still works
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer inputFile.Close()
 
-	var lastFloor, direction int
-	// var firstValue int
-	firstValue, err := fmt.Fscanf(inputFile, "%d %d", &lastFloor, &direction)
-	fmt.Println("Reading ElevatorState from File, lastFloor: ", lastFloor, ", direction: ", direction)
-	// fmt.Println(elevatorState)
-	firstValue++
-	elevatorState.LastFloor = lastFloor
-	elevatorState.Direction = direction
-|
-}
+// 	var lastFloor, direction int
+// 	// var firstValue int
+// 	firstValue, err := fmt.Fscanf(inputFile, "%d %d", &lastFloor, &direction)
+// 	fmt.Println("Reading ElevatorState from File, lastFloor: ", lastFloor, ", direction: ", direction)
+// 	// fmt.Println(elevatorState)
+// 	firstValue++
+// 	elevatorState.LastFloor = lastFloor
+// 	elevatorState.Direction = direction
+// |
+// }
 
-func SaveElevatorStateToFile(lastFloor int, direction int) {
-	outputFile, err := os.OpenFile("output.txt", os.O_WRONLY, 0666) //This file is in project folder
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer outputFile.Close()
+// func SaveElevatorStateToFile(lastFloor int, direction int) {
+// 	outputFile, err := os.OpenFile("output.txt", os.O_WRONLY, 0666) //This file is in project folder
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer outputFile.Close()
 
-	fmt.Fprintln(outputFile, lastFloor, direction)
-	fmt.Println("saving ElevatorState to File, lastFloor: ", lastFloor, ", direction: ", direction)
-}
+// 	fmt.Fprintln(outputFile, lastFloor, direction)
+// 	fmt.Println("saving ElevatorState to File, lastFloor: ", lastFloor, ", direction: ", direction)
+// }
 
-func SaveOrderToFile(order int) {
-	outputFile, err := os.OpenFile("lastOrder.txt", os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer outputFile.Close()
+// func SaveOrderToFile(order int) {
+// 	outputFile, err := os.OpenFile("lastOrder.txt", os.O_WRONLY, 0666)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer outputFile.Close()
 
-	fmt.Fprintln(outputFile, order)
-	fmt.Println("Saving order to file. Order: ", order)
-}
+// 	fmt.Fprintln(outputFile, order)
+// 	fmt.Println("Saving order to file. Order: ", order)
+// }
 
-func getOrderFromFile() int {
-	inputFile, err := os.Open("lastOrder.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer inputFile.Close()
+// func getOrderFromFile() int {
+// 	inputFile, err := os.Open("lastOrder.txt")
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer inputFile.Close()
 
-	var order int
-	// var uselessVariable int
-	fmt.Fscanf(inputFile, "%d", &order)
-	fmt.Println(", order: ", order)
+// 	var order int
+// 	// var uselessVariable int
+// 	fmt.Fscanf(inputFile, "%d", &order)
+// 	fmt.Println(", order: ", order)
 
-	return order
-}
+// 	return order
+// }
 
 
 // NEW FUNCTIONS
 
 func SaveOrdersToFile(elevatorNum int, orders interface{}) {
-	fileName := FILENAME + strconv.Itoa(elevatorNum)
+	fileName := FILENAME_ELEVATOR_ORDERS + strconv.Itoa(elevatorNum)
 	outFile, err := os.Create(fileName)
 	defer outFile.Close()
 	checkError(err)
@@ -161,7 +163,7 @@ func SaveOrdersToFile(elevatorNum int, orders interface{}) {
 
 //Takes pointer as input arg
 func LoadOrdersFromFile(elevatorNum int, orders interface{}) {
-	fileName := FILENAME + strconv.Itoa(elevatorNum)
+	fileName := FILENAME_ELEVATOR_ORDERS + strconv.Itoa(elevatorNum)
 	inFile, err := os.Open(fileName)
 	defer inFile.Close()
 	checkError(err)
@@ -209,9 +211,9 @@ func LoadButtonPresses(typeOfButton string, buttonPresses interface{}) {
 	checkError(err)
 }
 
-func SaveStateToFile(state interface{}) {
+func SaveElevatorStateToFile(state interface{}) {
 	fileName := "state"
-	outFile, err := os.Create(fileName)
+	outFile, err := os.Create(FILEPATH + fileName)
 	defer outFile.Close()
 	checkError(err)
 
@@ -220,9 +222,9 @@ func SaveStateToFile(state interface{}) {
 	checkError(err)
 }
 
-func LoadStateFromFile(state interface{}) {
+func LoadElevatorStateFromFile(state interface{}) {
 	fileName := "state"
-	inFile, err := os.Open(fileName)
+	inFile, err := os.Open(FILEPATH + fileName)
 	defer inFile.Close()
 	checkError(err)
 

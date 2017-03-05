@@ -17,6 +17,7 @@ import (
 	// "storage"
 	"fmt"
 	"time"
+	// "encoding/json"
 )
 
 var elevatorState = definitions.ElevatorState{2, 0}
@@ -34,7 +35,7 @@ func Run() bool {
 	// Initializing
 
 	// elevatorState := definitions.ElevatorState{2, 0}
-	storage.ReadElevatorStateFromFile(&elevatorState)
+	storage.LoadElevatorStateFromFile(&elevatorState)
 	// fmt.Println("ElevatorState during initialization: ", elevatorState)
 	// orderList := make(chan,
 	go elevator.PrintLastFloorIfChanged(&elevatorState)
@@ -47,9 +48,21 @@ func Run() bool {
 	go buttons.Check_button_external(externalButtonsPressesChan)
 	// go elevator.ExecuteOrders(channel )
 
+	// /*Make JSON object and send it*/
+	// m := definitions.TestMessage{"Alice", "Hello", 1294706395881547000}
+	// Enco
+	// b, _ := json.Marshal(m)
+	// fmt.Println("Json in byte:", b)
+	// fmt.Println("length of bytearray: ", len(b))
+	// fmt.Println("err2:", err2)
+	// check(err2)
+
 	// initialize()
 	go printInternalPresses(internalButtonsPressesChan)
-	printExternalPresses(externalButtonsPressesChan)
+	go printExternalPresses(externalButtonsPressesChan)
+	for {
+		time.Sleep(time.Millisecond * 100)
+	}
 	return true
 }
 
@@ -76,11 +89,12 @@ func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
 	isFirstButtonPress := true
 	for {
 		select {
-		case internalButtonPresses := <-internalButtonsChan:
-			fmt.Println("Internal button pressed: ", internalButtonPresses)
+		case <-internalButtonsChan:
+			fmt.Println("Internal button pressed: ", <-internalButtonsChan)
 			if(!isFirstButtonPress){ stopCurrentOrder <- 1 } //Value in channel doesn't matter
- 			go findFloorAndGoTo(internalButtonsChan, internalButtonPresses, stopCurrentOrder)
-			time.Sleep(time.Millisecond * 100)
+			// if(saveOrderToFile) { go findFloorAndGoTo()} 
+ 			go findFloorAndGoTo(internalButtonsChan, <-internalButtonsChan, stopCurrentOrder)
+			time.Sleep(time.Millisecond * 200)
 			isFirstButtonPress = false
 			// default:
 			// fmt.Println("No button pressed")
