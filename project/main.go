@@ -49,6 +49,8 @@ func main() {
 	go controller.Run()
 	go network.SetupNetwork()
 
+	// Change only on Harald Branch
+
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)
 		// updateElevatorStateIfChanged(&elevatorState)
