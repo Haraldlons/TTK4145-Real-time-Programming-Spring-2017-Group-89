@@ -39,6 +39,8 @@ func main() {
 		master.run()
 	}
 
+	// Testchange
+
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)
 		// updateElevatorStateIfChanged(&elevatorState)
