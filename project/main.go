@@ -31,25 +31,13 @@ func main() {
 
 	driver.Elev_init()
 	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
-
-	// elevatorState := definitions.ElevatorState{2, 0}
-	// storage.readElevatorStateFromFile(&elevatorState)
-	// fmt.Println("elevatorState during initialization: ", elevatorState)
-
-	stopSignal := 0
-	// buttonSignal := driver.Elev_get_button_signal(0,0)
-
-	// go goToFloor(3, &elevatorState)
-
-	// goToFirstFloor := 0
-	// goToSecondFloor := 0
-	// goToThirdFloor := 0
-	// goToFourthFloor := 0
-
-	go controller.Run()
-	go network.SetupNetwork()
-
 	// Change only on Harald Branch
+
+	if network.checkIfMasterAlreadyExist() {
+		slave.run()
+	} else {
+		master.run()
+	}
 
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)

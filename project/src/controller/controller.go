@@ -22,20 +22,21 @@ import (
 
 var elevatorState = definitions.ElevatorState{2, 0}
 
-// Channels
-
-// func initialize() bool {
-// 	orderList := make(chan,
-// 	internalButtonsChan := make(chan, int)
-// 	orderList <- storage.GetOrdersFromFile(3)
-// 	return true
-// }
-
-func Run() bool {
+// var orderList = definitions.orderList
+func Run() {
 	// Initializing
+	storage.LoadElevatorStateFromFile(&elevatorState)
+	storage.LoadOrderListFromFile(&orderList)
+	go elevator.ExectueOrders()
+	go watchdog.SendImAliveMessages()
+	go watchdog.CheckForMasterAlive()
+	go watchdog.CheckForUpdatesFromMaster()
+	go watchdog.CheckForElevatorStateUpdates()
+
+	buttonPressesUpdates := make(chan button)
+	go checkForButtonPresses()
 
 	// elevatorState := definitions.ElevatorState{2, 0}
-	storage.LoadElevatorStateFromFile(&elevatorState)
 	// fmt.Println("ElevatorState during initialization: ", elevatorState)
 	// orderList := make(chan,
 	go elevator.PrintLastFloorIfChanged(&elevatorState)
@@ -85,15 +86,17 @@ func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int)
 }
 
 func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
-	stopCurrentOrder := make(chan int) // Doesn't matter which data type. 
+	stopCurrentOrder := make(chan int) // Doesn't matter which data type.
 	isFirstButtonPress := true
 	for {
 		select {
 		case <-internalButtonsChan:
 			fmt.Println("Internal button pressed: ", <-internalButtonsChan)
-			if(!isFirstButtonPress){ stopCurrentOrder <- 1 } //Value in channel doesn't matter
-			// if(saveOrderToFile) { go findFloorAndGoTo()} 
- 			go findFloorAndGoTo(internalButtonsChan, <-internalButtonsChan, stopCurrentOrder)
+			if !isFirstButtonPress {
+				stopCurrentOrder <- 1
+			} //Value in channel doesn't matter
+			// if(saveOrderToFile) { go findFloorAndGoTo()}
+			go findFloorAndGoTo(internalButtonsChan, <-internalButtonsChan, stopCurrentOrder)
 			time.Sleep(time.Millisecond * 200)
 			isFirstButtonPress = false
 			// default:
