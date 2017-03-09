@@ -4,7 +4,7 @@ import (
 	// "../definitions"
 	// "../driver"
 	// "../buttons"
-	// "../storage"
+	"../storage"
 	// "../elevator"
 	"fmt"
 	"net"
@@ -165,7 +165,7 @@ func sendImAliveMessage(stopSlaveBroadcasting chan int){
 			default:
 				udpBroadcast.Write(msg)
 				// fmt.Println("Sending I'm Alive")
-				time.Sleep(delay100ms*2)
+				time.Sleep(delay100ms*20)
 		}
 	}
 
@@ -211,7 +211,7 @@ func listenAfterImAliveMessage(){
 			// 	// go goToFloor(slaveCount, &elevatorState)
 			// }
 			// sendImAliveMessage()
-			time.Sleep(delay100ms / 2) // wait 50 ms
+			time.Sleep(delay100ms ) // wait 50 ms
 			break
 		case <-time.After(30 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
 			// When master dies, slavecount is returned so that a new process of master -> slave
@@ -571,35 +571,23 @@ func sendJSON(){
 	fmt.Println("JSON in ByteArray:",b)
 	jsonByteLength := len(b)
 	firstByte := jsonByteLength / 255
-	fmt.Println("firstByte", firstByte)
+	// fmt.Println("firstByte", firstByte)
 	secondByte := jsonByteLength - firstByte*255
-	fmt.Println("secondByte:",secondByte)
-	fmt.Println("JSONByteArrayLength:",jsonByteLength)
+	// fmt.Println("secondByte:",secondByte)
+	// fmt.Println("JSONByteArrayLength:",jsonByteLength)
 
 	fmt.Println(byte(len(b)))
 
 	b = append([]byte{byte(secondByte)},b...)
 	b = append([]byte{byte(firstByte)},b...)
-	fmt.Println("WITH Length as first byte", b)
+	// fmt.Println("WITH Length as first byte", b)
 
 
 	// Create bcast Conn
 	udpBroadcast, _ := net.DialUDP("udp", nil, udpAddr)
 	// check(err)
 
-	// binary.BigEndian.PutUint64(msg, uint64(66))
-	// go func() {
-	// 	select {
-	// 	case <- stopSlaveBroadcasting:
-	// 		fmt.Println("Ending sendImAliveMessage")
-	// 		return
-	// 	}
-	// }()
-	
-				udpBroadcast.Write(b)
-				// fmt.Println("Sending I'm Alive")
-				// time.Sleep(delay100ms*2)
-	
+	udpBroadcast.Write(b)
 }
 
 func recieveJSON(){
@@ -607,7 +595,7 @@ func recieveJSON(){
 		udpAddr, err := net.ResolveUDPAddr("udp", jsonSendPort)
 		check(err)
 
-		slaveMessagesRecieved := 0
+		JSONobjectsRecieved := 0
 
 		// Create listen Conn
 		udpListen, err := net.ListenUDP("udp", udpAddr)
@@ -622,12 +610,18 @@ func recieveJSON(){
 			buf := make([]byte, 10000)
 			for {
 				udpListen.ReadFromUDP(buf)
-				fmt.Println("buffer after read from UDP: ", buf)
+
+				// Two first bytes contains the size of the JSON byte array
+
+				// fmt.Println("buffer after read from UDP: ", buf)
 				jsonByteLength := int(buf[0])*255 + int(buf[1])
-				fmt.Println("jsonByteLength:",jsonByteLength)
+				// fmt.Println("jsonByteLength:",jsonByteLength)
 
 				// Convert byte from buf to int and send over channel.
 				err := json.Unmarshal(buf[2:jsonByteLength+2], &m)
+				// storage.SaveElevatorStateToFile(m) //This actually works
+				// fmt.Println("Her kommer m som du skal se på: ", m)
+				// fmt.Println("Ferdig med å vise m")
 				check(err)
 				listenChan <- m
 				time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
@@ -636,10 +630,10 @@ func recieveJSON(){
 
 	for {
 		select {
-		case slaveCount := <-listenChan:
+		case JSONByteArray := <-listenChan:
 			// fmt.Println("slaveCount: ", slaveCount)
-			fmt.Println("got JSON object: ", slaveCount, ", json objects recieved: ", slaveMessagesRecieved)
-			slaveMessagesRecieved++
+			fmt.Println("got JSON object: ", JSONByteArray, ", json objects recieved: ", JSONobjectsRecieved)
+			JSONobjectsRecieved++
 			// if slaveCount < 4 && slaveCount > -1 {
 			// 	fmt.Println("Going to floor from slave: ", slaveCount)
 			// 	// go goToFloor(slaveCount, &elevatorState)
@@ -650,7 +644,7 @@ func recieveJSON(){
 		case <-time.After(30 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
 			// When master dies, slavecount is returned so that a new process of master -> slave
 			// can continue from the last value sent over the network.
-			fmt.Println("Have not recieved any JSON message for the last 3 seconds!")
+			// fmt.Println("Have not recieved any JSON message for the last 3 seconds!")
 			// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 			// err := newSlave.Run()
 			check(err)
@@ -659,3 +653,7 @@ func recieveJSON(){
 	}
 
 }
+
+// func decodeJSONRecievedAndStore(){
+
+// }
