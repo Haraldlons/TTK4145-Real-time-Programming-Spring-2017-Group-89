@@ -36,6 +36,7 @@ func main() {
 	}
 
 	// TestChange with haraldlons as user
+	// Another testcommit with haraldlons@gmail.com as user.email
 
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)
