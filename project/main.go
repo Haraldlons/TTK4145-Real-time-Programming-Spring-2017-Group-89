@@ -35,6 +35,8 @@ func main() {
 		master.run()
 	}
 
+	// TestChange with haraldlons as user
+
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)
 		// updateElevatorStateIfChanged(&elevatorState)
