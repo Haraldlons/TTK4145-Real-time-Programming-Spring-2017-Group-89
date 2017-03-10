@@ -69,7 +69,6 @@ func findLowestCostElevator(elevatorStates [definitions.N_ELEVS]definitions.Elev
 				cost = tempCost
 				bestElevator = i
 			}
-
 		}
 	}
 	return bestElevator
@@ -85,7 +84,9 @@ func findDirection(lastFloor int, destinationFloor int) int {
 	}
 }
 
-func UpdateOrders(orders interface {}) {
-	
+func 
+
+func UpdateOrders(orders interface {}, externalButtonPress Order)  {
+
 	orders.Orders[i] = 
 }
