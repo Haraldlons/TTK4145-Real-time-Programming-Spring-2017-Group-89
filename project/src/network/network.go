@@ -20,7 +20,7 @@ import (
 )
 
 
-var bcAddress string = "129.241.187.255"
+var bcAddress string = "129.241.187.155"
 //var bcAddress string = "localhost"
 var port string = ":55748"
 var slaveSendPort string = ":55758"
