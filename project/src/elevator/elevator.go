@@ -30,6 +30,7 @@ var msg = make([]byte, 8)
 func ExecuteOrders(localOrderList *definitions.Orders, elevatorState *definitions.ElevatorState, updatedOrderList chan int){
 	stopCurrentOrder := make(chan int)
 	isFirstButtonPress := true
+	fmt.Println("localOrderList", localOrderList.Orders[1:])
 	i := 0
 	for {
 		select {
@@ -37,9 +38,11 @@ func ExecuteOrders(localOrderList *definitions.Orders, elevatorState *definition
 			fmt.Println("Got Update on updatedOrderList. Hopefully going to new floor: ", localOrderList.Orders[0].Floor)
 			if !isFirstButtonPress {
 				stopCurrentOrder <- 1
+				// *localOrderList = definitions.Orders{[]definitions.Order{{Floor: 3, Direction: 1},{Floor: 0, Direction: -1}}}
+				*localOrderList = definitions.Orders{localOrderList.Orders[1:]}
 			}
 			isFirstButtonPress = false
-			go GoToFloor(localOrderList.Orders[i].Floor, elevatorState, stopCurrentOrder, updatedOrderList)
+			go GoToFloor(localOrderList.Orders[0].Floor, elevatorState, stopCurrentOrder, updatedOrderList)
 			i++
 		}
 	}
