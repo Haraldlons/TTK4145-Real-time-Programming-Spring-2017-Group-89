@@ -24,5 +24,30 @@ func main() {
 	fmt.Println("Main function started")
 
 	
+
+	SaveOrdersToFile()
+
 	return
 } //End main
+
+func SaveOrdersToFile(elevatorNum int, orders interface{}) {
+	fileName := FILENAME_ELEVATOR_ORDERS + strconv.Itoa(elevatorNum)
+	outFile, err := os.Create(fileName)
+	defer outFile.Close()
+	checkError(err)
+
+	encoder := json.NewEncoder(outFile)
+	err = encoder.Encode(orders)
+	checkError(err)
+}
+
+func LoadOrdersFromFile(elevatorNum int, orders interface{}) {
+	fileName := FILENAME_ELEVATOR_ORDERS + strconv.Itoa(elevatorNum)
+	inFile, err := os.Open(fileName)
+	defer inFile.Close()
+	checkError(err)
+
+	decoder := json.NewDecoder(inFile)
+	err = decoder.Decode(orders)
+	checkError(err)
+}
