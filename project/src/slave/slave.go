@@ -32,15 +32,15 @@ func Run() {
 	storage.LoadOrderListFromFile(&orderList)
 
 	go elevator.ExectueOrders()
+	go elevator.CheckForElevatorStateUpdates()
 	go watchdog.SendImAliveMessages()
 	go watchdog.CheckForMasterAlive()
-	go elevator.CheckForElevatorStateUpdates()
 
 	internalButtonsPressesChan := make(chan [definitions.N_FLOORS]int)
 	externalButtonsPressesChan := make(chan [definitions.N_FLOORS][2]int)
 	go buttons.Check_button_internal(internalButtonsPressesChan)
 	go buttons.Check_button_external(externalButtonsPressesChan)
-	go handleInternatButtonPresses(internalButtonsPressesChan)
+	go handleInternalButtonPresses(internalButtonsPressesChan)
 	go handleExternalButtonPresses(externalButtonsPressesChan)
 
 	// go printExternalPresses(externalButtonsPressesChan)

@@ -1,7 +1,7 @@
 package network
 
 import (
-	// "../definitions"
+	"../definitions"
 	// "../driver"
 	// "../buttons"
 	// "../storage"
@@ -657,3 +657,29 @@ func recieveJSON(){
 // func decodeJSONRecievedAndStore(){
 
 // }
+
+func SendFromSlaveToMaster(externalButtonPressesChan chan, ordersChan chan, elevatorState definitions.ElevatorState, id string) { 
+  MSG := definitions.MSG_to_master {
+    Orders: Orders, 
+    ElevatorState: state,
+    ExternalButtonPresses: <-externalButtonPressesChan, 
+    Id: id,//Id string 
+  }
+
+  sendJSON(MSG)
+}
+
+func SendFromMasterToSlave(elevators){
+  MSG := definitions.MSG_to_slave {
+    Elevators: elevators,
+  }
+  sendJSON(MSG)
+}
+
+func ListenToMaster() {
+
+}
+
+func ListenToSlave() {
+  
+}

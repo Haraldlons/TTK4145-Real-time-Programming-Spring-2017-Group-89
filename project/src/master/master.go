@@ -2,29 +2,32 @@ package master
 
 import (
 	"../network"
-	"definitions"
+	"../definitions"
+	"../storage"
 	"math"
-	//"network"
 )
 
 
-
-
-func Run() bool {
+func Run() {
 
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 	err := newSlave.Run()
 	check(err)
 
-	totalOrderList := storage.GetOrderListFromFile()
+	// Initialize Elevators struct to keep track of elevator orders
+	var totalOrderList definitions.Elevators
+	Elevators.OrderMap = make(map[string] []Orders)
 
+	// Load from storage if available
+	storage.LoadOrdersFromFile(&totalOrderList)
 
-	go network.ListenForUpdatesFromSlaves()
-	go network.KeepTrackOfAliveSlaves() 	
+	listOfAliveSlaves := network.getSlavesAlive()
+	redistributeOrders(&listOfAliveSlaves)
+	network.broadcastOrderlist(totalOrderList)
 
+	go handleUpdatesFromSlaves(&totalOrderList)
+	go KeepTrackOfAliveSlaves(&listOfAliveSlaves)
 
-		
-	return true
 }
 
 func check(err error) {
@@ -32,6 +35,54 @@ func check(err error) {
 		panic(err)
 	}
 }
+
+func handleUpdatesFromSlaves(totalOrderList []definitions.Orders){
+
+	totalOrderList := totalOrderList
+
+	go network.listenForUpdatesFromSlave(totalOrderList)
+
+	go func(){
+		for {
+			select {
+				case <-totalOrderList
+				// Handle updated orderList from slaves
+			}
+		}	
+	}()
+}
+
+func KeepTrackOfAliveSlaves(&listOfAliveSlaves){
+
+	AliveMessageFromSlave := make(chan slave)
+
+	go network.listenAfterSlaves(AliveMessageFromSlave)
+	select {
+		case AliveMessageFromSlave := <-AliveMessageFromSlave
+			for slave := range(listOfAliveSlaves){
+				if AliveMessageFromSlave == listOfAliveSlaves[i]{
+					slave<- "slave number" + slave "is alive"
+				}
+				
+			}
+	}
+
+
+	for slave := range(listOfAliveSlaves){
+		go func(){
+			select {
+				case <-slave
+					fmt.Println("Slave:", slave, "is alive")
+				case time.After(5*time.Second)
+					fmt.Println("Slave:", slave, "died!")
+					listOfAliveSlaves = listOfAliveSlaves.slice(deadSlave)
+					redistributeOrders()
+			}
+		}()
+	}
+}
+
+
 // Finds the elevator closest to the destination floor decided by order.
 // elevatorStates is a list of the states of every elevator
 func findClosestElevator(order definitions.Order, elevatorStates [definitions.N_ELEVS]definitions.ElevatorState, idle [definitions.N_ELEVS]bool) int {
