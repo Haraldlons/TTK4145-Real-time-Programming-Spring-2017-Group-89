@@ -7,7 +7,7 @@ import (
 	// "./src/network"
 	"../buttons"
 	//"./src/driver"
-	"../storage"
+	// "../storage"
 	//"./src/master"
 	"../elevator"
 
@@ -34,8 +34,8 @@ var elevatorState = definitions.ElevatorState{2, 0}
 func Run() bool {
 	// Initializing
 
-	// elevatorState := definitions.ElevatorState{2, 0}
-	storage.LoadElevatorStateFromFile(&elevatorState)
+	elevatorState := definitions.ElevatorState{2, 0}
+	// storage.LoadElevatorStateFromFile(&elevatorState)
 	// fmt.Println("ElevatorState during initialization: ", elevatorState)
 	// orderList := make(chan,
 	go elevator.PrintLastFloorIfChanged(&elevatorState)
