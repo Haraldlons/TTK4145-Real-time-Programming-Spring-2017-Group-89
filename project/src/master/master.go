@@ -1,21 +1,14 @@
 package master
 
 import (
+	"../network"
 	"definitions"
 	"math"
 	//"network"
 )
 
-func check(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
 
-// func Initialize() bool {
 
-// 	return true
-// }
 
 func Run() bool {
 
@@ -23,12 +16,22 @@ func Run() bool {
 	err := newSlave.Run()
 	check(err)
 
-	elevatorOrders := []Orders{
+	totalOrderList := storage.GetOrderListFromFile()
+
+
+	go network.ListenForUpdatesFromSlaves()
+	go network.KeepTrackOfAliveSlaves() 	
+
+
 		
-	}
 	return true
 }
 
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
 // Finds the elevator closest to the destination floor decided by order.
 // elevatorStates is a list of the states of every elevator
 func findClosestElevator(order definitions.Order, elevatorStates [definitions.N_ELEVS]definitions.ElevatorState, idle [definitions.N_ELEVS]bool) int {

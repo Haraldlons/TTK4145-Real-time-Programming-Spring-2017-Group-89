@@ -29,15 +29,11 @@ var msg = make([]byte, 8)
 func main() {
 	fmt.Println("Main function started")
 
-	driver.Elev_init()
-	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
-
 	if network.checkIfMasterAlreadyExist() {
 		slave.run()
 	} else {
 		master.run()
 	}
-
 
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)
