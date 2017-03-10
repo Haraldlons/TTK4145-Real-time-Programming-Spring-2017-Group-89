@@ -31,7 +31,6 @@ func main() {
 
 	driver.Elev_init()
 	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
-	// Change only on Harald Branch
 
 	if network.checkIfMasterAlreadyExist() {
 		slave.run()
@@ -39,7 +38,6 @@ func main() {
 		master.run()
 	}
 
-	// Testchange
 
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)

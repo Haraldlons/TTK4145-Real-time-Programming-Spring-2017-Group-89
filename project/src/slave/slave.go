@@ -1,9 +1,9 @@
-package controller
+package slave
 
 import (
 	"../definitions"
 	// "../driver"
-	// "./../controller"
+	// "./../slave"
 	// "./src/network"
 	"../buttons"
 	//"./src/driver"
@@ -25,14 +25,30 @@ var elevatorState = definitions.ElevatorState{2, 0}
 // var orderList = definitions.orderList
 func Run() {
 	// Initializing
+	driver.Elev_init()
+	driver.Elev_set_motor_direction(driver.DIRECTION_STOP) 
+
 	storage.LoadElevatorStateFromFile(&elevatorState)
 	storage.LoadOrderListFromFile(&orderList)
+
 	go elevator.ExectueOrders()
 	go watchdog.SendImAliveMessages()
 	go watchdog.CheckForMasterAlive()
-	go watchdog.CheckForUpdatesFromMaster()
-	go watchdog.CheckForElevatorStateUpdates()
+	go elevator.CheckForElevatorStateUpdates()
 
+	internalButtonsPressesChan := make(chan [definitions.N_FLOORS]int)
+	externalButtonsPressesChan := make(chan [definitions.N_FLOORS][2]int)
+	go buttons.Check_button_internal(internalButtonsPressesChan)
+	go buttons.Check_button_external(externalButtonsPressesChan)
+	go handleInternatButtonPresses(internalButtonsPressesChan)
+	go handleExternalButtonPresses(externalButtonsPressesChan)
+
+	// go printExternalPresses(externalButtonsPressesChan)
+	
+	go checkForUpdatesFromMaster()
+	go sendUpdatesToMaster()
+
+	
 	buttonPressesUpdates := make(chan button)
 	go checkForButtonPresses()
 
@@ -44,11 +60,7 @@ func Run() {
 	go elevator.PrintLastFloorIfChanged(&elevatorState)
 
 	// elevator.GoToFloor(3, &elevatorState)
-	internalButtonsPressesChan := make(chan [definitions.N_FLOORS]int)
-	externalButtonsPressesChan := make(chan [definitions.N_FLOORS][2]int)
 	// orderList <- storage.GetOrdersFromFile(3)
-	go buttons.Check_button_internal(internalButtonsPressesChan)
-	go buttons.Check_button_external(externalButtonsPressesChan)
 	// go elevator.ExecuteOrders(channel )
 
 	// /*Make JSON object and send it*/
@@ -60,9 +72,6 @@ func Run() {
 	// fmt.Println("err2:", err2)
 	// check(err2)
 
-	// initialize()
-	go printInternalPresses(internalButtonsPressesChan)
-	go printExternalPresses(externalButtonsPressesChan)
 	for {
 		time.Sleep(time.Millisecond * 100)
 	}

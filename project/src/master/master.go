@@ -6,11 +6,23 @@ import (
 	//"network"
 )
 
-func Initialize() bool {
-	return true
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
 
+// func Initialize() bool {
+
+// 	return true
+// }
+
 func Run() bool {
+
+	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+	err := newSlave.Run()
+	check(err)
+
 	elevatorOrders := []Orders{
 		
 	}

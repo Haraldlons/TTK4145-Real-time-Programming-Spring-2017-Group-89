@@ -3,7 +3,7 @@ package storage
 import (
 	// "../definitions"
 	// "../driver"
-	// "./../controller"
+	// "../slave"
 	// "./src/network"
 	// "../buttons"
 	//"./src/driver"
