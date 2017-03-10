@@ -25,25 +25,48 @@ type Order struct {
 }
 
 type Orders struct {
-	Orders []Order
+	Name []Order
 }
 
 
 func main() {
 	fmt.Println("Main function started")
 
-	interFace := Orders{
-		[
-		Order{Floor: 2, Direction: -1}, 
-		Order{Floor: 3, Direction: 1},
-	],
-	}
-	fmt.Println("interface: ", interFace)
+	// interFace := make([]interface{}, 4)
+	listOfNumbers := []int{1,2,3,4,43}
+	secondListOfNumbers := []int{1,2,3,4,7}
+	// fmt.Println("listOfNumbers", listOfNumbers)
+	// fmt.Println("listOfNumbers[2]", listOfNumbers[2])
+	// for i, s:= range listOfNumbers {
+	// 	interFace[i] = Order{Floor: s, Direction: 1}
+	// }
+	totalOrderList := Orders{[]Order{{Floor: 2, Direction: -1},{Floor: 3, Direction: 1}}}
 
+	for i := range listOfNumbers {
+		totalOrderList = Orders{append(totalOrderList.Name,Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
+	}
+
+	// fmt.Println("interFace:", interFace)
+
+	printEachOrder(totalOrderList, 2)
+	fmt.Println("totalOrderList: ", totalOrderList)
+	fmt.Println("Length of totalOrderList:", len(totalOrderList.Name))
 	// SaveOrdersToFile(2, )
 
 	return
-} //End main
+} 
+
+func printEachOrder(orders Orders, length int){
+	// fmt.Println("Orders: ", orders)
+	for i:= 0; i < length; i++ {
+		// fmt.Println("Hu")
+		fmt.Println("i: ", i, "orders.Name[",i,"].Floor=", orders.Name[i].Floor)
+		fmt.Println("i: ", i, "orders.Name[",i,"].Direction=", orders.Name[i].Direction)
+	}
+	fmt.Println("Done")
+}
+
+
 
 // func SaveOrdersToFile(elevatorNum int, orders interface{}) {
 // 	fileName := FILENAME_ELEVATOR_ORDERS + strconv.Itoa(elevatorNum)

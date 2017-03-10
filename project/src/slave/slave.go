@@ -28,16 +28,19 @@ func Run() {
 	driver.Elev_init()
 	driver.Elev_set_motor_direction(driver.DIRECTION_STOP) 
 
+	// Channel Definitions
+	internalButtonsPressesChan := make(chan [definitions.N_FLOORS]int)
+	externalButtonsPressesChan := make(chan [definitions.N_FLOORS][2]int)
+
+
 	storage.LoadElevatorStateFromFile(&elevatorState)
 	storage.LoadOrderListFromFile(&orderList)
 
-	go elevator.ExectueOrders()
+	go elevator.ExectueOrders(&orderList)
 	go elevator.CheckForElevatorStateUpdates()
 	go watchdog.SendImAliveMessages()
 	go watchdog.CheckForMasterAlive()
 
-	internalButtonsPressesChan := make(chan [definitions.N_FLOORS]int)
-	externalButtonsPressesChan := make(chan [definitions.N_FLOORS][2]int)
 	go buttons.Check_button_internal(internalButtonsPressesChan)
 	go buttons.Check_button_external(externalButtonsPressesChan)
 	go handleInternalButtonPresses(internalButtonsPressesChan)

@@ -24,6 +24,10 @@ var msg = make([]byte, 8)
 // 	}
 // }
 
+func ExecuteOrders(localOrderList definitions.Orders){
+	for 
+}
+
 func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, stopCurrentOrder chan int) {
 	defer fmt.Println("Exeting goToFloor to floor: ", destinationFloor)
 	// storage.SaveOrderToFile(destinationFloor)
