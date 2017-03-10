@@ -619,7 +619,7 @@ func recieveJSON(){
 
 				// Convert byte from buf to int and send over channel.
 				err := json.Unmarshal(buf[2:jsonByteLength+2], &m)
-				// storage.SaveElevatorStateToFile(m) //This actually works
+				storage.SaveElevatorStateToFile(m) //This actually works
 				// fmt.Println("Her kommer m som du skal se på: ", m)
 				// fmt.Println("Ferdig med å vise m")
 				check(err)
