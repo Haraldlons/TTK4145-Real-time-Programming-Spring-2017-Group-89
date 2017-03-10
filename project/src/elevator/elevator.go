@@ -24,11 +24,48 @@ var msg = make([]byte, 8)
 // 	}
 // }
 
-func ExecuteOrders(localOrderList definitions.Orders){
-	for 
+// func ExecuteOrders(localOrderList definitions.Orders){
+// 	for 
+// }
+func ExecuteOrders(localOrderList *definitions.Orders, elevatorState *definitions.ElevatorState, updatedOrderList chan int){
+	stopCurrentOrder := make(chan int)
+	isFirstButtonPress := true
+	i := 0
+	for {
+		select {
+		case <- updatedOrderList:
+			fmt.Println("Got Update on updatedOrderList. Hopefully going to new floor: ", localOrderList.Orders[0].Floor)
+			if !isFirstButtonPress {
+				stopCurrentOrder <- 1
+			}
+			isFirstButtonPress = false
+			go GoToFloor(localOrderList.Orders[i].Floor, elevatorState, stopCurrentOrder, updatedOrderList)
+			i++
+		}
+	}
 }
 
-func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, stopCurrentOrder chan int) {
+func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
+	// stopCurrentOrder := make(chan int) // Doesn't matter which data type.
+	// isFirstButtonPress := true
+	for {
+		select {
+		case <-internalButtonsChan:
+			fmt.Println("Internal button pressed: ", <-internalButtonsChan)
+			// if !isFirstButtonPress {
+			// 	stopCurrentOrder <- 1
+			// } //Value in channel doesn't matter
+			// // if(saveOrderToFile) { go findFloorAndGoTo()}
+			// go findFloorAndGoTo(internalButtonsChan, <-internalButtonsChan, stopCurrentOrder)
+			// time.Sleep(time.Millisecond * 200)
+			// isFirstButtonPress = false
+			// default:
+			// fmt.Println("No button pressed")
+		}
+	}
+}
+
+func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, stopCurrentOrder chan int, updatedOrderList chan int) {
 	defer fmt.Println("Exeting goToFloor to floor: ", destinationFloor)
 	// storage.SaveOrderToFile(destinationFloor)
 	// elevatorActive = true
@@ -42,6 +79,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 		fmt.Println("You are allready on the desired floor")
 		// elevatorActive = false
 		driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
+		updatedOrderList <- 1
 		// endProgram = true
 		for {
 				select {
@@ -74,7 +112,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 					fmt.Println("stopCurrentOrder recieved. Stopping to floor: ", destinationFloor)
 					return
 				default:
-					fmt.Println("Floor: ", driver.Elev_get_floor_sensor_signal())
+					// fmt.Println("Floor: ", driver.Elev_get_floor_sensor_signal())
 					// fmt.Println("Testing")
 					if driver.Elev_get_floor_sensor_signal() == destinationFloor {
 						// orderList <- orderList[1:]
@@ -90,6 +128,8 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 						time.Sleep(delay * 10)
 						driver.Elev_set_door_open_lamp(1)
 						// storage.SaveOrderToFile(-1)
+						time.Sleep(time.Millisecond * 100)
+						updatedOrderList <- 1
 							for {
 								select {
 								case <- stopCurrentOrder:

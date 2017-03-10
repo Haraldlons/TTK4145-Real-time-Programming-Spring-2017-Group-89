@@ -1,11 +1,11 @@
 package main
 
 import (
-	"./src/controller"
+	"./src/slave"
 	// "./src/definitions"
 	"./src/driver"
 	// "./src/elevator"
-	"./src/network"
+	// "./src/network"
 	//"./src/buttons"
 	//"./src/driver"
 	// "./src/storage"
@@ -28,15 +28,17 @@ var msg = make([]byte, 8)
 
 func main() {
 	fmt.Println("Main function started")
+	go slave.Run()
 
-	if network.checkIfMasterAlreadyExist() {
-		slave.run()
-	} else {
-		master.run()
-	}
+	// if network.checkIfMasterAlreadyExist() {
+	// 	slave.run()
+	// } else {
+	// 	master.run()
+	// }
 
 	// TestChange with haraldlons as user
 	// Another testcommit with haraldlons@gmail.com as user.email
+	stopSignal := 0
 
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)
