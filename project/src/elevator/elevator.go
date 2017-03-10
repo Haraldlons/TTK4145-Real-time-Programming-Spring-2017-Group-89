@@ -39,6 +39,15 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 		// elevatorActive = false
 		driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
 		// endProgram = true
+		for {
+				select {
+				case <- stopCurrentOrder:
+					fmt.Println("Finially got message to stop going to floor, ", destinationFloor)
+					return
+				case <- time.After(2000 * time.Millisecond):
+					fmt.Println("Still have not got message to kill this order to floor: ", destinationFloor)
+				}
+			}
 		return
 	} else { /*You are not on the desired floor*/
 		fmt.Println("You are not on the desired floor")
@@ -97,7 +106,6 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 			}
 		}
 	}
-
 }
 
 func setFloorIndicator() {

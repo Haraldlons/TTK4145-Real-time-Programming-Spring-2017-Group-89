@@ -7,7 +7,7 @@ import (
 	// "./src/network"
 	"../buttons"
 	//"./src/driver"
-	"../storage"
+	// "../storage"
 	//"./src/master"
 	"../elevator"
 
@@ -36,7 +36,9 @@ func Run() {
 	buttonPressesUpdates := make(chan button)
 	go checkForButtonPresses()
 
-	// elevatorState := definitions.ElevatorState{2, 0}
+
+	elevatorState := definitions.ElevatorState{2, 0}
+
 	// fmt.Println("ElevatorState during initialization: ", elevatorState)
 	// orderList := make(chan,
 	go elevator.PrintLastFloorIfChanged(&elevatorState)

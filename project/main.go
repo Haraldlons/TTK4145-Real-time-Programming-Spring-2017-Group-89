@@ -89,5 +89,6 @@ func main() {
 			fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())
 			return
 		}
+		time.Sleep(10*time.Millisecond)
 	}
 } //End main

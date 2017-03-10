@@ -4,7 +4,7 @@ import (
 	// "../definitions"
 	// "../driver"
 	// "../buttons"
-	"../storage"
+	// "../storage"
 	// "../elevator"
 	"fmt"
 	"net"
@@ -22,7 +22,7 @@ import (
 
 var bcAddress string = "129.241.187.255"
 //var bcAddress string = "localhost"
-var port string = ":55555"
+var port string = ":55748"
 var slaveSendPort string = ":55758"
 var jsonSendPort string = ":55656"
 
@@ -607,7 +607,7 @@ func recieveJSON(){
 
 
 		go func(){
-			buf := make([]byte, 10000)
+			buf := make([]byte, 65536) /*2^16 = max recovery size*/
 			for {
 				udpListen.ReadFromUDP(buf)
 
