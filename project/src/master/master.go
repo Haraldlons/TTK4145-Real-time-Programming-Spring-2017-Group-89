@@ -8,16 +8,11 @@ import (
 )
 
 func Run() {
-	buttonPress := definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN}
+	buttonPress := definitions.Order{Floor: 2, Direction: definitions.DIR_UP}
 	stateList := []definitions.ElevatorState{
 		definitions.ElevatorState{LastFloor: 0, Direction: definitions.DIR_UP, Destination: 1},
 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
-		definitions.ElevatorState{LastFloor: 2, Direction: definitions.DIR_UP, Destination: 3},
-		definitions.ElevatorState{LastFloor: 3, Direction: definitions.DIR_UP, Destination: 4},
-		definitions.ElevatorState{LastFloor: 4, Direction: definitions.DIR_DOWN, Destination: 0},
-		definitions.ElevatorState{LastFloor: 5, Direction: definitions.DIR_UP, Destination: 6},
-		definitions.ElevatorState{LastFloor: 6, Direction: definitions.DIR_UP, Destination: 7},
-		definitions.ElevatorState{LastFloor: 7, Direction: definitions.DIR_UP, Destination: 8},
+		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
 	}
 
 	for i := range stateList {
@@ -28,7 +23,101 @@ func Run() {
 	fmt.Println("Statelist:", stateList)
 
 	bestElevator := findLowestCostElevator(stateList, buttonPress)
-	fmt.Println("Best elevator: Elevator number ", bestElevator+1)
+	fmt.Println("Best elevator: Elevator number ", bestElevator)
+
+	orderList := []definitions.Order{
+		definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
+		//definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN},
+		//definitions.Order{Floor: 4, Direction: definitions.DIR_DOWN},
+		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
+	}
+
+	orders := definitions.Orders{
+		Orders: orderList,
+	}
+
+	fmt.Println("Orders before update:", orders)
+
+	state := definitions.ElevatorState{LastFloor: 4, Direction: definitions.DIR_DOWN, Destination: 0}
+	UpdateOrders(&orders, buttonPress, state)
+
+	fmt.Println("Orders after update:", orders)
+}
+
+// Update order list in "orders" object with the command defined by externalButtonPress
+func UpdateOrders(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorState definitions.ElevatorState) {
+	if checkForDuplicateOrder(orders, externalButtonPress) {
+		fmt.Println("This order is already in the queue!")
+		return
+	}
+
+	// Check to see if order should be placed first based on current elevator state
+	if elevatorState.Direction == externalButtonPress.Direction && floorIsInbetween(orders.Orders[0].Floor, externalButtonPress.Floor, elevatorState.LastFloor, elevatorState.Direction) {
+		// Insert Order in first position
+		fmt.Println("Inserting order in first postion")
+
+		orders.Orders = append(orders.Orders, definitions.Order{})
+		copy(orders.Orders[1:], orders.Orders[:])
+		orders.Orders[0] = externalButtonPress
+		return
+	}
+
+	for i := 1; i < len(orders.Orders); i++ {
+		direction := orders.Orders[i].Direction
+		if externalButtonPress.Direction == direction { // Elevator is moving in the right direction
+			switch direction {
+			case definitions.DIR_UP:
+				if externalButtonPress.Floor < orders.Orders[i].Floor {
+					// Insert Order in position (i)
+					fmt.Println("Inserting order in postion", i)
+
+					orders.Orders = append(orders.Orders, definitions.Order{})
+					copy(orders.Orders[i+1:], orders.Orders[i:])
+					orders.Orders[i] = externalButtonPress
+					return
+				}
+			case definitions.DIR_DOWN:
+				if externalButtonPress.Floor > orders.Orders[i].Floor {
+					// Insert Order in position (i+1)
+					fmt.Println("Inserting order in postion", i)
+
+					orders.Orders = append(orders.Orders, definitions.Order{})
+					copy(orders.Orders[i+1:], orders.Orders[i:])
+					orders.Orders[i] = externalButtonPress
+					return
+
+				}
+			default:
+				fmt.Println("Something weird is up, buddy")
+			}
+		}
+	}
+	// Place order at back of orderList
+	fmt.Println("Placing order at back of order list")
+	orders.Orders = append(orders.Orders, externalButtonPress)
+}
+
+func checkForDuplicateOrder(orders *definitions.Orders, externalButtonPress definitions.Order) bool {
+	for i := range orders.Orders {
+		if orders.Orders[i] == externalButtonPress {
+			return true
+		}
+	}
+	return false
+}
+
+func floorIsInbetween(orderFloor int, buttonFloor int, elevatorFloor int, direction int) bool {
+	switch direction {
+	case definitions.DIR_UP:
+		return buttonFloor > elevatorFloor &&
+			buttonFloor < orderFloor
+	case definitions.DIR_DOWN:
+		return buttonFloor < elevatorFloor &&
+			buttonFloor > orderFloor
+	default:
+		fmt.Println("Something is wrong in floorIsBetween()")
+		return false
+	}
 }
 
 // Returns int corresponding to elevator with lowest cost (0:N_ELEVS-1)
@@ -50,7 +139,7 @@ func findLowestCostElevator(elevatorStates []definitions.ElevatorState, external
 			if elevatorHasAdditionalCost(travelDirection, destinationFloor, destinationDirection, elevatorStates[i]) {
 				costToDest := int(math.Abs(float64(elevatorStates[i].Destination - elevatorStates[i].LastFloor)))
 				tempCost = costToDest + int(math.Abs(float64(destinationFloor-elevatorStates[i].Destination)))
-				fmt.Println("Elevator ", i+1, " has extra cost")
+				fmt.Println("Elevator ", i, " has extra cost")
 			}
 		}
 
@@ -58,7 +147,7 @@ func findLowestCostElevator(elevatorStates []definitions.ElevatorState, external
 			minCost = tempCost
 			bestElevator = i
 		}
-		fmt.Println("Cost of elevator", i+1, ":", tempCost)
+		fmt.Println("Cost of elevator", i, ":", tempCost)
 	}
 	fmt.Println("Minimum cost:", minCost)
 	return bestElevator
@@ -87,37 +176,3 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 		travelDirection != elevState.Direction || // Elevator is moving in the opposite direction relative to destination
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
-
-/*
-func UpdateOrders(orders interface{}, externalButtonPress definitions.Order) {
-	for i := range orders.Orders {
-		direction := orders.Orders[i].Direction
-		if externalButtonPress.Direction == direction { // Elevator is moving in the right direction
-			switch direction {
-			case definitions.DIR_UP:
-				if externalButtonPress.Floor < orders.Orders[i].Floor {
-					// Insert Order in position (i)
-					orders.Orders = append(Orders[:i], append([]T{externalButtonPress}, orders.Orders[i:]...)...)
-					return
-				} else if externalButtonPress.Floor == orders.Orders[i].Floor {
-					fmt.Println("Duplicate order in UpdateOrders()")
-					return
-				}
-			case definition.DIR_DOWN:
-				if externalButtonPress.Floor > orders.Orders[i].Floor {
-					// Insert Order in position (i+1)
-					orders.Orders = append(Orders[:i+1], append([]T{externalButtonPress}, orders.Orders[i+1:]...)...)
-					return
-				} else if externalButtonPress.Floor == orders.Orders[i].Floor {
-					fmt.Println("Duplicate order in UpdateOrders()")
-					return
-				}
-			default:
-				//No clue
-			}
-		}
-	}
-	// Place order at back of orderList
-	orders.Orders = append(orders.Orders, externalButtonPress)
-}
-*/
