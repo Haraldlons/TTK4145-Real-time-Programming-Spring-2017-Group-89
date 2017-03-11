@@ -6,6 +6,7 @@ package driver
 #include "elev.h"
 #include "channels.h"
 #include "io.h"
+#include "con_load.h"
 */
 import "C"
 
