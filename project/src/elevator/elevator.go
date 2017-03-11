@@ -46,7 +46,7 @@ func ExecuteOrders(localOrderList *definitions.Orders, elevatorState *definition
 				go GoToFloor(localOrderList.Orders[0].Floor, elevatorState, stopCurrentOrder, updatedOrderList, updateElevatorStateDirection)
 				time.Sleep(20 * time.Millisecond)
 				*localOrderList = definitions.Orders{localOrderList.Orders[1:]}
-				storage.SaveOrdersToFile(1, localOrderList)
+				// storage.SaveOrdersToFile(1, localOrderList)
 				i++
 			}
 		}
