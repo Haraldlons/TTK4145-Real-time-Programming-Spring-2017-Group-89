@@ -41,7 +41,7 @@ func Run() {
 	// orderList := definitions.Orders{definitions}
 	// listOfNumbers := []int{0, 1, 2, 1, 3}
 	// secondListOfNumbers := []int{-1, 1, 1, -1, 1}
-	//
+
 	// for i := range listOfNumbers {
 	// 	totalOrderList = definitions.Orders{append(totalOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
 	// }
