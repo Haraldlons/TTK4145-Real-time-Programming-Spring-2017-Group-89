@@ -32,8 +32,7 @@ func Run() {
 }
 
 func TestRun() {
-
-	buttonPress := definitions.Order{Floor: 2, Direction: definitions.DIR_UP}
+	buttonPress := definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN}
 	stateList := []definitions.ElevatorState{
 		definitions.ElevatorState{LastFloor: 0, Direction: definitions.DIR_UP, Destination: 1},
 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
@@ -52,9 +51,9 @@ func TestRun() {
 
 	orderList := []definitions.Order{
 		definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
-		definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN},
-		definitions.Order{Floor: 4, Direction: definitions.DIR_UP},
 		definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
+		definitions.Order{Floor: 4, Direction: definitions.DIR_UP},
+		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
 	}
 
 	orders := definitions.Orders{
@@ -62,7 +61,7 @@ func TestRun() {
 	}
 
 	fmt.Println("Orders before update:", orders)
-	state := definitions.ElevatorState{LastFloor: 4, Direction: definitions.DIR_DOWN, Destination: 0}
+	state := definitions.ElevatorState{LastFloor: 3, Direction: definitions.DIR_DOWN, Destination: 0}
 	updateOrders(&orders, buttonPress, state)
 	fmt.Println("Orders after update:", orders)
 }
@@ -230,13 +229,14 @@ func check(err error) {
 // 	}
 // }
 
-// Finds the elevator closest to the destination floor decided by order.
-// elevatorStates is a list of the states of every elevator
-func findClosestElevator(order definitions.Order, elevatorStates [definitions.N_ELEVS]definitions.ElevatorState, idle [definitions.N_ELEVS]bool) int {
-	closest := 0
-	shortestDistance := definitions.N_FLOORS //Maximum distance to initialize variable
+// Returns int corresponding to elevator with lowest cost (0:N_ELEVS-1)
+func findLowestCostElevator(elevatorStates []definitions.ElevatorState, externalButtonPress definitions.Order) int {
+	minCost := 2 * definitions.N_FLOORS
+	bestElevator := 0
+	destinationFloor := externalButtonPress.Floor
+	destinationDirection := externalButtonPress.Direction
 
-	for i := 0; i < definitions.N_ELEVS; i++ {
+	for i := 0; i < len(elevatorStates); i++ {
 		travelDirection := findTravelDirection(elevatorStates[i].LastFloor, destinationFloor)
 		tempCost := int(math.Abs(float64(destinationFloor - elevatorStates[i].LastFloor)))
 

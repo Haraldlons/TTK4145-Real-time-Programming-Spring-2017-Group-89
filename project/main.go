@@ -8,14 +8,14 @@ import (
 	// "./src/elevator"
 	// "./src/network"
 	//"./src/buttons"
-	//"./src/driver"
+	"./src/driver"
 	// "./src/storage"
 	"./src/master"
 	//"./src/watchdog"
 	"fmt"
 	// "log"
 	// "os"
-	//"time"
+	"time"
 	// "os/exec"
 )
 

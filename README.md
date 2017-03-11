@@ -19,3 +19,6 @@ https://www.youtube.com/watch?v=CF9S4QZuV30&t=923s
 * Lage id for sletting av ordre (inkrementell eller random?)
 * Recovery fra storage (Hva skal master og controller gjøre når det finnes stuff i storage?)
 * Nummerering av slaves. Heis nr. ????
+
+# Bugs:
+* Dersom master.updateOrders() får inn samme etasje som heisen er på for øyeblikket blir orderen plassert på feil sted.
