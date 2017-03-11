@@ -8,7 +8,7 @@ import (
 	"../buttons"
 	"../elevator"
 	//"./src/driver"
-	// "../storage"
+	"../storage"
 	//"./src/master"
 	//"./src/watchdog"
 	// "network"
@@ -18,40 +18,37 @@ import (
 	// "encoding/json"
 )
 
-var elevatorState = definitions.ElevatorState{2, 0,0}
+var elevatorState = definitions.ElevatorState{2, 0, 0}
 
 // var orderList = definitions.orderList
 func Run() {
 	fmt.Println("Slave started!")
 	// Initializing
 	driver.Elev_init()
-	driver.Elev_set_motor_direction(driver.DIRECTION_STOP) 
+	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
 
 	// Channel Definitions
 	internalButtonsPressesChan := make(chan [definitions.N_FLOORS]int)
 	externalButtonsPressesChan := make(chan [definitions.N_FLOORS][2]int)
+	updatedOrderList := make(chan int)
 
-
+	///////////////////////////////////////////
 	// Make manually orderList
 	// orderList := definitions.Orders{definitions}
-	listOfNumbers := []int{0,1,2,1,3}
-	secondListOfNumbers := []int{-1,1,1,-1,1}
+	listOfNumbers := []int{0, 1, 2, 1, 3}
+	secondListOfNumbers := []int{-1, 1, 1, -1, 1}
 
 	totalOrderList := definitions.Orders{}
 
 	for i := range listOfNumbers {
-		totalOrderList = definitions.Orders{append(totalOrderList.Orders,definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
+		totalOrderList = definitions.Orders{append(totalOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
 	}
+	fmt.Println("printing totalOrderList:", totalOrderList)
+	/////////////////////////////////////////
 
-	fmt.Println("printing orderList:", totalOrderList)
-
-
-	// storage.LoadElevatorStateFromFile(&elevatorState)
 	// storage.LoadOrderListFromFile(&orderList)
-	updatedOrderList := make(chan int)
+	storage.LoadElevatorStateFromFile(&elevatorState)
 
-
-	go elevator.ExecuteOrders(&totalOrderList, &elevatorState, updatedOrderList)
 	// go elevator.CheckForElevatorStateUpdates()
 	// go watchdog.SendImAliveMessages()
 	// go watchdog.CheckForMasterAlive()
@@ -63,13 +60,12 @@ func Run() {
 
 	go printExternalPresses(externalButtonsPressesChan)
 	go printInternalPresses(internalButtonsPressesChan)
+	go elevator.ExecuteOrders(&totalOrderList, &elevatorState, updatedOrderList)
 	// go checkForUpdatesFromMaster()
 	// go sendUpdatesToMaster()
 
-	
 	// buttonPressesUpdates := make(chan button)
 	// go checkForButtonPresses()
-
 
 	// elevatorState := definitions.ElevatorState{2, 0}
 
@@ -117,6 +113,8 @@ func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
 			// isFirstButtonPress = false
 			// default:
 			// fmt.Println("No button pressed")
+			time.Sleep(time.Millisecond * 200)
+
 		}
 	}
 }
