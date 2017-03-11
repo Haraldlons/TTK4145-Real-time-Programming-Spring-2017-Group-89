@@ -16,7 +16,7 @@ func Run() bool {
 }
 
 // Returns int corresponding to elevator with lowest cost (0:N_ELEVS-1)
-func findLowestCostElevator(elevatorStates [definitions.N_ELEVS]definitions.ElevatorState, externalButtonPress definitions.Order) int {
+func findLowestCostElevator(elevatorStates []definitions.ElevatorState, externalButtonPress definitions.Order) int {
 	minCost := 2 * definitions.N_FLOORS
 	bestElevator := 0
 	destinationFloor := externalButtonPress.Floor
@@ -24,22 +24,27 @@ func findLowestCostElevator(elevatorStates [definitions.N_ELEVS]definitions.Elev
 
 	for i := 0; i < definitions.N_ELEVS; i++ {
 		travelDirection := findTravelDirection(elevatorStates[i].LastFloor, destinationFloor)
-		tempCost := int(math.Abs(destinationFloor - elevatorStates[i].LastFloor))
+		tempCost := int(math.Abs(float64(destinationFloor - elevatorStates[i].LastFloor)))
 
 		if elevatorStates[i].Destination == definitions.IDLE {
 			// Elevator is idle
 			tempCost = tempCost - 1 // Prioritize idle elevators
-
-		} else if travelDirection != elevatorStates[i].Direction || travelDirection != destinationDirection {
-			// Elevator already passed the destination or is moving in the wrong direction wrt. dest. Direction and travelDirection
-			tempCost = tempCost + int(math.Abs(elevatorStates[i].Destination-elevatorStates[i].LastFloor))
+		} else if elevatorStates[i].Destination != destinationFloor {
+			// No additional cost if elevator destination is the same as order destination
+			if elevatorHasAdditionalCost(travelDirection, destinationFloor, destinationDirection, elevatorStates[i]) {
+				costToDest := int(math.Abs(float64(elevatorStates[i].Destination - elevatorStates[i].LastFloor)))
+				tempCost = costToDest + int(math.Abs(float64(destinationFloor-elevatorStates[i].Destination)))
+				fmt.Println("Elevator ", i+1, " has extra cost")
+			}
 		}
 
 		if tempCost < minCost {
 			minCost = tempCost
 			bestElevator = i
 		}
+		fmt.Println("Cost of elevator", i+1, ":", tempCost)
 	}
+	fmt.Println("Minimum cost:", minCost)
 	return bestElevator
 }
 
@@ -51,6 +56,20 @@ func findTravelDirection(startFloor int, destinationFloor int) int {
 	} else {
 		return definitions.DIR_DOWN
 	}
+}
+
+// Returns true if elevator passes destinationFloor on it's way to elevatorDestination
+func elevatorPassesDestinationFloor(travelDirection int, destinationFloor int, elevatorDestination int) bool {
+	return (travelDirection == definitions.DIR_UP && destinationFloor-elevatorDestination < 0) ||
+		(travelDirection == definitions.DIR_DOWN && destinationFloor-elevatorDestination > 0)
+}
+
+// Returns true if elevator can not go straight to destinationFloor
+func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destinationDirection int, elevState definitions.ElevatorState) bool {
+	return (elevatorPassesDestinationFloor(travelDirection, destinationFloor, elevState.Destination) &&
+		travelDirection != destinationDirection) || // Elevator is traveling in the opposite direction of Order
+		travelDirection != elevState.Direction || // Elevator is moving in the opposite direction relative to destination
+		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
 
 func UpdateOrders(orders interface{}, externalButtonPress definitions.Order) {

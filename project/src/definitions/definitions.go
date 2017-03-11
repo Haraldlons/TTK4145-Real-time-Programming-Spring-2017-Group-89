@@ -31,8 +31,9 @@ type Order struct {
 }
 
 type ElevatorState struct {
-	LastFloor int
-	Direction int
+	LastFloor   int
+	Direction   int
+	Destination int
 }
 
 type MSG struct {
