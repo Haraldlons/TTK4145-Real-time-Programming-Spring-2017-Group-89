@@ -44,7 +44,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 				case <- stopCurrentOrder:
 					fmt.Println("Finially got message to stop going to floor, ", destinationFloor)
 					return
-				case <- time.After(2000 * time.Millisecond):
+				case <- time.After(5000 * time.Millisecond):
 					fmt.Println("Still have not got message to kill this order to floor: ", destinationFloor)
 				}
 			}
@@ -70,7 +70,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 					fmt.Println("stopCurrentOrder recieved. Stopping to floor: ", destinationFloor)
 					return
 				default:
-					fmt.Println("Floor: ", driver.Elev_get_floor_sensor_signal())
+					// fmt.Println("Floor: ", driver.Elev_get_floor_sensor_signal())
 					// fmt.Println("Testing")
 					if driver.Elev_get_floor_sensor_signal() == destinationFloor {
 						// orderList <- orderList[1:]

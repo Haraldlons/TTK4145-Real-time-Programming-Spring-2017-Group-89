@@ -1,7 +1,7 @@
 package network
 
 import (
-	// "../definitions"
+	"../definitions"
 	// "../driver"
 	// "../buttons"
 	// "../storage"
@@ -20,7 +20,7 @@ import (
 )
 
 
-var bcAddress string = "129.241.187.155"
+var bcAddress string = "129.241.187.255"
 //var bcAddress string = "localhost"
 var port string = ":55748"
 var slaveSendPort string = ":55758"
@@ -619,7 +619,7 @@ func recieveJSON(){
 
 				// Convert byte from buf to int and send over channel.
 				err := json.Unmarshal(buf[2:jsonByteLength+2], &m)
-				// storage.SaveElevatorStateToFile(m) //This actually works
+				storage.SaveElevatorStateToFile(m) //This actually works
 				// fmt.Println("Her kommer m som du skal se på: ", m)
 				// fmt.Println("Ferdig med å vise m")
 				check(err)
@@ -657,3 +657,29 @@ func recieveJSON(){
 // func decodeJSONRecievedAndStore(){
 
 // }
+
+func SendFromSlaveToMaster(externalButtonPressesChan chan, ordersChan chan, elevatorState definitions.ElevatorState, id string) { 
+  MSG := definitions.MSG_to_master {
+    Orders: Orders, 
+    ElevatorState: state,
+    ExternalButtonPresses: <-externalButtonPressesChan, 
+    Id: id,//Id string 
+  }
+
+  sendJSON(MSG)
+}
+
+func SendFromMasterToSlave(elevators){
+  MSG := definitions.MSG_to_slave {
+    Elevators: elevators,
+  }
+  sendJSON(MSG)
+}
+
+func ListenToMaster() {
+
+}
+
+func ListenToSlave() {
+  
+}

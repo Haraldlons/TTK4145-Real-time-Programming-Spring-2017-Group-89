@@ -1,0 +1,70 @@
+1.
+Sjekke om heis i samme etasje er idle
+2.
+Sjekke om heis i etasje over eller under er idle
+3. 
+Om noen heiser går forbi ditt sted(og i samme retning)
+4. 
+Hvilken som helst idle heis
+5. 
+Destination_floor som er nærmest din floor
+
+
+Internal
+1.
+Hvis heis idle -> go to floor
+2. 
+Hvis floor på vei til destination_floor -> go to floor
+3.
+Hvis floor i feil retning, legg til ordre etter destination_floor
+
+
+
+Spørsmål til Stud.ass.
+1. 
+Channels. Hvis lytter flere steder. Vil alle steder motta
+2.
+GoToFloor. Er vår løsning en god imple
+3. 
+executeOrders. Hva kan forbedres? Kommentarer?
+4. 
+Hvordan funker main-funksjonen?
+
+
+func executeOrders(){
+	for {
+		select {
+		case orderList <- localOrderList
+			stopLastgoToFloor<- 0
+			goToFloor(orderList[0])
+		}
+	}
+}
+
+func checkCompletetOrder(){
+		if orderList[0] == currentFloor {
+			orderList = OrderList[1:]
+			orderListChan <- orderList
+			network.sendUpdatesToMaster(orderList)
+		}
+}
+
+
+Hvordan master håndterer nye knappetrykk
+1.
+Master mottar hele ordrelisten + externe knappetrykk. Interne knappetrykk er håndtert lokalt på hver slave, og slaven kan derfor sende en oppdatert ordreListe.
+Mottar også elevatorState til alle heisene.
+2. 
+Master prøver å finne åpninger hvor den kan sette inn nye ordre.
+3.
+Etter satt inn nye order i ordreList -> sender ordreListen over nett
+4.
+Lytter etter nye ordre. 
+
+
+Spørsmål Stud.Ass
+1.
+Simulator
+2. 
+Lytte til flere channels
+3.
