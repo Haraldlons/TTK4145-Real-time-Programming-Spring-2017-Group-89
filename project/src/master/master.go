@@ -2,9 +2,9 @@ package master
 
 import (
 	"../definitions"
+	"../network"
 	"fmt"
 	"math"
-	//"network"
 )
 
 func Run() {
@@ -42,6 +42,8 @@ func Run() {
 	UpdateOrders(&orders, buttonPress, state)
 
 	fmt.Println("Orders after update:", orders)
+
+	network.SendOrderList(&orders)
 }
 
 // Update order list in "orders" object with the command defined by externalButtonPress
