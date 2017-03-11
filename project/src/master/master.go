@@ -11,8 +11,27 @@ func Initialize() bool {
 }
 
 func Run() bool {
-	//elevatorOrders := []Orders{}
-	return true
+	buttonPress := definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN}
+	stateList := []definitions.ElevatorState{
+		definitions.ElevatorState{LastFloor: 0, Direction: definitions.DIR_UP, Destination: 1},
+		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
+		definitions.ElevatorState{LastFloor: 2, Direction: definitions.DIR_UP, Destination: 3},
+		definitions.ElevatorState{LastFloor: 3, Direction: definitions.DIR_UP, Destination: 4},
+		definitions.ElevatorState{LastFloor: 4, Direction: definitions.DIR_DOWN, Destination: 0},
+		definitions.ElevatorState{LastFloor: 5, Direction: definitions.DIR_UP, Destination: 6},
+		definitions.ElevatorState{LastFloor: 6, Direction: definitions.DIR_UP, Destination: 7},
+		definitions.ElevatorState{LastFloor: 7, Direction: definitions.DIR_UP, Destination: 8},
+	}
+
+	for i := range stateList {
+		stateList[i].LastFloor = i
+	}
+
+	fmt.Println("Order: ", buttonPress)
+	fmt.Println("Statelist:", stateList)
+
+	bestElevator := findLowestCostElevator(stateList, buttonPress)
+	fmt.Println("Best elevator: Elevator number ", bestElevator+1)
 }
 
 // Returns int corresponding to elevator with lowest cost (0:N_ELEVS-1)
