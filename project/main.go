@@ -2,20 +2,20 @@ package main
 
 import (
 	"./src/slave"
+
 	// "./src/definitions"
-	"./src/driver"
+	//"./src/driver"
 	// "./src/elevator"
 	// "./src/network"
 	//"./src/buttons"
 	//"./src/driver"
 	// "./src/storage"
-	//"./src/master"
+	"./src/master"
 	//"./src/watchdog"
 	"fmt"
 	// "log"
 	// "os"
-	"time"
-	// "fmt"
+	//"time"
 	// "os/exec"
 )
 
@@ -28,6 +28,7 @@ var msg = make([]byte, 8)
 func main() {
 	fmt.Println("Main function started")
 	go slave.Run()
+	go master.TestRun()
 
 	// if network.checkIfMasterAlreadyExist() {
 	// 	slave.run()
