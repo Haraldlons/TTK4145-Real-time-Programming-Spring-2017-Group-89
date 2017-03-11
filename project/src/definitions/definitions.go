@@ -50,3 +50,8 @@ type TestMessage struct {
 	Body string
 	Time int64
 }
+
+type Elevators struct {
+	OrderMap map[string]Orders
+	StateMap map[string]ElevatorState
+}

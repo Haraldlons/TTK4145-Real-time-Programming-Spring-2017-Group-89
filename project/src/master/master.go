@@ -2,7 +2,7 @@ package master
 
 import (
 	"../definitions"
-	"../network"
+	//"../network"
 	"fmt"
 	"math"
 )
@@ -27,9 +27,9 @@ func Run() {
 
 	orderList := []definitions.Order{
 		definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
-		//definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN},
-		//definitions.Order{Floor: 4, Direction: definitions.DIR_DOWN},
-		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
+		definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN},
+		definitions.Order{Floor: 4, Direction: definitions.DIR_UP},
+		definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
 	}
 
 	orders := definitions.Orders{
@@ -37,17 +37,47 @@ func Run() {
 	}
 
 	fmt.Println("Orders before update:", orders)
-
 	state := definitions.ElevatorState{LastFloor: 4, Direction: definitions.DIR_DOWN, Destination: 0}
-	UpdateOrders(&orders, buttonPress, state)
-
+	updateOrders(&orders, buttonPress, state)
 	fmt.Println("Orders after update:", orders)
-
-	network.SendOrderList(&orders)
 }
 
+/*
+func handleUpdatesFromSlaves(totalOrderList chan definitions.Elevators) {
+	go network.listenForUpdatesFromSlave(totalOrderList)
+	go func() {
+		for {
+			select {
+			case <-totalOrderList:
+				bestElevator := findLowestCostElevator(elevatorStates, externalButtonPress)
+				updateOrders(&orders, externalButtonPress, elevatorState)
+
+			}
+		}
+	}()
+}
+*/
+
+/*
+func PrepareMessageToSlaves(slaveNum int, allElevators *definitions.Elevators) []byte {
+	message, err := json.Marshal(allElevators)
+	fmt.Println("JSON in ByteArray:", message)
+
+	jsonByteLength := len(message)
+	firstByte := jsonByteLength / 255
+	secondByte := jsonByteLength - firstByte*255
+
+	fmt.Println("JSONByteArrayLength:", jsonByteLength)
+
+	fmt.Println(byte(len(message)))
+
+	b = append([]byte{byte(secondByte)}, message...)
+	b = append([]byte{byte(firstByte)}, message...)
+}
+*/
+
 // Update order list in "orders" object with the command defined by externalButtonPress
-func UpdateOrders(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorState definitions.ElevatorState) {
+func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorState definitions.ElevatorState) {
 	if checkForDuplicateOrder(orders, externalButtonPress) {
 		fmt.Println("This order is already in the queue!")
 		return

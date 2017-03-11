@@ -1,17 +1,17 @@
 package network
 
 import (
-	// "../definitions"
+	"../definitions"
 	// "../driver"
 	// "../buttons"
-	"../storage"
+	//"../storage"
 	// "../elevator"
-	"fmt"
-	"net"
-	"time"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
+	"net"
 	"os/exec"
+	"time"
 	// "math"
 	//"bufio"
 	// "log"
@@ -19,13 +19,12 @@ import (
 	//"strconv"
 )
 
-
 var bcAddress string = "129.241.187.255"
+
 //var bcAddress string = "localhost"
 var port string = ":55555"
 var slaveSendPort string = ":55758"
 var jsonSendPort string = ":55656"
-
 
 var delay100ms = 100 * time.Millisecond
 
@@ -100,7 +99,7 @@ func listen(listenChan chan int, udpListen *net.UDPConn) {
 
 		// Convert byte from buf to int and send over channel.
 		listenChan <- int(binary.BigEndian.Uint64(buf))
-		time.Sleep(10*delay100ms) // Wait 1 cycle (100 ms)
+		time.Sleep(10 * delay100ms) // Wait 1 cycle (100 ms)
 	}
 }
 
@@ -138,7 +137,7 @@ func SetupNetwork() {
 	udpBroadcast.Close()
 }
 
-func sendImAliveMessage(stopSlaveBroadcasting chan int){
+func sendImAliveMessage(stopSlaveBroadcasting chan int) {
 	defer fmt.Println("Actually stopping sending sendImAliveMessage")
 
 	fmt.Println("Sending order over network")
@@ -160,45 +159,41 @@ func sendImAliveMessage(stopSlaveBroadcasting chan int){
 	// }()
 	for {
 		select {
-			case <- stopSlaveBroadcasting:
-				return
-			default:
-				udpBroadcast.Write(msg)
-				// fmt.Println("Sending I'm Alive")
-				time.Sleep(delay100ms*20)
+		case <-stopSlaveBroadcasting:
+			return
+		default:
+			udpBroadcast.Write(msg)
+			// fmt.Println("Sending I'm Alive")
+			time.Sleep(delay100ms * 20)
 		}
 	}
 
-
 }
 
-func listenAfterImAliveMessage(){
-		fmt.Println("Listening after ImAlive messages")
-		udpAddr, err := net.ResolveUDPAddr("udp", slaveSendPort)
-		check(err)
+func listenAfterImAliveMessage() {
+	fmt.Println("Listening after ImAlive messages")
+	udpAddr, err := net.ResolveUDPAddr("udp", slaveSendPort)
+	check(err)
 
-		slaveMessagesRecieved := 0
+	slaveMessagesRecieved := 0
 
-		// Create listen Conn
-		udpListen, err := net.ListenUDP("udp", udpAddr)
-		check(err)
+	// Create listen Conn
+	udpListen, err := net.ListenUDP("udp", udpAddr)
+	check(err)
 
-		listenChan := make(chan int, 1)
-		slaveCount := 0
+	listenChan := make(chan int, 1)
+	slaveCount := 0
 
+	go func() {
+		buf := make([]byte, 8)
+		for {
+			udpListen.ReadFromUDP(buf)
 
-		go func(){
-			buf := make([]byte, 8)
-			for {
-				udpListen.ReadFromUDP(buf)
-
-				// Convert byte from buf to int and send over channel.
-				listenChan <- int(binary.BigEndian.Uint64(buf))
-				time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
-			}
-		}()
-
-
+			// Convert byte from buf to int and send over channel.
+			listenChan <- int(binary.BigEndian.Uint64(buf))
+			time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
+		}
+	}()
 
 	for {
 		select {
@@ -211,7 +206,7 @@ func listenAfterImAliveMessage(){
 			// 	// go goToFloor(slaveCount, &elevatorState)
 			// }
 			// sendImAliveMessage()
-			time.Sleep(delay100ms ) // wait 50 ms
+			time.Sleep(delay100ms) // wait 50 ms
 			break
 		case <-time.After(30 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
 			// When master dies, slavecount is returned so that a new process of master -> slave
@@ -240,7 +235,98 @@ func setOrderOverNetwork(destinationFloor int) {
 	udpBroadcast.Write(msg)
 }
 
-func sendJSON(){
+func SendOrderList(m *definitions.Orders) {
+	defer fmt.Println("Finished sending JSON")
+
+	fmt.Println("Sending JSON over network")
+	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+jsonSendPort)
+	check(err)
+	b, _ := json.Marshal(m)
+
+	fmt.Println("JSON in ByteArray:", b)
+	jsonByteLength := len(b)
+	firstByte := jsonByteLength / 255
+	// fmt.Println("firstByte", firstByte)
+	secondByte := jsonByteLength - firstByte*255
+	// fmt.Println("secondByte:",secondByte)
+	// fmt.Println("JSONByteArrayLength:",jsonByteLength)
+
+	fmt.Println(byte(len(b)))
+
+	b = append([]byte{byte(secondByte)}, b...)
+	b = append([]byte{byte(firstByte)}, b...)
+	// fmt.Println("WITH Length as first byte", b)
+
+	// Create bcast Conn
+	udpBroadcast, _ := net.DialUDP("udp", nil, udpAddr)
+	// check(err)
+
+	udpBroadcast.Write(b)
+}
+
+func ReceiveOrderList() {
+	fmt.Println("Listening after JSON Objectes")
+	udpAddr, err := net.ResolveUDPAddr("udp", jsonSendPort)
+	check(err)
+
+	JSONobjectsRecieved := 0
+
+	// Create listen Conn
+	udpListen, err := net.ListenUDP("udp", udpAddr)
+	check(err)
+	var m interface{}
+
+	listenChan := make(chan interface{}, 1)
+	// slaveCount := 0
+
+	go func() {
+		buf := make([]byte, 10000)
+		for {
+			udpListen.ReadFromUDP(buf)
+
+			// Two first bytes contains the size of the JSON byte array
+
+			// fmt.Println("buffer after read from UDP: ", buf)
+			jsonByteLength := int(buf[0])*255 + int(buf[1])
+			// fmt.Println("jsonByteLength:",jsonByteLength)
+
+			// Convert byte from buf to int and send over channel.
+			err := json.Unmarshal(buf[2:jsonByteLength+2], &m)
+			// storage.SaveElevatorStateToFile(m) //This actually works
+			// fmt.Println("Her kommer m som du skal se på: ", m)
+			// fmt.Println("Ferdig med å vise m")
+			check(err)
+			listenChan <- m
+			time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
+		}
+	}()
+
+	for {
+		select {
+		case JSONByteArray := <-listenChan:
+			// fmt.Println("slaveCount: ", slaveCount)
+			fmt.Println("got JSON object: ", JSONByteArray, ", json objects recieved: ", JSONobjectsRecieved)
+			JSONobjectsRecieved++
+			// if slaveCount < 4 && slaveCount > -1 {
+			//  fmt.Println("Going to floor from slave: ", slaveCount)
+			//  // go goToFloor(slaveCount, &elevatorState)
+			// }
+			// sendImAliveMessage()
+			time.Sleep(delay100ms / 2) // wait 50 ms
+			break
+		case <-time.After(30 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
+			// When master dies, slavecount is returned so that a new process of master -> slave
+			// can continue from the last value sent over the network.
+			// fmt.Println("Have not recieved any JSON message for the last 3 seconds!")
+			// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+			// err := newSlave.Run()
+			check(err)
+			// return
+		}
+	}
+}
+
+func sendJSON() {
 	defer fmt.Println("Finished sending JSON")
 
 	fmt.Println("Sending JSON over network")
@@ -568,7 +654,7 @@ func sendJSON(){
   }
 ]`)
 
-	fmt.Println("JSON in ByteArray:",b)
+	fmt.Println("JSON in ByteArray:", b)
 	jsonByteLength := len(b)
 	firstByte := jsonByteLength / 255
 	// fmt.Println("firstByte", firstByte)
@@ -578,10 +664,9 @@ func sendJSON(){
 
 	fmt.Println(byte(len(b)))
 
-	b = append([]byte{byte(secondByte)},b...)
-	b = append([]byte{byte(firstByte)},b...)
+	b = append([]byte{byte(secondByte)}, b...)
+	b = append([]byte{byte(firstByte)}, b...)
 	// fmt.Println("WITH Length as first byte", b)
-
 
 	// Create bcast Conn
 	udpBroadcast, _ := net.DialUDP("udp", nil, udpAddr)
@@ -590,43 +675,42 @@ func sendJSON(){
 	udpBroadcast.Write(b)
 }
 
-func recieveJSON(){
-		fmt.Println("Listening after JSON Objectes")
-		udpAddr, err := net.ResolveUDPAddr("udp", jsonSendPort)
-		check(err)
+func recieveJSON() {
+	fmt.Println("Listening after JSON Objectes")
+	udpAddr, err := net.ResolveUDPAddr("udp", jsonSendPort)
+	check(err)
 
-		JSONobjectsRecieved := 0
+	JSONobjectsRecieved := 0
 
-		// Create listen Conn
-		udpListen, err := net.ListenUDP("udp", udpAddr)
-		check(err)
-		var m interface{}
+	// Create listen Conn
+	udpListen, err := net.ListenUDP("udp", udpAddr)
+	check(err)
+	var m interface{}
 
-		listenChan := make(chan interface{}, 1)
-		// slaveCount := 0
+	listenChan := make(chan interface{}, 1)
+	// slaveCount := 0
 
+	go func() {
+		buf := make([]byte, 10000)
+		for {
+			udpListen.ReadFromUDP(buf)
 
-		go func(){
-			buf := make([]byte, 10000)
-			for {
-				udpListen.ReadFromUDP(buf)
+			// Two first bytes contains the size of the JSON byte array
 
-				// Two first bytes contains the size of the JSON byte array
+			// fmt.Println("buffer after read from UDP: ", buf)
+			jsonByteLength := int(buf[0])*255 + int(buf[1])
+			// fmt.Println("jsonByteLength:",jsonByteLength)
 
-				// fmt.Println("buffer after read from UDP: ", buf)
-				jsonByteLength := int(buf[0])*255 + int(buf[1])
-				// fmt.Println("jsonByteLength:",jsonByteLength)
-
-				// Convert byte from buf to int and send over channel.
-				err := json.Unmarshal(buf[2:jsonByteLength+2], &m)
-				// storage.SaveElevatorStateToFile(m) //This actually works
-				// fmt.Println("Her kommer m som du skal se på: ", m)
-				// fmt.Println("Ferdig med å vise m")
-				check(err)
-				listenChan <- m
-				time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
-			}
-		}()
+			// Convert byte from buf to int and send over channel.
+			err := json.Unmarshal(buf[2:jsonByteLength+2], &m)
+			// storage.SaveElevatorStateToFile(m) //This actually works
+			// fmt.Println("Her kommer m som du skal se på: ", m)
+			// fmt.Println("Ferdig med å vise m")
+			check(err)
+			listenChan <- m
+			time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
+		}
+	}()
 
 	for {
 		select {
