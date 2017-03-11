@@ -35,6 +35,7 @@ func ExecuteOrders(localOrderList *definitions.Orders, elevatorState *definition
 	for {
 		select {
 		case <-updatedOrderList:
+			storage.SaveOrdersToFile(1, localOrderList)
 			if len(localOrderList.Orders) > 0 {
 				// fmt.Println("Hopefully going to new floor: ", localOrderList.Orders[0].Floor, "and if-statement: ", len(localOrderList.Orders) > 0)
 				if !isFirstButtonPress {
@@ -46,7 +47,6 @@ func ExecuteOrders(localOrderList *definitions.Orders, elevatorState *definition
 				go GoToFloor(localOrderList.Orders[0].Floor, elevatorState, stopCurrentOrder, updatedOrderList, updateElevatorStateDirection)
 				time.Sleep(20 * time.Millisecond)
 				*localOrderList = definitions.Orders{localOrderList.Orders[1:]}
-				// storage.SaveOrdersToFile(1, localOrderList)
 				i++
 			}
 		}
