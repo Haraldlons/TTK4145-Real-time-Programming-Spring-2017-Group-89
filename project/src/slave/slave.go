@@ -30,26 +30,32 @@ func Run() {
 	// Channel Definitions
 	internalButtonsPressesChan := make(chan [definitions.N_FLOORS]int)
 	externalButtonsPressesChan := make(chan [definitions.N_FLOORS][2]int)
+	updateElevatorStateDirection := make(chan int)
+	updateElevatorStateFloor := make(chan int)
+
 	updatedOrderList := make(chan int)
 
 	///////////////////////////////////////////
 	// Make manually orderList
-	// orderList := definitions.Orders{definitions}
-	listOfNumbers := []int{0, 1, 2, 1, 3}
-	secondListOfNumbers := []int{-1, 1, 1, -1, 1}
-
 	totalOrderList := definitions.Orders{}
+	// orderList := definitions.Orders{definitions}
+	// listOfNumbers := []int{0, 1, 2, 1, 3}
+	// secondListOfNumbers := []int{-1, 1, 1, -1, 1}
+	//
+	// for i := range listOfNumbers {
+	// 	totalOrderList = definitions.Orders{append(totalOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
+	// }
+	// fmt.Println("printing totalOrderList:", totalOrderList)
+	// storage.SaveOrdersToFile(1, totalOrderList)
+	///////////////////////////////////////////
 
-	for i := range listOfNumbers {
-		totalOrderList = definitions.Orders{append(totalOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
-	}
-	fmt.Println("printing totalOrderList:", totalOrderList)
-	/////////////////////////////////////////
-
-	// storage.LoadOrderListFromFile(&orderList)
+	storage.LoadOrdersFromFile(1, &totalOrderList)
+	// fmt.Println("Loaded totalOrderlist from a file. Result: ", totalOrderList)
 	storage.LoadElevatorStateFromFile(&elevatorState)
 
-	// go elevator.CheckForElevatorStateUpdates()
+	go elevator.CheckForElevatorFloorUpdates(&elevatorState, updateElevatorStateFloor)
+	go elevator.ListenAfterElevatStateUpdatesAndSaveToFile(&elevatorState, updateElevatorStateDirection, updateElevatorStateFloor)
+
 	// go watchdog.SendImAliveMessages()
 	// go watchdog.CheckForMasterAlive()
 
@@ -60,7 +66,7 @@ func Run() {
 
 	go printExternalPresses(externalButtonsPressesChan)
 	go printInternalPresses(internalButtonsPressesChan)
-	go elevator.ExecuteOrders(&totalOrderList, &elevatorState, updatedOrderList)
+	go elevator.ExecuteOrders(&totalOrderList, &elevatorState, updatedOrderList, updateElevatorStateDirection)
 	// go checkForUpdatesFromMaster()
 	// go sendUpdatesToMaster()
 
@@ -102,21 +108,36 @@ func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
 	// isFirstButtonPress := true
 	for {
 		select {
-		case <-internalButtonsChan:
-			fmt.Println("Internal button pressed: ", <-internalButtonsChan)
+		case list := <-internalButtonsChan:
+			fmt.Println("Internal button pressed: ", list)
+			driver.Elev_set_button_lamp(2, getFloorFromInternalPress(list), 1)
 			// if !isFirstButtonPress {
 			// 	stopCurrentOrder <- 1
 			// } //Value in channel doesn't matter
-			// // if(saveOrderToFile) { go findFloorAndGoTo()}
+
 			// go findFloorAndGoTo(internalButtonsChan, <-internalButtonsChan, stopCurrentOrder)
-			// time.Sleep(time.Millisecond * 200)
+			time.Sleep(time.Millisecond * 200)
 			// isFirstButtonPress = false
 			// default:
-			// fmt.Println("No button pressed")
-			time.Sleep(time.Millisecond * 200)
+			// 	fmt.Println("No button pressed")
+			// 	time.Sleep(time.Millisecond * 500)
+			driver.Elev_set_button_lamp(2, getFloorFromInternalPress(list), 0)
 
 		}
 	}
+}
+
+func getFloorFromInternalPress(buttonPresses [definitions.N_FLOORS]int) int {
+	array := buttonPresses
+	for i := 0; i < definitions.N_FLOORS; i++ {
+		if array[i] == 1 {
+			// fmt.Println("Going to floorfdsf: ", i)
+			return i
+			// elevator.GoToFloor(i, &elevatorState, stopCurrentOrder)
+			// fmt.Println("goToFloor Ended", i, " ended")
+		}
+	}
+	return 0
 }
 
 // func findFloorAndGoTo(kanal chan [definitions.N_FLOORS]int, buttonPresses [definitions.N_FLOORS]int, stopCurrentOrder chan int) {
