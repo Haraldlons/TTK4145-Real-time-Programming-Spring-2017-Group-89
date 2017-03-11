@@ -136,6 +136,8 @@ int elev_get_floor_sensor_signal(void) {
 
 
 int elev_get_stop_signal(void) {
+    // fprintf("stop", "%i\n",io_read_bit(STOP) );
+    // fprintf ("Stop signal: %i\n", io_read_bit(STOP));
     return io_read_bit(STOP);
 }
 

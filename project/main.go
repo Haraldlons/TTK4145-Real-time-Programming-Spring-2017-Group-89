@@ -2,7 +2,7 @@ package main
 
 import (
 	"./src/controller"
-	// "./src/definitions"
+	"./src/definitions"
 	"./src/driver"
 	// "./src/elevator"
 	"./src/network"
@@ -20,7 +20,8 @@ import (
 )
 
 var delay = 50 * time.Millisecond
-var endProgram = false
+
+// var endProgram = false
 var elevatorActive = false
 
 // var elevatorState = definitions.ElevatorState{2, 0}
@@ -30,7 +31,7 @@ func main() {
 	fmt.Println("Main function started")
 
 	driver.Elev_init()
-	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
+	driver.Elev_set_motor_direction(definitions.DIR_STOP)
 
 	// elevatorState := definitions.ElevatorState{2, 0}
 	// storage.readElevatorStateFromFile(&elevatorState)
@@ -83,20 +84,20 @@ func main() {
 		// 	// setOrderOverNetwork(3)
 		// }
 
-		if endProgram {
-			driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
-			fmt.Println("endProgram == true. Stopping program")
-			return
-		}
+		// if endProgram {
+		// 	driver.Elev_set_motor_direction(definitions.DIR_STOP)
+		// 	fmt.Println("endProgram == true. Stopping program")
+		// 	return
+		// }
 
 		stopSignal = driver.Elev_get_stop_signal()
 		if stopSignal != 0 {
 			// setOrderOverNetwork(0)
-			driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
+			driver.Elev_set_motor_direction(definitions.DIR_STOP)
 			fmt.Println("Stopping program, with stop signal: ", stopSignal)
 			fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())
 			return
 		}
-		time.Sleep(10*time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 } //End main
