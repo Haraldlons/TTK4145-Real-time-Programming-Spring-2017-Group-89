@@ -3,7 +3,7 @@ package elevator
 import (
 	"../definitions"
 	"../driver"
-	// "../storage"
+	"../storage"
 	"fmt"
 	"time"
 )
@@ -54,7 +54,7 @@ func ExecuteOrders(localOrderList *definitions.Orders, elevatorState *definition
 func CheckForElevatorStateUpdates(elevatorState *definitions.ElevatorState) {
 	for {
 		lastFloor := driver.Elev_get_floor_sensor_signal()
-		if lastFloor >= 0 && lastFloor < definitions.N_FLOOR {
+		if lastFloor >= 0 && lastFloor < definitions.N_FLOORS {
 			if lastFloor == 0 {
 				if elevatorState.LastFloor != 0 {
 					elevatorState.Direction = definitions.DIR_UP
