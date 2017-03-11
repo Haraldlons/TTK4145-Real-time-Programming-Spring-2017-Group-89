@@ -26,8 +26,12 @@ const (
 )
 
 type Order struct {
-	floor int
-	// Direction bool
+	Floor     int
+	Direction int
+}
+
+type Orders struct {
+	Orders []Order
 }
 
 type ElevatorState struct {
@@ -36,13 +40,19 @@ type ElevatorState struct {
 	Destination int
 }
 
-type MSG struct {
-	state int
-	//Add more when more flushed out
+type Elevators struct {
+	OrderMap map[string][]Orders
 }
 
-type Orders struct {
-	Orders []Order
+type MSG_to_master struct {
+	Orders                Orders
+	ElevatorState         ElevatorState
+	ExternalButtonPresses []Order
+	Id                    string
+}
+
+type MSG_to_slave struct {
+	Elevators Elevators
 }
 
 type TestMessage struct {

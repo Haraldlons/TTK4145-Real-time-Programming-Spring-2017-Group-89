@@ -23,7 +23,7 @@ func Check_button_internal(buttonPressesChan chan [definitions.N_FLOORS]int) {
 				buttonPressesChan <- buttonArray
 				buttonArray[i] = 0
 			}
-			time.Sleep(time.Millisecond * 1)
+			time.Sleep(time.Millisecond * 5)
 		}
 		time.Sleep(time.Millisecond * 10)
 	}

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"./src/controller"
+	"./src/slave"
 	// "./src/definitions"
 	"./src/driver"
 	// "./src/elevator"
-	"./src/network"
+	// "./src/network"
 	//"./src/buttons"
 	//"./src/driver"
 	// "./src/storage"
@@ -20,7 +20,6 @@ import (
 )
 
 var delay = 50 * time.Millisecond
-var endProgram = false
 var elevatorActive = false
 
 // var elevatorState = definitions.ElevatorState{2, 0}
@@ -28,26 +27,17 @@ var msg = make([]byte, 8)
 
 func main() {
 	fmt.Println("Main function started")
+	go slave.Run()
 
-	driver.Elev_init()
-	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
+	// if network.checkIfMasterAlreadyExist() {
+	// 	slave.run()
+	// } else {
+	// 	master.run()
+	// }
 
-	// elevatorState := definitions.ElevatorState{2, 0}
-	// storage.readElevatorStateFromFile(&elevatorState)
-	// fmt.Println("elevatorState during initialization: ", elevatorState)
-
+	// TestChange with haraldlons as user
+	// Another testcommit with haraldlons@gmail.com as user.email
 	stopSignal := 0
-	// buttonSignal := driver.Elev_get_button_signal(0,0)
-
-	// go goToFloor(3, &elevatorState)
-
-	// goToFirstFloor := 0
-	// goToSecondFloor := 0
-	// goToThirdFloor := 0
-	// goToFourthFloor := 0
-
-	go controller.Run()
-	go network.SetupNetwork()
 
 	for {
 		// elevator.PrintLastFloorIfChanged(&elevatorState)
@@ -83,12 +73,6 @@ func main() {
 		// 	// setOrderOverNetwork(3)
 		// }
 
-		if endProgram {
-			driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
-			fmt.Println("endProgram == true. Stopping program")
-			return
-		}
-
 		stopSignal = driver.Elev_get_stop_signal()
 		if stopSignal != 0 {
 			// setOrderOverNetwork(0)
@@ -97,6 +81,6 @@ func main() {
 			fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())
 			return
 		}
-		time.Sleep(10*time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 } //End main

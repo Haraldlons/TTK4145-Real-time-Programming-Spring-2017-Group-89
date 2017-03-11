@@ -3,7 +3,7 @@ package storage
 import (
 	// "../definitions"
 	// "../driver"
-	// "./../controller"
+	// "../slave"
 	// "./src/network"
 	// "../buttons"
 	//"./src/driver"
@@ -14,9 +14,9 @@ import (
 	"fmt"
 	// "io/ioutil"
 	// "log"
+	"encoding/json"
 	"os"
 	"strconv"
-	"encoding/json"
 )
 
 const (
@@ -34,7 +34,7 @@ func checkError(err error) {
 
 func SaveOrdersToFile(elevatorNum int, orders interface{}) {
 	fileName := FILENAME_ELEVATOR_ORDERS + strconv.Itoa(elevatorNum)
-	outFile, err := os.Create(fileName)
+	outFile, err := os.Create(FILEPATH + fileName + ".txt")
 	defer outFile.Close()
 	checkError(err)
 
@@ -46,7 +46,7 @@ func SaveOrdersToFile(elevatorNum int, orders interface{}) {
 //Takes pointer as input arg
 func LoadOrdersFromFile(elevatorNum int, orders interface{}) {
 	fileName := FILENAME_ELEVATOR_ORDERS + strconv.Itoa(elevatorNum)
-	inFile, err := os.Open(fileName)
+	inFile, err := os.Open(FILEPATH + fileName + ".txt")
 	defer inFile.Close()
 	checkError(err)
 
