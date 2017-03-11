@@ -2,15 +2,12 @@ package master
 
 import (
 	"../definitions"
+	"fmt"
 	"math"
 	//"network"
 )
 
-func Initialize() bool {
-	return true
-}
-
-func Run() bool {
+func Run() {
 	buttonPress := definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN}
 	stateList := []definitions.ElevatorState{
 		definitions.ElevatorState{LastFloor: 0, Direction: definitions.DIR_UP, Destination: 1},
@@ -91,6 +88,7 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
 
+/*
 func UpdateOrders(orders interface{}, externalButtonPress definitions.Order) {
 	for i := range orders.Orders {
 		direction := orders.Orders[i].Direction
@@ -122,3 +120,4 @@ func UpdateOrders(orders interface{}, externalButtonPress definitions.Order) {
 	// Place order at back of orderList
 	orders.Orders = append(orders.Orders, externalButtonPress)
 }
+*/

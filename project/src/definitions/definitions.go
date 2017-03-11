@@ -26,8 +26,9 @@ const (
 )
 
 type Order struct {
-	floor int
-	// Direction bool
+	Floor       int
+	Direction   int
+	Destination int
 }
 
 type ElevatorState struct {
