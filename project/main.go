@@ -29,6 +29,7 @@ func main() {
 	fmt.Println("Main function started")
 	go slave.Run()
 	go master.TestRun()
+	// Testchange
 
 	// if network.checkIfMasterAlreadyExist() {
 	// 	slave.run()
