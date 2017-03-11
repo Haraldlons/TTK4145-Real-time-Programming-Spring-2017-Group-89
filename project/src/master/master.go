@@ -2,18 +2,35 @@ package master
 
 import (
 	"../definitions"
-	// "../network"
+	"../driver"
+	"../network"
 	// "../storage"
 	"fmt"
 	"math"
-	"os/exec"
+	// "os/exec"
+	"time"
 )
 
 func Run() {
+	fmt.Println("I'm a MASTER!")
+	driver.Elev_init()
+	// time.Sleep(time.Second)
+	// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+	// err := newSlave.Run()
+	// if err != nil {
+	// }
+	aliveSlavesList := []int{1, 2, 3}
+	// updateInAliveSlaves := make(chan bool)
 
-	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-	err := newSlave.Run()
-	check(err)
+	go network.ListenAfterAliveSlavesRegularly(&aliveSlavesList)
+	go network.SendMasterIsAliveRegularly()
+	// go handleUpdateInAliveSlaves(aliveSlavesList, updateInAliveSlaves)
+	time.Sleep(5 * time.Second)
+	// go network.SendJSON()
+
+	for {
+		time.Sleep(1000 * time.Millisecond)
+	}
 
 	// // Initialize Elevators struct to keep track of elevator orders
 	// var totalOrderList definitions.Elevators

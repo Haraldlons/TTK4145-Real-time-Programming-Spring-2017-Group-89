@@ -1,0 +1,1 @@
+{"LastFloor":0,"Direction":0,"Destination":0}

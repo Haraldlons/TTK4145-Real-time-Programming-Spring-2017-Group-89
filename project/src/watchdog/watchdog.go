@@ -1,20 +1,44 @@
 package watchdog
 
 import (
-	"net"
-	"network"
+	"../network"
+	// "net"
+	"fmt"
 	"time"
 )
 
-var timeLimit = 10 * time.Second
-var listenTimer = 100 * time.Millisecond
+// var timeLimit = 10 * time.Second
+// var listenTimer = 100 * time.Millisecond
 
-func SendNetworkAlive(udpBroadcast *net.UDPConn) bool { // Possibly unnesces
-	msg := make([]byte, 1024)
-	numLines, err := udpBroadcast.Write(msg)
-	return err != nil
+// func SendNetworkAlive(udpBroadcast *net.UDPConn) bool { // Possibly unnesces
+// 	msg := make([]byte, 1024)
+// 	numLines, err := udpBroadcast.Write(msg)
+// 	return err != nil
+// }
+
+func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
+	masterIsAliveChan := make(chan int)
+
+	stopListening := make(chan bool)
+
+	go network.ListenAfterAliveMasterRegularly(masterIsAliveChan, stopListening)
+
+	for {
+		select {
+		case tempMessage := <-masterIsAliveChan:
+			fmt.Println("Master is still alive: ", tempMessage)
+		case <-time.After(time.Millisecond * 2000):
+			fmt.Println("Master is not alive for the last three seconds")
+			stopListening <- true
+			fmt.Println("Has send stopListening signal to network.ListenAfterAliveMasterRegularly")
+			masterHasDiedChan <- true
+			return
+		}
+	}
+
 }
 
+/*
 func CheckNetworkAlive(udpListen *net.UDPConn) int {
 	listenChan := make(chan int, 1)
 	lifeCheck := 1
@@ -43,7 +67,7 @@ func listen(listenChan chan int, udpListen *net.UDPConn) {
 		listenChan <- int(buf)
 		time.Sleep(listenTimer)
 	}
-}
+}*/
 
 /*
 func CheckElevatorState(state var) var {

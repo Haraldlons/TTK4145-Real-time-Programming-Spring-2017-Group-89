@@ -28,6 +28,7 @@ const (
 
 func checkError(err error) {
 	if err != nil {
+		fmt.Print("Error in storage: ")
 		panic(err)
 	}
 }
@@ -94,7 +95,7 @@ func LoadButtonPresses(typeOfButton string, buttonPresses interface{}) {
 }
 
 func SaveElevatorStateToFile(state interface{}) {
-	fileName := "state"
+	fileName := "state.txt"
 	outFile, err := os.Create(FILEPATH + fileName)
 	defer outFile.Close()
 	checkError(err)
@@ -105,7 +106,7 @@ func SaveElevatorStateToFile(state interface{}) {
 }
 
 func LoadElevatorStateFromFile(state interface{}) {
-	fileName := "state"
+	fileName := "state.txt"
 	inFile, err := os.Open(FILEPATH + fileName)
 	defer inFile.Close()
 	checkError(err)

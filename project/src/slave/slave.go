@@ -4,13 +4,13 @@ import (
 	"../definitions"
 	"../driver"
 	// "./../slave"
-	// "./src/network"
 	"../buttons"
 	"../elevator"
+	"../network"
 	//"./src/driver"
 	"../storage"
 	//"./src/master"
-	//"./src/watchdog"
+	"../watchdog"
 	// "network"
 	// "storage"
 	"fmt"
@@ -32,6 +32,9 @@ func Run() {
 	externalButtonsPressesChan := make(chan [definitions.N_FLOORS][2]int)
 	updateElevatorStateDirection := make(chan int)
 	updateElevatorStateFloor := make(chan int)
+	stopSendingImAliveMessage := make(chan bool)
+	// stopRecievingImAliveMessage := make(chan bool)
+	masterHasDiedChan := make(chan bool)
 
 	updatedOrderList := make(chan int)
 
@@ -50,14 +53,14 @@ func Run() {
 	///////////////////////////////////////////
 
 	storage.LoadOrdersFromFile(1, &totalOrderList)
-	// fmt.Println("Loaded totalOrderlist from a file. Result: ", totalOrderList)
+	fmt.Println("Loaded totalOrderlist from a file. Result: ", totalOrderList)
 	storage.LoadElevatorStateFromFile(&elevatorState)
 
 	go elevator.CheckForElevatorFloorUpdates(&elevatorState, updateElevatorStateFloor)
 	go elevator.ListenAfterElevatStateUpdatesAndSaveToFile(&elevatorState, updateElevatorStateDirection, updateElevatorStateFloor)
 
-	// go watchdog.SendImAliveMessages()
-	// go watchdog.CheckForMasterAlive()
+	go network.SendSlaveIsAliveRegularly(44, stopSendingImAliveMessage)
+	go watchdog.CheckIfMasterIsAliveRegularly(masterHasDiedChan)
 
 	go buttons.Check_button_internal(internalButtonsPressesChan)
 	go buttons.Check_button_external(externalButtonsPressesChan)
@@ -67,6 +70,9 @@ func Run() {
 	go printExternalPresses(externalButtonsPressesChan)
 	go printInternalPresses(internalButtonsPressesChan)
 	go elevator.ExecuteOrders(&totalOrderList, &elevatorState, updatedOrderList, updateElevatorStateDirection)
+
+	// go network.RecieveJSON()
+
 	// go checkForUpdatesFromMaster()
 	// go sendUpdatesToMaster()
 
@@ -78,14 +84,21 @@ func Run() {
 	// go elevator.PrintLastFloorIfChanged(&elevatorState)
 	updatedOrderList <- 1
 	for {
-		time.Sleep(time.Millisecond * 10000)
+		select {
+		case <-masterHasDiedChan:
+			fmt.Println("Master is not alive.")
+			stopSendingImAliveMessage <- true
+			// stopRecievingImAliveMessage <- true
+			time.Sleep(time.Second)
+			return
+		}
 		// updatedOrderList <- 1
 		// fmt.Println("updatedOrderList now!")
 	}
 	return
 }
 
-func Change_master() bool {
+func Change_master() bool { /*Do we need this?*/
 	return true
 }
 
@@ -93,6 +106,7 @@ func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int)
 	for {
 		select {
 		case <-externalButtonsChan:
+
 			fmt.Println("\nExternal button pressed: ", <-externalButtonsChan)
 			// go findFloorAngGoTo(externalButtonsChan)
 			time.Sleep(time.Millisecond * 200)
@@ -109,12 +123,12 @@ func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
 	for {
 		select {
 		case list := <-internalButtonsChan:
+			// print("\033[H\033[2J")
 			fmt.Println("Internal button pressed: ", list)
 			driver.Elev_set_button_lamp(2, getFloorFromInternalPress(list), 1)
 			// if !isFirstButtonPress {
 			// 	stopCurrentOrder <- 1
 			// } //Value in channel doesn't matter
-
 			// go findFloorAndGoTo(internalButtonsChan, <-internalButtonsChan, stopCurrentOrder)
 			time.Sleep(time.Millisecond * 200)
 			// isFirstButtonPress = false
@@ -122,7 +136,6 @@ func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
 			// 	fmt.Println("No button pressed")
 			// 	time.Sleep(time.Millisecond * 500)
 			driver.Elev_set_button_lamp(2, getFloorFromInternalPress(list), 0)
-
 		}
 	}
 }
