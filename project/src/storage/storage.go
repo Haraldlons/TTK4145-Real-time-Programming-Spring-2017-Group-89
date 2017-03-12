@@ -106,7 +106,7 @@ func SaveElevatorStateToFile(state interface{}) {
 }
 
 func SaveJSONtoFile(state interface{}) {
-	fmt.Println("Saving JSON to file")
+	// fmt.Println("Saving JSON to file")
 	fileName := "JSON.txt"
 	outFile, err := os.Create(FILEPATH + fileName)
 	defer outFile.Close()

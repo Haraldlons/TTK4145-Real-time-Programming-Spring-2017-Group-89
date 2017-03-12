@@ -17,7 +17,7 @@ func ExecuteOrders(elevatorState *definitions.ElevatorState, orderListForExecute
 		select {
 		case orderList := <-orderListForExecuteOrders:
 			if len(orderList.Orders) > 0 {
-				fmt.Println("Hopefully going to new floor: ", orderList.Orders[0].Floor, "and if-statement: ", len(orderList.Orders) > 0)
+				// fmt.Println("Hopefully going to new floor: ", orderList.Orders[0].Floor, "and if-statement: ", len(orderList.Orders) > 0)
 				if !isFirstOrder {
 					stopCurrentOrder <- true
 					// *localOrderList = definitions.Orders{[]definitions.Order{{Floor: 3, Direction: 1},{Floor: 0, Direction: -1}}}
@@ -93,7 +93,7 @@ func CheckForElevatorFloorUpdates(elevatorState *definitions.ElevatorState, upda
 // }
 
 func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, stopCurrentOrder chan bool, completedCurrentOrder chan<- bool, updateElevatorStateDirection chan int) {
-	defer fmt.Println("Exeting goToFloor to floor: ", destinationFloor)
+	// defer fmt.Println("Exeting goToFloor to floor: ", destinationFloor)
 	// storage.SaveOrderToFile(destinationFloor)
 	// elevatorActive = true
 

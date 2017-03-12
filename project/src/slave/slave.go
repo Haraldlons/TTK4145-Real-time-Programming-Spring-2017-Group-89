@@ -24,8 +24,9 @@ var elevatorState = definitions.ElevatorState{}
 func Run() {
 	fmt.Println("Slave started!")
 	// Initializing
-	value := driver.Elev_init()
-	fmt.Println("Return value from Elev_init()", value)
+	driver.Elev_init()
+	// value := driver.Elev_init()
+	// fmt.Println("Return value from Elev_init()", value)
 
 	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
 
@@ -46,13 +47,13 @@ func Run() {
 	completedCurrentOrder := make(chan bool)
 	orderListForExecuteOrders := make(chan definitions.Orders)
 	updatedOrderList := make(chan definitions.Orders)
-
+	orderListToExternalPresses := make(chan definitions.Orders)
 	///////////////////////////////////////////
 	// Make manually orderList
 	totalOrderList := definitions.Orders{}
 	// orderList := definitions.Orders{definitions}
-	listOfNumbers := []int{0, 1, 2, 1, 3}
-	secondListOfNumbers := []int{-1, 1, 1, -1, 1}
+	listOfNumbers := []int{0, 3}
+	secondListOfNumbers := []int{1, -1}
 
 	for i := range listOfNumbers {
 		totalOrderList = definitions.Orders{append(totalOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
@@ -62,7 +63,8 @@ func Run() {
 	///////////////////////////////////////////
 
 	// storage.LoadOrdersFromFile(1, &totalOrderList)
-	// fmt.Println("Loaded totalOrderlist from a file. Result: ", totalOrderList)
+	// fmt.Println("Loaded totalOrderlist from a file. Result: ", totalOrderList)Sending JSON over network. Interface:  {{[]} {1 0 0} [] 129.241.187.151}
+
 	storage.LoadElevatorStateFromFile(&elevatorState)
 
 	go elevator.CheckForElevatorFloorUpdates(&elevatorState, updateElevatorStateFloor)
@@ -76,11 +78,11 @@ func Run() {
 	// go handleInternalButtonPresses(internalButtonsPressesChan)
 	// go handleExternalButtonPresses(externalButtonsPressesChan)
 
-	go printExternalPresses(externalButtonsPressesChan)
+	go printExternalPresses(externalButtonsPressesChan, orderListToExternalPresses)
 	go printInternalPresses(internalButtonsPressesChan)
 	go elevator.ExecuteOrders(&elevatorState, orderListForExecuteOrders, updateElevatorStateDirection, completedCurrentOrder)
 
-	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder)
+	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, orderListToExternalPresses, elevator_id, elevatorState)
 
 	go network.ListenToMasterUpdates(updatedOrderList, elevator_id)
 	// go sendUpdatesToMaster()
@@ -94,17 +96,22 @@ func Run() {
 	// updatedOrderList <- 1
 
 	// dfasfdf
-	time.Sleep(2 * time.Second)
-	fmt.Println("Sending JSON TO MASTER")
+	// time.Sleep(2 * time.Second)
+	// fmt.Println("Sending JSON TO MASTER")
 	time.Sleep(time.Second)
 
 	// externalButtonsPress := <-externalButtonsPressesChan,
 	// externalButtonsPresses := []Order{externalButtonsPress}
 
-	msg := definitions.MSG_to_master{Orders: totalOrderList, Id: elevator_id /*ExternalButtonPresses: externalButtonsPresses*/}
+	// msg := definitions.MSG_to_master{Orders: totalOrderList, ExternalButtonPresses: []definitions.Order{definitions.Order{Floor: 2, Direction: -1},
+	// 	definitions.Order{Floor: 0, Direction: 1},
+	// 	definitions.Order{Floor: 3, Direction: -1},
+	// 	definitions.Order{Floor: 1, Direction: -1},
+	// }}
+	// // msg := definitions.MSG_to_master{Orders: totalOrderList, Id: elevator_id, ExternalButtonPresses: []definitions.Order{definitions.Order{Floor: 2, Direction: -1}}}
 
-	fmt.Println("Sending from slave:", elevator_id, ", Message: ")
-	network.SendJSON(msg)
+	// fmt.Println("Sending from slave:", elevator_id, ", Message: ", msg)
+	// network.SendUpdatesToMaster(msg)
 
 	// newOrderList := definitions.Orders{}
 	// listOfNumbers := []int{0, 1, 2, 1, 3}
@@ -135,15 +142,39 @@ func Change_master() bool { /*Do we need this?*/
 	return true
 }
 
-func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int) {
+func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int, orderListToExternalPresses chan definitions.Orders) {
+	orderList := definitions.Orders{}
+	msg_to_master := definitions.MSG_to_master{}
+	go func() {
+		for {
+			select {
+			case orderList = <-orderListToExternalPresses:
+				// fmt.Println("OrderList to ExternalPresses has been updated with: ", orderList)
+				msg_to_master.Orders = orderList
+				// fmt.Println("MsgTOMaster in printExternalPresses: ", msg_to_master)
+			}
+		}
+	}()
+
 	for {
 		select {
-		case <-externalButtonsChan:
+		case externalButtonPressed := <-externalButtonsChan:
 
-			fmt.Println("\nExternal button pressed: ", <-externalButtonsChan)
+			// fmt.Println("\nExternal button pressed: ", externalButtonPressed)
+			externalButtonOrder := getOrderFromOneExternalPress(externalButtonPressed)
+			// fmt.Println("------------------------------------")
+			// fmt.Println("------------------------------------")
+			// fmt.Println("msg_to_master.ExternalButtonPresses", msg_to_master.ExternalButtonPresses)
+			msg_to_master.ExternalButtonPresses = append(msg_to_master.ExternalButtonPresses, externalButtonOrder)
+			// fmt.Println("------------------------------------")
+			// fmt.Println("------------------------------------")
+			// fmt.Println("msg_to_master.ExternalButtonPresses", msg_to_master.ExternalButtonPresses)
+			network.SendUpdatesToMaster(msg_to_master, elevatorState)
+			msg_to_master.ExternalButtonPresses = []definitions.Order{}
 
 			// go findFloorAngGoTo(externalButtonsChan)
-			time.Sleep(time.Millisecond * 200)
+
+			time.Sleep(time.Millisecond * 10)
 
 			// default:
 			// fmt.Println("No button pressed")
@@ -172,6 +203,20 @@ func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
 			driver.Elev_set_button_lamp(2, getFloorFromInternalPress(list), 0)
 		}
 	}
+}
+
+func getOrderFromOneExternalPress(externalButtonpressed [definitions.N_FLOORS][2]int) definitions.Order {
+	// fmt.Println("externalButtonpressed:", externalButtonpressed)
+	for i := 0; i < definitions.N_FLOORS; i++ {
+		if externalButtonpressed[i][1] == 1 {
+			fmt.Println("Nedover! i etasje: ", i)
+			return definitions.Order{Floor: i, Direction: -1}
+		} else if externalButtonpressed[i][0] == 1 {
+			fmt.Println("Oppover! I etasje: ", i)
+			return definitions.Order{Floor: i, Direction: 1}
+		}
+	}
+	return definitions.Order{}
 }
 
 func getFloorFromInternalPress(buttonPresses [definitions.N_FLOORS]int) int {

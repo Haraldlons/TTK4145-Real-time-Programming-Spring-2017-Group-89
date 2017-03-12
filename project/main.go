@@ -43,7 +43,8 @@ func main() {
 				driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
 				fmt.Println("Stopping program, with stop signal: ", stopSignal)
 				fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())
-				return
+				time.Sleep(100 * time.Millisecond)
+				// return
 			}
 			time.Sleep(100 * time.Millisecond)
 		}

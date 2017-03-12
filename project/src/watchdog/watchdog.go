@@ -19,7 +19,7 @@ import (
 // }
 
 func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
-	masterIsAliveChan := make(chan int, 1)
+	masterIsAliveChan := make(chan string, 1)
 
 	stopListening := make(chan bool)
 
@@ -27,8 +27,8 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 
 	for {
 		select {
-		case <-masterIsAliveChan:
-			fmt.Println("Master is still alive: ")
+		case master_id := <-masterIsAliveChan:
+			fmt.Println("Master is still alive: , ", master_id)
 		case <-time.After(time.Millisecond * 3000):
 			fmt.Println("Master is not alive for the last three seconds")
 			stopListening <- true
@@ -39,7 +39,7 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	}
 }
 
-func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool) {
+func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, orderListToExternalPresses chan<- definitions.Orders, elevator_id string, elevatorState definitions.ElevatorState) {
 
 	currentOrderList := definitions.Orders{}
 	storage.LoadOrdersFromFile(1, &currentOrderList)
@@ -52,10 +52,14 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 		for {
 			select {
 			case <-completedCurrentOrder:
-				currentOrderList = definitions.Orders{currentOrderList.Orders[1:]}
+				if len(currentOrderList.Orders) > 0 {
+					currentOrderList = definitions.Orders{currentOrderList.Orders[1:]}
+				}
 				orderListForExecuteOrders <- currentOrderList
+				orderListToExternalPresses <- currentOrderList
 				storage.SaveOrdersToFile(1, currentOrderList)
-				// sendOrderListUpdateToMaster(currentOrderList)
+				msg := definitions.MSG_to_master{Orders: currentOrderList, Id: elevator_id}
+				network.SendUpdatesToMaster(msg, elevatorState)
 				time.Sleep(50 * time.Millisecond)
 			}
 		}
@@ -64,9 +68,10 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 	for {
 		select {
 		case updatedOrderList := <-updatedOrderList:
-			// if currentOrderList != updatedOrderList { /*If orderlist from master is identical to our copy*/
+			//if currentOrderList != updatedOrderList { /*If orderlist from master is identical to our copy*/
 			currentOrderList = updatedOrderList
 			orderListForExecuteOrders <- currentOrderList
+			orderListToExternalPresses <- currentOrderList
 			storage.SaveOrdersToFile(1, currentOrderList)
 			// sendOrderListUpdateToMaster(currentOrderList)
 			time.Sleep(50 * time.Millisecond)
