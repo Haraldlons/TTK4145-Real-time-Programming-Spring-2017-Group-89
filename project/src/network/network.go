@@ -397,9 +397,9 @@ func RecieveJSON() {
 		for {
 			udpListen.ReadFromUDP(buf)
 
-			// Two first bytes contains the size of the JSON byte array
-
 			// fmt.Println("buffer after read from UDP: ", buf)
+
+			// Two first bytes contains the size of the JSON byte array
 			jsonByteLength := int(buf[0])*255 + int(buf[1])
 			// fmt.Println("jsonByteLength:",jsonByteLength)
 
@@ -410,7 +410,7 @@ func RecieveJSON() {
 			// fmt.Println("Ferdig med å vise m")
 			check(err)
 			listenChan <- m
-			time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
+			time.Sleep(delay100ms)
 		}
 	}()
 
@@ -430,7 +430,7 @@ func RecieveJSON() {
 		case <-time.After(30 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
 			// When master dies, slavecount is returned so that a new process of master -> slave
 			// can continue from the last value sent over the network.
-			// fmt.Println("Have not recieved any JSON message for the last 3 seconds!")
+			fmt.Println("Have not recieved any JSON message for the last 3 seconds!")
 			// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 			// err := newSlave.Run()
 			check(err)
@@ -439,6 +439,10 @@ func RecieveJSON() {
 	}
 
 }
+
+// func CheckForOrderListUpdatesFromMaster() {
+
+// }
 
 // var localIP string
 

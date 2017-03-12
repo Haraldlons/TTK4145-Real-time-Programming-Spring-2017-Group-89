@@ -40,12 +40,12 @@ type ElevatorState struct {
 	Destination int
 }
 
-type ElevatorStateMap struct {
-	map [string] ElevatorState
-}
+// type ElevatorStateMap struct {
+// 	ElevatorStateMap map[string]ElevatorState
+// }
 
 type Elevators struct {
-	OrderMap       map[string]Orders
+	OrderMap         map[string]Orders
 	ElevatorStateMap ElevatorStateMap
 }
 
