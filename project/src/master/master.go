@@ -13,7 +13,7 @@ import (
 
 func Run() {
 	fmt.Println("I'm a MASTER!")
-	totalOrderListChan := make(chan defintions.Elevators, 1) // Create channel for passing totalOrderList
+	totalOrderListChan := make(chan definitions.Elevators, 1) // Create channel for passing totalOrderList
 
 	time.Sleep(time.Second)
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
@@ -57,8 +57,9 @@ func TestRun() {
 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
 	}
 
-	for i := range stateList {
-		stateList[i].LastFloor = i
+	identifiers := {"1", "2", "3"}
+	for id := range stateList {
+		stateList[id].LastFloor = identifiers[i]
 	}
 
 	fmt.Println("Order: ", buttonPress)
@@ -248,10 +249,12 @@ func check(err error) {
 // }
 
 // Returns id of best suited elevator, assuming elevatorStates is a map with ids
-func findLowestCostElevator(elevatorStates definitions.ElevatorStateMap, externalButtonPress definitions.Order) int {
+func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState, externalButtonPress definitions.Order) int {
 	minCost := 2 * definitions.N_FLOORS
+	bestElevator := "localhost"
 	destinationFloor := externalButtonPress.Floor
 	destinationDirection := externalButtonPress.Direction
+
 
 	for id, elevatorState := range elevatorStates { // Loop through map
 		travelDirection := findTravelDirection(elevatorState.LastFloor, destinationFloor)
@@ -304,29 +307,29 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 }
 
 // Run as a goroutine or single function call?
-func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
-	orderList := definitions.Orders{}
-	msg := definitions.MSG_to_master{}
-	for {
-		network.ReceiveFromSlave(&msg)
-		// Receive current totalOrderList from channel
-		totalOrderList := <-totalOrderListChan
-		// Update totalOrderList with information from message
-		totalOrderList.OrderMap[msg.Id] = msg.Orders
-		totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState
+// func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
+// 	orderList := definitions.Orders{}
+// 	msg := definitions.MSG_to_master{}
+// 	for {
+// 		network.ReceiveFromSlave(&msg)
+// 		// Receive current totalOrderList from channel
+// 		totalOrderList := <-totalOrderListChan
+// 		// Update totalOrderList with information from message
+// 		totalOrderList.OrderMap[msg.Id] = msg.Orders
+// 		totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState
 
-		// Get map of states
-		elevatorStateMap := totalOrderList.ElevatorStateMap
+// 		// Get map of states
+// 		elevatorStateMap := totalOrderList.ElevatorStateMap
 
-		// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
-		for i := range msg.ExternalButtonPresses {
-			elevator_id := findLowestCostElevator(elevatorStateMap, msg.externalButtonPresses[i])
-			updateOrders(&totalOrderList.OrderMap[elevator_id], externalButtonPresses[i], elevatorStateMap[elevator_id])
-		}
+// 		// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
+// 		for i := range msg.ExternalButtonPresses {
+// 			elevator_id := findLowestCostElevator(elevatorStateMap, msg.externalButtonPresses[i])
+// 			updateOrders(&totalOrderList.OrderMap[elevator_id], externalButtonPresses[i], elevatorStateMap[elevator_id])
+// 		}
 
-		// Send updates to channel
-		totalOrderListChan <- totalOrderList
+// 		// Send updates to channel
+// 		totalOrderListChan <- totalOrderList
 
-		time.Sleep(time.Millisecond * 100)
-	}
-}
+// 		time.Sleep(time.Millisecond * 100)
+// 	}
+// }
