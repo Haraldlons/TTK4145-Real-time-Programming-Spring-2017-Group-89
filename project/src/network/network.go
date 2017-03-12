@@ -1,7 +1,7 @@
 package network
 
 import (
-	// "../definitions"
+	"../definitions"
 	// "../driver"
 	// "../buttons"
 	// "../storage"
@@ -536,6 +536,31 @@ func RecieveJSON() {
 
 // }
 
-// func ListenToSlave() {
+func ListenToSlave(msgChan chan definitions.MSG_to_master) {
+	fmt.Println("Listening after messages from slave")
+	udpAddr, err := net.ResolveUDPAddr("udp", jsonSendPort)
+	check(err)
 
-// }
+	// Create listen Conn
+	udpListen, err := net.ListenUDP("udp", udpAddr)
+	check(err)
+	defer udpListen.Close()
+
+	go func() {
+		// Buffer for received message
+		buf := make([]byte, 65536) /*2^16 = max recovery size*/
+		for {
+			// Listen for messages
+			udpListen.ReadFromUDP(buf)
+			// Two first bytes contains the size of the JSON byte array
+			jsonByteLength := int(buf[0])*255 + int(buf[1])
+			msg := definitions.MSG_to_master{}
+			// Convert back to struct
+			err := json.Unmarshal(buf[2:jsonByteLength+2], &msg)
+			check(err)
+
+			// Send message over channel
+			msgChan <- msg
+		}
+	}()
+}

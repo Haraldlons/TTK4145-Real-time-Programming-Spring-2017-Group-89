@@ -13,7 +13,7 @@ import (
 
 func Run() {
 	fmt.Println("I'm a MASTER!")
-	totalOrderListChan := make(chan definitions.Elevators, 1) // Create channel for passing totalOrderList
+	//totalOrderListChan := make(chan definitions.Elevators, 1) // Create channel for passing totalOrderList
 
 	time.Sleep(time.Second)
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
@@ -49,41 +49,41 @@ func Run() {
 
 }
 
-func TestRun() {
-	buttonPress := definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN}
-	stateList := []definitions.ElevatorState{
-		definitions.ElevatorState{LastFloor: 0, Direction: definitions.DIR_UP, Destination: 1},
-		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
-		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
-	}
+// func TestRun() {
+// 	buttonPress := definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN}
+// 	stateList := []definitions.ElevatorState{
+// 		definitions.ElevatorState{LastFloor: 0, Direction: definitions.DIR_UP, Destination: 1},
+// 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
+// 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
+// 	}
 
-	identifiers := {"1", "2", "3"}
-	for id := range stateList {
-		stateList[id].LastFloor = identifiers[i]
-	}
+// 	identifiers := {"1", "2", "3"}
+// 	for id := range stateList {
+// 		stateList[id].LastFloor = identifiers[i]
+// 	}
 
-	fmt.Println("Order: ", buttonPress)
-	fmt.Println("Statelist:", stateList)
+// 	fmt.Println("Order: ", buttonPress)
+// 	fmt.Println("Statelist:", stateList)
 
-	bestElevator := findLowestCostElevator(stateList, buttonPress)
-	fmt.Println("Best elevator: Elevator number ", bestElevator)
+// 	bestElevator := findLowestCostElevator(stateList, buttonPress)
+// 	fmt.Println("Best elevator: Elevator number ", bestElevator)
 
-	orderList := []definitions.Order{
-		definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
-		definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
-		definitions.Order{Floor: 4, Direction: definitions.DIR_UP},
-		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
-	}
+// 	orderList := []definitions.Order{
+// 		definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
+// 		definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
+// 		definitions.Order{Floor: 4, Direction: definitions.DIR_UP},
+// 		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
+// 	}
 
-	orders := definitions.Orders{
-		Orders: orderList,
-	}
+// 	orders := definitions.Orders{
+// 		Orders: orderList,
+// 	}
 
-	fmt.Println("Orders before update:", orders)
-	state := definitions.ElevatorState{LastFloor: 3, Direction: definitions.DIR_DOWN, Destination: 0}
-	updateOrders(&orders, buttonPress, state)
-	fmt.Println("Orders after update:", orders)
-}
+// 	fmt.Println("Orders before update:", orders)
+// 	state := definitions.ElevatorState{LastFloor: 3, Direction: definitions.DIR_DOWN, Destination: 0}
+// 	updateOrders(&orders, buttonPress, state)
+// 	fmt.Println("Orders after update:", orders)
+// }
 
 /*
 func handleUpdatesFromSlaves(totalOrderList chan definitions.Elevators) {
@@ -249,12 +249,11 @@ func check(err error) {
 // }
 
 // Returns id of best suited elevator, assuming elevatorStates is a map with ids
-func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState, externalButtonPress definitions.Order) int {
+func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState, externalButtonPress definitions.Order) string {
 	minCost := 2 * definitions.N_FLOORS
 	bestElevator := "localhost"
 	destinationFloor := externalButtonPress.Floor
 	destinationDirection := externalButtonPress.Direction
-
 
 	for id, elevatorState := range elevatorStates { // Loop through map
 		travelDirection := findTravelDirection(elevatorState.LastFloor, destinationFloor)
@@ -274,7 +273,7 @@ func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState,
 
 		if tempCost < minCost {
 			minCost = tempCost
-			bestElevator := id
+			bestElevator = id
 		}
 		fmt.Println("Cost of elevator", id, ":", tempCost)
 	}
@@ -306,30 +305,32 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
 
-// Run as a goroutine or single function call?
-// func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
-// 	orderList := definitions.Orders{}
-// 	msg := definitions.MSG_to_master{}
-// 	for {
-// 		network.ReceiveFromSlave(&msg)
-// 		// Receive current totalOrderList from channel
-// 		totalOrderList := <-totalOrderListChan
-// 		// Update totalOrderList with information from message
-// 		totalOrderList.OrderMap[msg.Id] = msg.Orders
-// 		totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState
+func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
+	msgChan := make(chan definitions.MSG_to_master, 1)
+	totalOrderList := definitions.Elevators{}
 
-// 		// Get map of states
-// 		elevatorStateMap := totalOrderList.ElevatorStateMap
+	// Start goroutine to listen for updates from slaves
+	go network.ListenToSlave(msgChan)
+	for {
+		select {
+		case msg := <-msgChan: // New message received
+			// Update totalOrderList with information from message
+			totalOrderList.OrderMap[msg.Id] = msg.Orders
+			totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState
 
-// 		// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
-// 		for i := range msg.ExternalButtonPresses {
-// 			elevator_id := findLowestCostElevator(elevatorStateMap, msg.externalButtonPresses[i])
-// 			updateOrders(&totalOrderList.OrderMap[elevator_id], externalButtonPresses[i], elevatorStateMap[elevator_id])
-// 		}
+			// Get map of states
+			elevatorStateMap := totalOrderList.ElevatorStateMap
 
-// 		// Send updates to channel
-// 		totalOrderListChan <- totalOrderList
+			// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
+			for i := range msg.ExternalButtonPresses {
+				elevator_id := findLowestCostElevator(elevatorStateMap, msg.ExternalButtonPresses[i])
+				orders := totalOrderList.OrderMap[elevator_id]
+				updateOrders(&orders, msg.ExternalButtonPresses[i], elevatorStateMap[elevator_id])
+			}
 
-// 		time.Sleep(time.Millisecond * 100)
-// 	}
-// }
+			// Send updates to channel
+			totalOrderListChan <- totalOrderList
+			time.Sleep(time.Millisecond * 100)
+		}
+	}
+}

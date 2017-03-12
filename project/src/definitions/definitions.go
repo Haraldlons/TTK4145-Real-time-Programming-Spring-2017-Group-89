@@ -40,13 +40,9 @@ type ElevatorState struct {
 	Destination int
 }
 
-type ElevatorStateMap struct {
-	map [string] ElevatorState
-}
-
 type Elevators struct {
-	OrderMap       map[string]Orders
-	ElevatorStateMap ElevatorStateMap
+	OrderMap         map[string]Orders
+	ElevatorStateMap map[string]ElevatorState
 }
 
 type MSG_to_master struct {
