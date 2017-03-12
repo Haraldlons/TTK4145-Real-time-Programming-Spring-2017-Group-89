@@ -46,7 +46,7 @@ type ElevatorState struct {
 
 type Elevators struct {
 	OrderMap         map[string]Orders
-	ElevatorStateMap ElevatorStateMap
+	ElevatorStateMap map[string]ElevatorState
 }
 
 type MSG_to_master struct {

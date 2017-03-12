@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"math"
 	"os/exec"
+	// "string"
+	"math/rand"
 	"time"
 )
 
 func Run() {
 	fmt.Println("I'm a MASTER!")
-	totalOrderListChan := make(chan definitions.Elevators, 1) // Create channel for passing totalOrderList
+	// totalOrderListChan := make(chan definitions.Elevators, 1) // Create channel for passing totalOrderList
 
 	time.Sleep(time.Second)
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
@@ -25,9 +27,22 @@ func Run() {
 
 	go network.ListenAfterAliveSlavesRegularly(&aliveSlavesList)
 	go network.SendMasterIsAliveRegularly()
+
 	// go handleUpdateInAliveSlaves(aliveSlavesList, updateInAliveSlaves)
 	time.Sleep(5 * time.Second)
-	// go network.SendJSON()
+
+	orderList := []definitions.Order{
+		definitions.Order{Floor: rand.Intn(3), Direction: definitions.DIR_DOWN},
+		// definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
+		// definitions.Order{Floor: 0, Direction: definitions.DIR_UP},
+		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
+	}
+
+	orders := definitions.Orders{
+		Orders: orderList,
+	}
+
+	go network.SendJSON(orders)
 
 	for {
 		time.Sleep(1000 * time.Millisecond)
@@ -49,41 +64,30 @@ func Run() {
 
 }
 
-func TestRun() {
-	buttonPress := definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN}
-	stateList := []definitions.ElevatorState{
-		definitions.ElevatorState{LastFloor: 0, Direction: definitions.DIR_UP, Destination: 1},
-		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
-		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
-	}
+// func TestRun() {
+// 	buttonPress := definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN}
+// 	stateList := []definitions.ElevatorState{
+// 		definitions.ElevatorState{LastFloor: 0, Direction: definitions.DIR_UP, Destination: 1},
+// 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
+// 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
+// 	}
 
-	identifiers := {"1", "2", "3"}
-	for id := range stateList {
-		stateList[id].LastFloor = identifiers[i]
-	}
+// 	identifiers := []string{"1", "2", "3"}
+// 	for id := range stateList {
+// 		stateList[int(id)].LastFloor = identifiers[id]
+// 	}
 
-	fmt.Println("Order: ", buttonPress)
-	fmt.Println("Statelist:", stateList)
+// 	fmt.Println("Order: ", buttonPress)
+// 	fmt.Println("Statelist:", stateList)
 
-	bestElevator := findLowestCostElevator(stateList, buttonPress)
-	fmt.Println("Best elevator: Elevator number ", bestElevator)
+// 	bestElevator := findLowestCostElevator(stateList, buttonPress)
+// 	fmt.Println("Best elevator: Elevator number ", bestElevator)
 
-	orderList := []definitions.Order{
-		definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
-		definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
-		definitions.Order{Floor: 4, Direction: definitions.DIR_UP},
-		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
-	}
-
-	orders := definitions.Orders{
-		Orders: orderList,
-	}
-
-	fmt.Println("Orders before update:", orders)
-	state := definitions.ElevatorState{LastFloor: 3, Direction: definitions.DIR_DOWN, Destination: 0}
-	updateOrders(&orders, buttonPress, state)
-	fmt.Println("Orders after update:", orders)
-}
+// 	fmt.Println("Orders before update:", orders)
+// 	state := definitions.ElevatorState{LastFloor: 3, Direction: definitions.DIR_DOWN, Destination: 0}
+// 	updateOrders(&orders, buttonPress, state)
+// 	fmt.Println("Orders after update:", orders)
+// }
 
 /*
 func handleUpdatesFromSlaves(totalOrderList chan definitions.Elevators) {
@@ -249,12 +253,11 @@ func check(err error) {
 // }
 
 // Returns id of best suited elevator, assuming elevatorStates is a map with ids
-func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState, externalButtonPress definitions.Order) int {
+func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState, externalButtonPress definitions.Order) string {
 	minCost := 2 * definitions.N_FLOORS
 	bestElevator := "localhost"
 	destinationFloor := externalButtonPress.Floor
 	destinationDirection := externalButtonPress.Direction
-
 
 	for id, elevatorState := range elevatorStates { // Loop through map
 		travelDirection := findTravelDirection(elevatorState.LastFloor, destinationFloor)
@@ -274,7 +277,7 @@ func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState,
 
 		if tempCost < minCost {
 			minCost = tempCost
-			bestElevator := id
+			bestElevator = id
 		}
 		fmt.Println("Cost of elevator", id, ":", tempCost)
 	}

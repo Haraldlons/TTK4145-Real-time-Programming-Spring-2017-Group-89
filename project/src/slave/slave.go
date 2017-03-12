@@ -74,7 +74,7 @@ func Run() {
 
 	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder)
 
-	// go network.RecieveJSON()
+	go network.RecieveJSON(updatedOrderList)
 
 	// go network.CheckForOrderListUpdatesFromMaster(updatedOrderList)
 	// go sendUpdatesToMaster()
@@ -88,15 +88,15 @@ func Run() {
 	// updatedOrderList <- 1
 
 	time.Sleep(5 * time.Second)
-	newOrderList := definitions.Orders{}
-	listOfNumbers := []int{0, 1, 2, 1, 3}
-	secondListOfNumbers := []int{-1, 1, 1, -1, 1}
+	// newOrderList := definitions.Orders{}
+	// listOfNumbers := []int{0, 1, 2, 1, 3}
+	// secondListOfNumbers := []int{-1, 1, 1, -1, 1}
 
-	for i := range listOfNumbers {
-		newOrderList = definitions.Orders{append(newOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
-	}
+	// for i := range listOfNumbers {
+	// 	newOrderList = definitions.Orders{append(newOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
+	// }
 
-	updatedOrderList <- newOrderList
+	// updatedOrderList <- newOrderList
 
 	for {
 		select {

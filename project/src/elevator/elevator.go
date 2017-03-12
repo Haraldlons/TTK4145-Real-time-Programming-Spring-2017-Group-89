@@ -39,7 +39,8 @@ func ExecuteOrders(elevatorState *definitions.ElevatorState, orderListForExecute
 					stopCurrentOrder <- true
 					// *localOrderList = definitions.Orders{[]definitions.Order{{Floor: 3, Direction: 1},{Floor: 0, Direction: -1}}}
 				}
-
+				isFirstOrder = false
+				// fmt.Println(...)
 				go GoToFloor(orderList.Orders[0].Floor, elevatorState, stopCurrentOrder, completedCurrentOrder, updateElevatorStateDirection)
 				time.Sleep(20 * time.Millisecond)
 

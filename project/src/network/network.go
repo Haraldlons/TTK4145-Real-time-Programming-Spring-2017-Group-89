@@ -1,10 +1,10 @@
 package network
 
 import (
-	// "../definitions"
+	"../definitions"
 	// "../driver"
 	// "../buttons"
-	// "../storage"
+	"../storage"
 	// "../elevator"
 	"encoding/binary"
 	"encoding/json"
@@ -132,7 +132,7 @@ func SetupNetwork() {
 
 	count = 10
 	fmt.Println("Run master")
-	go RecieveJSON()
+	// go RecieveJSON()
 	master(count, udpBroadcast)
 
 	fmt.Println("Close broadcast")
@@ -140,7 +140,6 @@ func SetupNetwork() {
 }
 
 func SendSlaveIsAliveRegularly(slaveID int, stopSlaveBroadcasting chan bool) {
-
 	fmt.Println("Sending ImAliveMessage over network")
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveIsAlivePort)
 	check(err)
@@ -189,7 +188,7 @@ func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 	defer udpListen.Close()
 
 	listenChan := make(chan int, 1)
-	slaveCount := 0
+	// slaveCount := 0
 
 	go func() {
 		buf := make([]byte, 8)
@@ -204,9 +203,9 @@ func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 	notRecievedCounter := 0
 	for {
 		select {
-		case slaveCount = <-listenChan:
+		case <-listenChan:
 			// fmt.Println("slaveCount: ", slaveCount)
-			fmt.Println("ListenAfterSlaves: ", slaveCount, ", slaveMessagesRecieved: ", slaveMessagesRecieved)
+			// fmt.Println("ListenAfterSlaves: ", slaveCount, ", slaveMessagesRecieved: ", slaveMessagesRecieved)
 			slaveMessagesRecieved++
 			// if slaveCount < 4 && slaveCount > -1 {
 			// 	fmt.Println("Going to floor from slave: ", slaveCount)
@@ -227,7 +226,6 @@ func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 			// return
 		}
 	}
-
 }
 
 func SendMasterIsAliveRegularly() {
@@ -248,7 +246,7 @@ func SendMasterIsAliveRegularly() {
 
 	binary.BigEndian.PutUint64(msg, uint64(66))
 	for {
-		fmt.Println("Sending I'm Alive from Master, msg:", msg)
+		// fmt.Println("Sending I'm Alive from Master, msg:", msg)
 		udpBroadcast.Write(msg)
 		time.Sleep(delay100ms * 10)
 	}
@@ -289,9 +287,9 @@ func ListenAfterAliveMasterRegularly(masterIsAliveChan chan int, stopListening c
 }
 
 func CheckIfMasterAlreadyExist() bool {
-	fmt.Println("Listening to check if master is alive")
+	fmt.Print("Are there any Masters here? ")
 	udpAddr, err := net.ResolveUDPAddr("udp", masterIsAlivePort)
-	fmt.Println("updAddr: ", udpAddr)
+	// fmt.Println("updAddr: ", udpAddr)
 	check(err)
 	// Create listen Conn
 	udpListen, err := net.ListenUDP("udp", udpAddr)
@@ -320,10 +318,12 @@ func CheckIfMasterAlreadyExist() bool {
 		case <-listenChan:
 			// udpListen.Close() /*Close instead*/
 			time.Sleep(delay100ms) // wait 50 ms
+			fmt.Println("YEEEES!")
 			return true
 		case <-time.After(4 * time.Second): // Wait 10 cycles (1 second). Master assumed dead
 			// udpListen.Close() /*Close instead*/
 			time.Sleep(time.Second)
+			fmt.Println("NOOOO!")
 			return false
 		}
 	}
@@ -377,7 +377,7 @@ func SendJSON(m interface{}) {
 	udpBroadcast.Write(b)
 }
 
-func RecieveJSON() {
+func RecieveJSON(updatedOrderList chan definitions.Orders) {
 	fmt.Println("Listening after JSON Objectes")
 	udpAddr, err := net.ResolveUDPAddr("udp", jsonSendPort)
 	check(err)
@@ -387,9 +387,9 @@ func RecieveJSON() {
 	// Create listen Conn
 	udpListen, err := net.ListenUDP("udp", udpAddr)
 	check(err)
-	var m interface{}
+	m := definitions.Orders{}
 
-	listenChan := make(chan interface{}, 1)
+	listenChan := make(chan definitions.Orders, 1)
 	// slaveCount := 0
 
 	go func() {
@@ -405,7 +405,6 @@ func RecieveJSON() {
 
 			// Convert byte from buf to int and send over channel.
 			err := json.Unmarshal(buf[2:jsonByteLength+2], &m)
-			// storage.SaveElevatorStateToFile(m) //This actually works
 			// fmt.Println("Her kommer m som du skal se på: ", m)
 			// fmt.Println("Ferdig med å vise m")
 			check(err)
@@ -419,7 +418,9 @@ func RecieveJSON() {
 		case JSONByteArray := <-listenChan:
 			// fmt.Println("slaveCount: ", slaveCount)
 			fmt.Println("got JSON object: ", JSONByteArray, ", json objects recieved: ", JSONobjectsRecieved)
+			storage.SaveJSONtoFile(JSONByteArray) //This actually works
 			JSONobjectsRecieved++
+			updatedOrderList <- JSONByteArray
 			// if slaveCount < 4 && slaveCount > -1 {
 			// 	fmt.Println("Going to floor from slave: ", slaveCount)
 			// 	// go goToFloor(slaveCount, &elevatorState)
@@ -430,7 +431,7 @@ func RecieveJSON() {
 		case <-time.After(30 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
 			// When master dies, slavecount is returned so that a new process of master -> slave
 			// can continue from the last value sent over the network.
-			fmt.Println("Have not recieved any JSON message for the last 3 seconds!")
+			// fmt.Println("Have not recieved any JSON message for the last 3 seconds!")
 			// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 			// err := newSlave.Run()
 			check(err)

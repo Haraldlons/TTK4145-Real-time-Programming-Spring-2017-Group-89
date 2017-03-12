@@ -27,8 +27,8 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 
 	for {
 		select {
-		case tempMessage := <-masterIsAliveChan:
-			fmt.Println("Master is still alive: ", tempMessage)
+		case <-masterIsAliveChan:
+			// fmt.Println("Master is still alive: ", tempMessage)
 		case <-time.After(time.Millisecond * 3000):
 			fmt.Println("Master is not alive for the last three seconds")
 			stopListening <- true
