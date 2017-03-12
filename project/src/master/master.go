@@ -17,6 +17,7 @@ func Run() {
 	fmt.Println("I'm a MASTER!")
 	// totalOrderListChan := make(chan definitions.Elevators, 1) // Create channel for passing totalOrderList
 
+
 	time.Sleep(time.Second)
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 	err := newSlave.Run()
@@ -44,9 +45,8 @@ func Run() {
 
 	go network.SendJSON(orders)
 
-	for {
-		time.Sleep(1000 * time.Millisecond)
-	}
+	go handleUpdatesFromSlaves(totalOrderListChan)
+	go sendToSlavesOnUpdate(totalOrderListChan)
 
 	// // Initialize Elevators struct to keep track of elevator orders
 	// var totalOrderList definitions.Elevators
@@ -59,7 +59,6 @@ func Run() {
 	// redistributeOrders(&listOfAliveSlaves)
 	// network.broadcastOrderlist(totalOrderList)
 
-	// go handleUpdatesFromSlaves(&totalOrderList)
 	// go KeepTrackOfAliveSlaves(&listOfAliveSlaves)
 
 }
@@ -71,6 +70,7 @@ func Run() {
 // 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
 // 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
 // 	}
+<<<<<<< HEAD
 
 // 	identifiers := []string{"1", "2", "3"}
 // 	for id := range stateList {
@@ -82,6 +82,30 @@ func Run() {
 
 // 	bestElevator := findLowestCostElevator(stateList, buttonPress)
 // 	fmt.Println("Best elevator: Elevator number ", bestElevator)
+=======
+
+// 	identifiers := {"1", "2", "3"}
+// 	for id := range stateList {
+// 		stateList[id].LastFloor = identifiers[i]
+// 	}
+
+// 	fmt.Println("Order: ", buttonPress)
+// 	fmt.Println("Statelist:", stateList)
+
+// 	bestElevator := findLowestCostElevator(stateList, buttonPress)
+// 	fmt.Println("Best elevator: Elevator number ", bestElevator)
+
+// 	orderList := []definitions.Order{
+// 		definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
+// 		definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
+// 		definitions.Order{Floor: 4, Direction: definitions.DIR_UP},
+// 		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
+// 	}
+
+// 	orders := definitions.Orders{
+// 		Orders: orderList,
+// 	}
+>>>>>>> 9d8b1adc0ccc94a1fca928164bf6aabf18490d01
 
 // 	fmt.Println("Orders before update:", orders)
 // 	state := definitions.ElevatorState{LastFloor: 3, Direction: definitions.DIR_DOWN, Destination: 0}
@@ -309,30 +333,43 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
 
-// Run as a goroutine or single function call?
-// func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
-// 	orderList := definitions.Orders{}
-// 	msg := definitions.MSG_to_master{}
-// 	for {
-// 		network.ReceiveFromSlave(&msg)
-// 		// Receive current totalOrderList from channel
-// 		totalOrderList := <-totalOrderListChan
-// 		// Update totalOrderList with information from message
-// 		totalOrderList.OrderMap[msg.Id] = msg.Orders
-// 		totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState
+func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
+	msgChan := make(chan definitions.MSG_to_master, 1)
+	totalOrderList := definitions.Elevators{}
 
-// 		// Get map of states
-// 		elevatorStateMap := totalOrderList.ElevatorStateMap
+	// Start goroutine to listen for updates from slaves
+	go network.ListenToSlave(msgChan)
+	for {
+		select {
+		case msg := <-msgChan: // New message received
+			// Update totalOrderList with information from message
+			totalOrderList.OrderMap[msg.Id] = msg.Orders
+			totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState
 
-// 		// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
-// 		for i := range msg.ExternalButtonPresses {
-// 			elevator_id := findLowestCostElevator(elevatorStateMap, msg.externalButtonPresses[i])
-// 			updateOrders(&totalOrderList.OrderMap[elevator_id], externalButtonPresses[i], elevatorStateMap[elevator_id])
-// 		}
+			// Get map of states
+			elevatorStateMap := totalOrderList.ElevatorStateMap
 
-// 		// Send updates to channel
-// 		totalOrderListChan <- totalOrderList
+			// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
+			for i := range msg.ExternalButtonPresses {
+				elevator_id := findLowestCostElevator(elevatorStateMap, msg.ExternalButtonPresses[i])
+				orders := totalOrderList.OrderMap[elevator_id]
+				updateOrders(&orders, msg.ExternalButtonPresses[i], elevatorStateMap[elevator_id])
+			}
 
-// 		time.Sleep(time.Millisecond * 100)
-// 	}
-// }
+			// Send updates to channel
+			totalOrderListChan <- totalOrderList
+			time.Sleep(time.Millisecond * 100)
+		}
+	}
+}
+
+// When totalorderlist is updated, send to all slaves
+func sendToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
+	for {
+		select {
+		case totalOrderList := <-totalOrderListChan:
+			network.SendToSlave(totalOrderList)
+		}
+		time.Sleep(1000 * time.Millisecond)
+	}
+}
