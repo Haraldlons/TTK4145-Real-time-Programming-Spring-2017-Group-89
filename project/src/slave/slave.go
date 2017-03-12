@@ -35,12 +35,13 @@ func Run() {
 	stopSendingImAliveMessage := make(chan bool)
 	// stopRecievingImAliveMessage := make(chan bool)
 	masterHasDiedChan := make(chan bool)
-
-	updatedOrderList := make(chan int)
+	completedCurrentOrder := make(chan bool)
+	orderListForExecuteOrders := make(chan definitions.Orders)
+	updatedOrderList := make(chan definitions.Orders)
 
 	///////////////////////////////////////////
 	// Make manually orderList
-	totalOrderList := definitions.Orders{}
+	// totalOrderList := definitions.Orders{}
 	// orderList := definitions.Orders{definitions}
 	// listOfNumbers := []int{0, 1, 2, 1, 3}
 	// secondListOfNumbers := []int{-1, 1, 1, -1, 1}
@@ -52,8 +53,8 @@ func Run() {
 	// storage.SaveOrdersToFile(1, totalOrderList)
 	///////////////////////////////////////////
 
-	storage.LoadOrdersFromFile(1, &totalOrderList)
-	fmt.Println("Loaded totalOrderlist from a file. Result: ", totalOrderList)
+	// storage.LoadOrdersFromFile(1, &totalOrderList)
+	// fmt.Println("Loaded totalOrderlist from a file. Result: ", totalOrderList)
 	storage.LoadElevatorStateFromFile(&elevatorState)
 
 	go elevator.CheckForElevatorFloorUpdates(&elevatorState, updateElevatorStateFloor)
@@ -69,11 +70,13 @@ func Run() {
 
 	go printExternalPresses(externalButtonsPressesChan)
 	go printInternalPresses(internalButtonsPressesChan)
-	go elevator.ExecuteOrders(&totalOrderList, &elevatorState, updatedOrderList, updateElevatorStateDirection)
+	go elevator.ExecuteOrders(&elevatorState, orderListForExecuteOrders, updateElevatorStateDirection, completedCurrentOrder)
+
+	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder)
 
 	// go network.RecieveJSON()
 
-	// go checkForUpdatesFromMaster()
+	// go network.CheckForOrderListUpdatesFromMaster(updatedOrderList)
 	// go sendUpdatesToMaster()
 
 	// buttonPressesUpdates := make(chan button)
@@ -82,7 +85,19 @@ func Run() {
 	// elevatorState := definitions.ElevatorState{2, 0}
 
 	// go elevator.PrintLastFloorIfChanged(&elevatorState)
-	updatedOrderList <- 1
+	// updatedOrderList <- 1
+
+	time.Sleep(5 * time.Second)
+	newOrderList := definitions.Orders{}
+	listOfNumbers := []int{0, 1, 2, 1, 3}
+	secondListOfNumbers := []int{-1, 1, 1, -1, 1}
+
+	for i := range listOfNumbers {
+		newOrderList = definitions.Orders{append(newOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
+	}
+
+	updatedOrderList <- newOrderList
+
 	for {
 		select {
 		case <-masterHasDiedChan:
