@@ -140,7 +140,6 @@ func SetupNetwork() {
 }
 
 func SendSlaveIsAliveRegularly(slaveID int, stopSlaveBroadcasting chan bool) {
-	defer fmt.Println("Actually stopping sending sendImAliveMessage")
 
 	fmt.Println("Sending ImAliveMessage over network")
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveIsAlivePort)
@@ -150,6 +149,11 @@ func SendSlaveIsAliveRegularly(slaveID int, stopSlaveBroadcasting chan bool) {
 	// Create bcast Conn
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 	check(err)
+
+	defer func() {
+		fmt.Println("Actually stopping sending sendImAliveMessage")
+		udpBroadcast.Close()
+	}()
 
 	binary.BigEndian.PutUint64(msg, uint64(slaveID))
 	// go func() {
@@ -162,7 +166,6 @@ func SendSlaveIsAliveRegularly(slaveID int, stopSlaveBroadcasting chan bool) {
 	for {
 		select {
 		case <-stopSlaveBroadcasting:
-			udpBroadcast.Close()
 			time.Sleep(10 * time.Millisecond)
 			return
 		default:
@@ -183,6 +186,7 @@ func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 	// Create listen Conn
 	udpListen, err := net.ListenUDP("udp", udpAddr)
 	check(err)
+	defer udpListen.Close()
 
 	listenChan := make(chan int, 1)
 	slaveCount := 0
@@ -227,8 +231,8 @@ func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 }
 
 func SendMasterIsAliveRegularly() {
-	defer fmt.Println("Actually stopping sending MasterIsAliveMessages")
 	fmt.Println("Sending MasterIsAlive over network")
+
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+masterIsAlivePort)
 	check(err)
 	msg := make([]byte, 8)
@@ -237,11 +241,16 @@ func SendMasterIsAliveRegularly() {
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 	check(err)
 
+	defer func() {
+		fmt.Println("Actually stopping sending MasterIsAliveMessages")
+		udpBroadcast.Close()
+	}()
+
 	binary.BigEndian.PutUint64(msg, uint64(66))
 	for {
-		// fmt.Println("Sending I'm Alive from Master")
+		fmt.Println("Sending I'm Alive from Master, msg:", msg)
 		udpBroadcast.Write(msg)
-		time.Sleep(delay100ms * 20)
+		time.Sleep(delay100ms * 10)
 	}
 }
 
@@ -252,27 +261,29 @@ func ListenAfterAliveMasterRegularly(masterIsAliveChan chan int, stopListening c
 	// Create listen Conn
 	udpListen, err := net.ListenUDP("udp", udpAddr)
 	check(err)
+	defer udpListen.Close()
 
 	// masterMessagesRecieved := 0
 
 	buf := make([]byte, 8)
-	for {
 
-		fmt.Println("Default in network")
-		go udpListen.ReadFromUDP(buf)
-		fmt.Println("Has read from buff")
+	go func() {
+		for {
+			// fmt.Println("Reading fromUDPbuf")
+			udpListen.ReadFromUDP(buf)
+			masterIsAliveChan <- int(binary.BigEndian.Uint64(buf))
+			time.Sleep(100 * time.Millisecond) // Wait 1 cycle (100 ms)
+		}
+
+	}()
+
+	for {
 		// Convert byte from buf to int and send over channel.
 		select {
 		case <-stopListening:
-			fmt.Println("Stopping listening in network")
-			udpListen.Close()
 			return
-		case masterIsAliveChan <- int(binary.BigEndian.Uint64(buf)):
-			// masterIsAliveChan
-			fmt.Println("Yoman")
 		}
 		// masterIsAliveChan <- int(binary.BigEndian.Uint64(buf))
-		time.Sleep(100 * time.Millisecond) // Wait 1 cycle (100 ms)
 	}
 
 }
@@ -285,6 +296,8 @@ func CheckIfMasterAlreadyExist() bool {
 	// Create listen Conn
 	udpListen, err := net.ListenUDP("udp", udpAddr)
 	check(err)
+	defer udpListen.Close()
+
 	listenChan := make(chan int)
 
 	// masterMessagesRecieved := 0
@@ -295,18 +308,21 @@ func CheckIfMasterAlreadyExist() bool {
 			udpListen.ReadFromUDP(buf)
 			// Convert byte from buf to int and send over channel.
 			listenChan <- int(binary.BigEndian.Uint64(buf))
+			fmt.Println("Got message that master already exist, buf:", buf)
 			time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
 		}
 	}()
 
+	time.Sleep(100 * time.Millisecond)
+
 	for {
 		select {
 		case <-listenChan:
-			udpListen.Close()
+			// udpListen.Close() /*Close instead*/
 			time.Sleep(delay100ms) // wait 50 ms
 			return true
-		case <-time.After(20 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
-			udpListen.Close()
+		case <-time.After(4 * time.Second): // Wait 10 cycles (1 second). Master assumed dead
+			// udpListen.Close() /*Close instead*/
 			time.Sleep(time.Second)
 			return false
 		}
@@ -328,7 +344,7 @@ func setOrderOverNetwork(destinationFloor int) {
 	udpBroadcast.Write(msg)
 }
 
-func SendJSON() {
+func SendJSON(m interface{}) {
 	defer fmt.Println("Finished sending JSON")
 
 	fmt.Println("Sending JSON over network")
@@ -336,325 +352,9 @@ func SendJSON() {
 	check(err)
 	// msg := make([]byte, 128)
 	// m := definitions.TestMessage{"Alice", "Hello", 1294706395881547000}
-	// b, _ := json.Marshal(m)
+	b, _ := json.Marshal(m)
 
-	b := []byte(`[
-  {
-    "_id": "58bc3cbe7c880a1fb03cf518",
-    "index": 0,
-    "guid": "71963ee3-a7dc-45b0-bcf4-69823cf8ef1f",
-    "isActive": false,
-    "balance": "$2,463.19",
-    "picture": "http://placehold.it/32x32",
-    "age": 38,
-    "eyeColor": "brown",
-    "name": "Reyes Travis",
-    "gender": "male",
-    "company": "IPLAX",
-    "email": "reyestravis@iplax.com",
-    "phone": "+1 (837) 420-4000",
-    "address": "505 Boynton Place, Accoville, Tennessee, 8967",
-    "about": "Ad ad Lorem aute laborum eu aute consequat occaecat cupidatat veniam deserunt. Eu aliquip culpa nulla duis quis elit eu. Enim aute minim mollit id.\r\n",
-    "registered": "2016-02-08T11:02:49 -01:00",
-    "latitude": -84.569896,
-    "longitude": 134.766522,
-    "tags": [
-      "laboris",
-      "et",
-      "veniam",
-      "fugiat",
-      "consequat",
-      "minim",
-      "minim"
-    ],
-    "friends": [
-      {
-        "id": 0,
-        "name": "Joanna Whitfield"
-      },
-      {
-        "id": 1,
-        "name": "Clayton Delaney"
-      },
-      {
-        "id": 2,
-        "name": "Francis Good"
-      }
-    ],
-    "greeting": "Hello, Reyes Travis! You have 9 unread messages.",
-    "favoriteFruit": "banana"
-  },
-  {
-    "_id": "58bc3cbe8948d8853fa7d737",
-    "index": 1,
-    "guid": "0aa38531-3490-4986-b0cd-9649b215922c",
-    "isActive": true,
-    "balance": "$2,444.94",
-    "picture": "http://placehold.it/32x32",
-    "age": 26,
-    "eyeColor": "green",
-    "name": "Briana Levy",
-    "gender": "female",
-    "company": "NAMEBOX",
-    "email": "brianalevy@namebox.com",
-    "phone": "+1 (880) 480-2445",
-    "address": "431 Pleasant Place, Churchill, Montana, 6745",
-    "about": "Irure in in reprehenderit excepteur deserunt duis. Ullamco minim cupidatat eiusmod aliquip incididunt velit laborum tempor nisi do aliqua nulla deserunt sit. Cillum eu minim pariatur do. Sunt esse nostrud exercitation magna non ut qui aliqua sint in exercitation sit consectetur ea.\r\n",
-    "registered": "2016-06-13T03:17:13 -02:00",
-    "latitude": -50.55551,
-    "longitude": -82.904125,
-    "tags": [
-      "laboris",
-      "do",
-      "cillum",
-      "duis",
-      "sint",
-      "adipisicing",
-      "dolor"
-    ],
-    "friends": [
-      {
-        "id": 0,
-        "name": "Virgie Frazier"
-      },
-      {
-        "id": 1,
-        "name": "Baird Cain"
-      },
-      {
-        "id": 2,
-        "name": "Bobbi Zamora"
-      }
-    ],
-    "greeting": "Hello, Briana Levy! You have 2 unread messages.",
-    "favoriteFruit": "banana"
-  },
-  {
-    "_id": "58bc3cbee069ea0693bda1b4",
-    "index": 2,
-    "guid": "c448ace9-685f-43b8-80bb-03057b921b35",
-    "isActive": false,
-    "balance": "$3,708.77",
-    "picture": "http://placehold.it/32x32",
-    "age": 40,
-    "eyeColor": "blue",
-    "name": "Sophie Bender",
-    "gender": "female",
-    "company": "COGENTRY",
-    "email": "sophiebender@cogentry.com",
-    "phone": "+1 (804) 518-2791",
-    "address": "353 Lancaster Avenue, Statenville, West Virginia, 9620",
-    "about": "Nostrud ut Lorem magna ipsum excepteur culpa. Ex ad non duis eu sit aliquip do aliquip cupidatat dolore amet proident. Exercitation proident do officia incididunt dolore fugiat excepteur tempor esse fugiat ad consequat nulla. Enim aliqua consectetur eu in qui velit commodo amet ut laboris adipisicing dolore labore. Fugiat sit dolor cillum magna. Eu sint laboris eu qui elit.\r\n",
-    "registered": "2014-12-10T11:32:29 -01:00",
-    "latitude": -74.597476,
-    "longitude": 132.724518,
-    "tags": [
-      "deserunt",
-      "officia",
-      "ut",
-      "tempor",
-      "elit",
-      "velit",
-      "anim"
-    ],
-    "friends": [
-      {
-        "id": 0,
-        "name": "Kimberley Mercer"
-      },
-      {
-        "id": 1,
-        "name": "Head Douglas"
-      },
-      {
-        "id": 2,
-        "name": "Terra Wilcox"
-      }
-    ],
-    "greeting": "Hello, Sophie Bender! You have 3 unread messages.",
-    "favoriteFruit": "apple"
-  },
-  {
-    "_id": "58bc3cbe455d201287b2a86e",
-    "index": 3,
-    "guid": "216692f5-a149-4e9c-986a-45034b242a25",
-    "isActive": false,
-    "balance": "$1,344.18",
-    "picture": "http://placehold.it/32x32",
-    "age": 33,
-    "eyeColor": "brown",
-    "name": "Hampton Ochoa",
-    "gender": "male",
-    "company": "INTERLOO",
-    "email": "hamptonochoa@interloo.com",
-    "phone": "+1 (927) 415-3170",
-    "address": "172 Dekoven Court, Sanborn, Northern Mariana Islands, 6722",
-    "about": "Ex anim dolor eiusmod incididunt ipsum mollit reprehenderit sint id do tempor. Ea elit anim nulla veniam adipisicing ex elit mollit amet magna ut. Et labore est sit duis anim Lorem.\r\n",
-    "registered": "2016-09-24T06:01:27 -02:00",
-    "latitude": -17.876075,
-    "longitude": -111.030459,
-    "tags": [
-      "dolor",
-      "officia",
-      "veniam",
-      "do",
-      "nostrud",
-      "occaecat",
-      "et"
-    ],
-    "friends": [
-      {
-        "id": 0,
-        "name": "Jasmine England"
-      },
-      {
-        "id": 1,
-        "name": "Gwendolyn Albert"
-      },
-      {
-        "id": 2,
-        "name": "Potter Morrow"
-      }
-    ],
-    "greeting": "Hello, Hampton Ochoa! You have 8 unread messages.",
-    "favoriteFruit": "strawberry"
-  },
-  {
-    "_id": "58bc3cbecf74c06b5fc43c4f",
-    "index": 4,
-    "guid": "be2624dc-589a-4db6-b563-3f6b55255d29",
-    "isActive": true,
-    "balance": "$3,451.72",
-    "picture": "http://placehold.it/32x32",
-    "age": 40,
-    "eyeColor": "green",
-    "name": "Barr Lara",
-    "gender": "male",
-    "company": "CIPROMOX",
-    "email": "barrlara@cipromox.com",
-    "phone": "+1 (815) 598-3047",
-    "address": "384 Cox Place, Highland, Nebraska, 6953",
-    "about": "Minim cillum qui fugiat in Lorem aute. Consectetur non et aliquip nostrud consequat labore incididunt tempor. Aliqua incididunt nostrud duis amet proident consequat ex sunt sit laboris nisi. Veniam irure aliqua deserunt anim sint laboris pariatur deserunt ea est. Ad Lorem id officia magna quis mollit id aliquip proident nulla quis ex. Officia eu et aute ipsum proident qui nulla non in.\r\n",
-    "registered": "2014-08-09T05:19:00 -02:00",
-    "latitude": -78.464367,
-    "longitude": 46.141521,
-    "tags": [
-      "adipisicing",
-      "duis",
-      "proident",
-      "eiusmod",
-      "sit",
-      "in",
-      "velit"
-    ],
-    "friends": [
-      {
-        "id": 0,
-        "name": "Norma Gay"
-      },
-      {
-        "id": 1,
-        "name": "Coffey Stark"
-      },
-      {
-        "id": 2,
-        "name": "Lea Mcneil"
-      }
-    ],
-    "greeting": "Hello, Barr Lara! You have 10 unread messages.",
-    "favoriteFruit": "strawberry"
-  },
-  {
-    "_id": "58bc3cbee5c175af5b6676d7",
-    "index": 5,
-    "guid": "8b1463b3-b291-46d1-9bcd-e9a379e0e26e",
-    "isActive": false,
-    "balance": "$3,037.76",
-    "picture": "http://placehold.it/32x32",
-    "age": 20,
-    "eyeColor": "blue",
-    "name": "Gonzalez James",
-    "gender": "male",
-    "company": "EVEREST",
-    "email": "gonzalezjames@everest.com",
-    "phone": "+1 (826) 493-3049",
-    "address": "545 Falmouth Street, Singer, Minnesota, 4644",
-    "about": "Proident aliquip quis anim esse nulla. Labore Lorem ad veniam amet. Veniam magna deserunt enim adipisicing officia sint exercitation ea.\r\n",
-    "registered": "2015-09-14T08:06:41 -02:00",
-    "latitude": 63.001256,
-    "longitude": 28.082829,
-    "tags": [
-      "ipsum",
-      "qui",
-      "et",
-      "ipsum",
-      "anim",
-      "consequat",
-      "eiusmod"
-    ],
-    "friends": [
-      {
-        "id": 0,
-        "name": "Danielle Norris"
-      },
-      {
-        "id": 1,
-        "name": "Houston Justice"
-      },
-      {
-        "id": 2,
-        "name": "English Wood"
-      }
-    ],
-    "greeting": "Hello, Gonzalez James! You have 5 unread messages.",
-    "favoriteFruit": "apple"
-  },
-  {
-    "_id": "58bc3cbef097e05f09f0c7ae",
-    "index": 6,
-    "guid": "3b449f58-0b56-49b6-ba28-088d7fd9ff3b",
-    "isActive": true,
-    "balance": "$3,985.43",
-    "picture": "http://placehold.it/32x32",
-    "age": 37,
-    "eyeColor": "green",
-    "name": "Alfreda Sims",
-    "gender": "female",
-    "company": "UBERLUX",
-    "email": "alfredasims@uberlux.com",
-    "phone": "+1 (849) 498-2541",
-    "address": "859 Lawrence Avenue, Bourg, Oklahoma, 186",
-    "about": "Voluptate aliquip sunt sit fugiat labore do fugiat dolore in cillum nostrud. Occaecat tempor cillum occaecat enim mollit. Esse qui incididunt exercitation non nostrud adipisicing. Eiusmod exercitation nostrud pariatur nisi.\r\n",
-    "registered": "2016-06-11T11:44:28 -02:00",
-    "latitude": 25.431983,
-    "longitude": -25.659437,
-    "tags": [
-      "elit",
-      "non",
-      "pariatur",
-      "magna",
-      "ullamco",
-      "sunt",
-      "occaecat"
-    ],
-    "friends": [
-      {
-        "id": 0,
-        "name": "Brady Sandoval"
-      },
-      {
-        "id": 1,
-        "name": "Maynard Holland"
-      },
-      {
-        "id": 2,
-        "name": "Jennings Drake"
-      }
-    ],
-    "greeting": "Hello, Alfreda Sims! You have 8 unread messages.",
-    "favoriteFruit": "banana"
-  }
-]`)
+	// b :=
 
 	fmt.Println("JSON in ByteArray:", b)
 	jsonByteLength := len(b)
@@ -739,6 +439,20 @@ func RecieveJSON() {
 	}
 
 }
+
+// var localIP string
+
+// func getLocalIP() (string, error) {
+// 	if localIP == "" {
+// 		conn, err := net.DialTCP("tcp4", nil, &net.TCPAddr{IP: []byte{8, 8, 8, 8}, Port: 53})
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 		defer conn.Close()
+// 		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]
+// 	}
+// 	return localIP, nil
+// }
 
 // func CheckIfMasterAlreadyExist() {
 

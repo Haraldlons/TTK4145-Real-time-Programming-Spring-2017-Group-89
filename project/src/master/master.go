@@ -2,23 +2,23 @@ package master
 
 import (
 	"../definitions"
-	"../driver"
+	// "../driver"
 	"../network"
 	// "../storage"
 	"fmt"
 	"math"
-	// "os/exec"
+	"os/exec"
 	"time"
 )
 
 func Run() {
 	fmt.Println("I'm a MASTER!")
-	driver.Elev_init()
-	// time.Sleep(time.Second)
-	// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-	// err := newSlave.Run()
-	// if err != nil {
-	// }
+	// driver.Elev_init()
+	time.Sleep(time.Second)
+	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+	err := newSlave.Run()
+	if err != nil {
+	}
 	aliveSlavesList := []int{1, 2, 3}
 	// updateInAliveSlaves := make(chan bool)
 

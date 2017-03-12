@@ -5,7 +5,7 @@ import (
 	// "./src/definitions"
 	//"./src/driver"
 	// "./src/elevator"
-	// "./src/network"
+	"./src/network"
 	//"./src/buttons"
 	"./src/driver"
 	// "./src/storage"
@@ -15,11 +15,13 @@ import (
 	// "log"
 	// "os"
 	// "os/exec"
+	// "net"
 	"time"
 )
 
 var delay = 50 * time.Millisecond
 var elevatorActive = false
+var port string = ":46723"
 
 // var elevatorState = definitions.ElevatorState{2, 0}
 var msg = make([]byte, 8)
@@ -29,7 +31,6 @@ func main() {
 	// go slave.Run()
 	// go master.Run()
 	// go network.SetupNetwork()
-	// Testchange
 
 	go func() {
 		stopSignal := 0
@@ -46,9 +47,17 @@ func main() {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}()
+	// udpAddr, _ := net.ResolveUDPAddr("udp", port)
+	// fmt.Println("udpAddr", udpAddr)
 
-	slave.Run()
-	master.Run()
+	if network.CheckIfMasterAlreadyExist() {
+		slave.Run()
+		master.Run()
+	} else {
+		master.Run()
+	}
+	// slave.Run()
+	// master.Run()
 
 	return
 

@@ -27,28 +27,31 @@ var msg = make([]byte, 8)
 // func ExecuteOrders(localOrderList definitions.Orders){
 // 	for
 // }
-func ExecuteOrders(localOrderList *definitions.Orders, elevatorState *definitions.ElevatorState, updatedOrderList chan int, updateElevatorStateDirection chan int) {
-	stopCurrentOrder := make(chan int)
-	isFirstButtonPress := true
-	// fmt.Println("localOrderList", localOrderList.Orders[:])
-	i := 0
+func ExecuteOrders(elevatorState *definitions.ElevatorState, orderListForExecuteOrders chan definitions.Orders, updateElevatorStateDirection chan int, completedCurrentOrder chan<- bool) {
+	stopCurrentOrder := make(chan bool)
+	isFirstOrder := true
 	for {
 		select {
-		case <-updatedOrderList:
-			storage.SaveOrdersToFile(1, localOrderList)
-			if len(localOrderList.Orders) > 0 {
-				// fmt.Println("Hopefully going to new floor: ", localOrderList.Orders[0].Floor, "and if-statement: ", len(localOrderList.Orders) > 0)
-				if !isFirstButtonPress {
-					stopCurrentOrder <- 1
+		case orderList := <-orderListForExecuteOrders:
+			if len(orderList.Orders) > 0 {
+				fmt.Println("Hopefully going to new floor: ", orderList.Orders[0].Floor, "and if-statement: ", len(orderList.Orders) > 0)
+				if !isFirstOrder {
+					stopCurrentOrder <- true
 					// *localOrderList = definitions.Orders{[]definitions.Order{{Floor: 3, Direction: 1},{Floor: 0, Direction: -1}}}
 				}
-				// fmt.Println("localOrderList", localOrderList.Orders)
-				isFirstButtonPress = false
-				go GoToFloor(localOrderList.Orders[0].Floor, elevatorState, stopCurrentOrder, updatedOrderList, updateElevatorStateDirection)
+
+				go GoToFloor(orderList.Orders[0].Floor, elevatorState, stopCurrentOrder, completedCurrentOrder, updateElevatorStateDirection)
 				time.Sleep(20 * time.Millisecond)
-				*localOrderList = definitions.Orders{localOrderList.Orders[1:]}
-				i++
+
+				// // storage.SaveOrdersToFile(1, localOrderList)
+				// if len(localOrderList.Orders) > 0 {
+
 			}
+			// 	// fmt.Println("localOrderList", localOrderList.Orders)
+			// 	isFirstButtonPress = false
+			// 	time.Sleep(20 * time.Millisecond)
+			// 	*localOrderList = definitions.Orders{localOrderList.Orders[1:]}
+			// 	i++
 		}
 	}
 }
@@ -68,7 +71,6 @@ func ListenAfterElevatStateUpdatesAndSaveToFile(elevatorState *definitions.Eleva
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
-
 }
 
 func CheckForElevatorFloorUpdates(elevatorState *definitions.ElevatorState, updateElevatorStateFloor chan int) {
@@ -102,14 +104,13 @@ func CheckForElevatorFloorUpdates(elevatorState *definitions.ElevatorState, upda
 		}
 		time.Sleep(time.Millisecond * 10)
 	}
-
 }
 
 /*This functions should be cleaned up. I have an ide how to do it*/
 // func PrintLastFloorIfChanged(elevatorState *definitions.ElevatorState) {
 // }
 
-func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, stopCurrentOrder chan int, updatedOrderList chan int, updateElevatorStateDirection chan int) {
+func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, stopCurrentOrder chan bool, completedCurrentOrder chan<- bool, updateElevatorStateDirection chan int) {
 	defer fmt.Println("Exeting goToFloor to floor: ", destinationFloor)
 	// storage.SaveOrderToFile(destinationFloor)
 	// elevatorActive = true
@@ -123,7 +124,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 		fmt.Println("You are allready on the desired floor")
 		// elevatorActive = false
 		driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
-		updatedOrderList <- 1
+		completedCurrentOrder <- true
 		// endProgram = true
 		for {
 
@@ -180,7 +181,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 					driver.Elev_set_door_open_lamp(1)
 					// storage.SaveOrderToFile(-1)
 					time.Sleep(time.Millisecond * 100)
-					updatedOrderList <- 1
+					completedCurrentOrder <- true
 					for {
 						select {
 						case <-stopCurrentOrder:
