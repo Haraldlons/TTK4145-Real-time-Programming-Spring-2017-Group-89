@@ -564,3 +564,7 @@ func ListenToSlave(msgChan chan definitions.MSG_to_master) {
 		}
 	}()
 }
+
+func sendToSlave() {
+
+}

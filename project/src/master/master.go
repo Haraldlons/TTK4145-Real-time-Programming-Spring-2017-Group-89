@@ -29,9 +29,8 @@ func Run() {
 	time.Sleep(5 * time.Second)
 	// go network.SendJSON()
 
-	for {
-		time.Sleep(1000 * time.Millisecond)
-	}
+	go handleUpdatesFromSlaves(totalOrderListChan)
+	go sendToSlavesOnUpdate(totalOrderListChan)
 
 	// // Initialize Elevators struct to keep track of elevator orders
 	// var totalOrderList definitions.Elevators
@@ -44,7 +43,6 @@ func Run() {
 	// redistributeOrders(&listOfAliveSlaves)
 	// network.broadcastOrderlist(totalOrderList)
 
-	// go handleUpdatesFromSlaves(&totalOrderList)
 	// go KeepTrackOfAliveSlaves(&listOfAliveSlaves)
 
 }
@@ -332,5 +330,16 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
 			totalOrderListChan <- totalOrderList
 			time.Sleep(time.Millisecond * 100)
 		}
+	}
+}
+
+// When totalorderlist is updated, send to all slaves
+func sendToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
+	for {
+		select {
+		case totalOrderList := <-totalOrderListChan:
+			network.SendToSlave(totalOrderList)
+		}
+		time.Sleep(1000 * time.Millisecond)
 	}
 }
