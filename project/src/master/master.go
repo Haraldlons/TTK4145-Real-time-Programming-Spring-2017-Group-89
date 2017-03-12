@@ -14,6 +14,7 @@ import (
 func Run() {
 	fmt.Println("I'm a MASTER!")
 	driver.Elev_init()
+	totalOrderListChan := make(chan defintions.Elevators, 1) // Create channel for passing totalOrderList
 	// time.Sleep(time.Second)
 	// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 	// err := newSlave.Run()
@@ -246,34 +247,33 @@ func check(err error) {
 // 	}
 // }
 
-// Returns int corresponding to elevator with lowest cost (0:N_ELEVS-1)
-func findLowestCostElevator(elevatorStates []definitions.ElevatorState, externalButtonPress definitions.Order) int {
+// Returns id of best suited elevator, assuming elevatorStates is a map with ids
+func findLowestCostElevator(elevatorStates definitions.ElevatorStateMap, externalButtonPress definitions.Order) int {
 	minCost := 2 * definitions.N_FLOORS
-	bestElevator := 0
 	destinationFloor := externalButtonPress.Floor
 	destinationDirection := externalButtonPress.Direction
 
-	for i := 0; i < len(elevatorStates); i++ {
-		travelDirection := findTravelDirection(elevatorStates[i].LastFloor, destinationFloor)
-		tempCost := int(math.Abs(float64(destinationFloor - elevatorStates[i].LastFloor)))
+	for id, elevatorState := range elevatorStates { // Loop through map
+		travelDirection := findTravelDirection(elevatorState.LastFloor, destinationFloor)
+		tempCost := int(math.Abs(float64(destinationFloor - elevatorState.LastFloor)))
 
-		if elevatorStates[i].Destination == definitions.IDLE {
+		if elevatorState.Destination == definitions.IDLE {
 			// Elevator is idle
 			tempCost = tempCost - 1 // Prioritize idle elevators
-		} else if elevatorStates[i].Destination != destinationFloor {
+		} else if elevatorState.Destination != destinationFloor {
 			// No additional cost if elevator destination is the same as order destination
-			if elevatorHasAdditionalCost(travelDirection, destinationFloor, destinationDirection, elevatorStates[i]) {
-				costToDest := int(math.Abs(float64(elevatorStates[i].Destination - elevatorStates[i].LastFloor)))
-				tempCost = costToDest + int(math.Abs(float64(destinationFloor-elevatorStates[i].Destination)))
-				fmt.Println("Elevator ", i, " has extra cost")
+			if elevatorHasAdditionalCost(travelDirection, destinationFloor, destinationDirection, elevatorState) {
+				costToDest := int(math.Abs(float64(elevatorState.Destination - elevatorState.LastFloor)))
+				tempCost = costToDest + int(math.Abs(float64(destinationFloor-elevatorState.Destination)))
+				fmt.Println("Elevator with identifier", id, " has extra cost")
 			}
 		}
 
 		if tempCost < minCost {
 			minCost = tempCost
-			bestElevator = i
+			bestElevator := id
 		}
-		fmt.Println("Cost of elevator", i, ":", tempCost)
+		fmt.Println("Cost of elevator", id, ":", tempCost)
 	}
 	fmt.Println("Minimum cost:", minCost)
 	return bestElevator
@@ -301,4 +301,32 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 		travelDirection != destinationDirection) || // Elevator is traveling in the opposite direction of Order
 		travelDirection != elevState.Direction || // Elevator is moving in the opposite direction relative to destination
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
+}
+
+// Run as a goroutine or single function call?
+func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
+	orderList := definitions.Orders{}
+	msg := definitions.MSG_to_master{}
+	for {
+		network.ReceiveFromSlave(&msg)
+		// Receive current totalOrderList from channel
+		totalOrderList := <-totalOrderListChan
+		// Update totalOrderList with information from message
+		totalOrderList.OrderMap[msg.Id] = msg.Orders
+		totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState
+
+		// Get map of states
+		elevatorStateMap := totalOrderList.ElevatorStateMap
+
+		// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
+		for i := range msg.ExternalButtonPresses {
+			elevator_id := findLowestCostElevator(elevatorStateMap, msg.externalButtonPresses[i])
+			updateOrders(&totalOrderList.OrderMap[elevator_id], externalButtonPresses[i], elevatorStateMap[elevator_id])
+		}
+
+		// Send updates to channel
+		totalOrderListChan <- totalOrderList
+
+		time.Sleep(time.Millisecond * 100)
+	}
 }
