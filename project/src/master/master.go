@@ -9,14 +9,16 @@ import (
 	"math"
 	"os/exec"
 	// "string"
-	"math/rand"
+	// "math/rand"
+	// "net"
 	"time"
 )
 
 func Run() {
 	fmt.Println("I'm a MASTER!")
-	// totalOrderListChan := make(chan definitions.Elevators, 1) // Create channel for passing totalOrderList
 
+	// Channel definitions
+	totalOrderListChan := make(chan definitions.Elevators, 1) // Create channel for passing totalOrderList
 
 	time.Sleep(time.Second)
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
@@ -30,27 +32,14 @@ func Run() {
 	go network.SendMasterIsAliveRegularly()
 
 	// go handleUpdateInAliveSlaves(aliveSlavesList, updateInAliveSlaves)
-	time.Sleep(5 * time.Second)
-
-	orderList := []definitions.Order{
-		definitions.Order{Floor: rand.Intn(3), Direction: definitions.DIR_DOWN},
-		// definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
-		// definitions.Order{Floor: 0, Direction: definitions.DIR_UP},
-		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
-	}
-
-	orders := definitions.Orders{
-		Orders: orderList,
-	}
-
-	go network.SendJSON(orders)
+	// time.Sleep(5 * time.Second)
 
 	go handleUpdatesFromSlaves(totalOrderListChan)
 	go sendToSlavesOnUpdate(totalOrderListChan)
 
-	// // Initialize Elevators struct to keep track of elevator orders
-	// var totalOrderList definitions.Elevators
-	// Elevators.OrderMap = make(map[string] []Orders)
+	for {
+		time.Sleep(time.Second)
+	}
 
 	// // Load from storage if available
 	// storage.LoadOrdersFromFile(&totalOrderList)
@@ -62,90 +51,6 @@ func Run() {
 	// go KeepTrackOfAliveSlaves(&listOfAliveSlaves)
 
 }
-
-// func TestRun() {
-// 	buttonPress := definitions.Order{Floor: 3, Direction: definitions.DIR_DOWN}
-// 	stateList := []definitions.ElevatorState{
-// 		definitions.ElevatorState{LastFloor: 0, Direction: definitions.DIR_UP, Destination: 1},
-// 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
-// 		definitions.ElevatorState{LastFloor: 1, Direction: definitions.DIR_UP, Destination: 2},
-// 	}
-<<<<<<< HEAD
-
-// 	identifiers := []string{"1", "2", "3"}
-// 	for id := range stateList {
-// 		stateList[int(id)].LastFloor = identifiers[id]
-// 	}
-
-// 	fmt.Println("Order: ", buttonPress)
-// 	fmt.Println("Statelist:", stateList)
-
-// 	bestElevator := findLowestCostElevator(stateList, buttonPress)
-// 	fmt.Println("Best elevator: Elevator number ", bestElevator)
-=======
-
-// 	identifiers := {"1", "2", "3"}
-// 	for id := range stateList {
-// 		stateList[id].LastFloor = identifiers[i]
-// 	}
-
-// 	fmt.Println("Order: ", buttonPress)
-// 	fmt.Println("Statelist:", stateList)
-
-// 	bestElevator := findLowestCostElevator(stateList, buttonPress)
-// 	fmt.Println("Best elevator: Elevator number ", bestElevator)
-
-// 	orderList := []definitions.Order{
-// 		definitions.Order{Floor: 2, Direction: definitions.DIR_DOWN},
-// 		definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
-// 		definitions.Order{Floor: 4, Direction: definitions.DIR_UP},
-// 		//definitions.Order{Floor: 1, Direction: definitions.DIR_DOWN},
-// 	}
-
-// 	orders := definitions.Orders{
-// 		Orders: orderList,
-// 	}
->>>>>>> 9d8b1adc0ccc94a1fca928164bf6aabf18490d01
-
-// 	fmt.Println("Orders before update:", orders)
-// 	state := definitions.ElevatorState{LastFloor: 3, Direction: definitions.DIR_DOWN, Destination: 0}
-// 	updateOrders(&orders, buttonPress, state)
-// 	fmt.Println("Orders after update:", orders)
-// }
-
-/*
-func handleUpdatesFromSlaves(totalOrderList chan definitions.Elevators) {
-	go network.listenForUpdatesFromSlave(totalOrderList)
-	go func() {
-		for {
-			select {
-			case <-totalOrderList:
-				bestElevator := findLowestCostElevator(elevatorStates, externalButtonPress)
-				updateOrders(&orders, externalButtonPress, elevatorState)
-
-			}
-		}
-	}()
-}
-*/
-
-/*
-func PrepareMessageToSlaves(slaveNum int, allElevators *definitions.Elevators) []byte {
-	message, err := json.Marshal(allElevators)
-	fmt.Println("JSON in ByteArray:", message)
-
-	jsonByteLength := len(message)
-	firstByte := jsonByteLength / 255
-	secondByte := jsonByteLength - firstByte*255
-
-	fmt.Println("JSONByteArrayLength:", jsonByteLength)
-
-	fmt.Println(byte(len(message)))
-
-	b = append([]byte{byte(secondByte)}, message...)
-	b = append([]byte{byte(firstByte)}, message...)
-}
-*/
 
 // Update order list in "orders" object with the command defined by externalButtonPress
 func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorState definitions.ElevatorState) {
@@ -222,30 +127,6 @@ func floorIsInbetween(orderFloor int, buttonFloor int, elevatorFloor int, direct
 		return false
 	}
 }
-
-// Returns int corresponding to elevator with lowest cost (0:N_ELEVS-1)
-
-func check(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-// func handleUpdatesFromSlaves(totalOrderList []definitions.Orders){
-
-// 	totalOrderList := totalOrderList
-
-// 	go network.ListenForUpdatesFromSlave(totalOrderList)
-
-// 	go func(){
-// 		for {
-// 			select {
-// 				case <-totalOrderList
-// 				// Handle updated orderList from slaves
-// 			}
-// 		}
-// 	}()
-// }
 
 // func KeepTrackOfAliveSlaves(&listOfAliveSlaves){
 
@@ -336,6 +217,9 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
 	msgChan := make(chan definitions.MSG_to_master, 1)
 	totalOrderList := definitions.Elevators{}
+	// Initialize maps
+	totalOrderList.OrderMap = make(map[string]definitions.Orders)
+	totalOrderList.ElevatorStateMap = make(map[string]definitions.ElevatorState)
 
 	// Start goroutine to listen for updates from slaves
 	go network.ListenToSlave(msgChan)
@@ -356,6 +240,8 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
 				updateOrders(&orders, msg.ExternalButtonPresses[i], elevatorStateMap[elevator_id])
 			}
 
+			// fmt.Println("Total order list: ", totalOrderList)
+
 			// Send updates to channel
 			totalOrderListChan <- totalOrderList
 			time.Sleep(time.Millisecond * 100)
@@ -365,10 +251,16 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
 
 // When totalorderlist is updated, send to all slaves
 func sendToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
+	fmt.Println("Starting sending orders to slave")
+
 	for {
 		select {
 		case totalOrderList := <-totalOrderListChan:
-			network.SendToSlave(totalOrderList)
+			// fmt.Println("Length of totalOrderlist: ", len(totalOrderList.OrderMap))
+			if len(totalOrderList.OrderMap) != 0 {
+				msg := definitions.MSG_to_slave{Elevators: totalOrderList}
+				network.SendToSlave(msg)
+			}
 		}
 		time.Sleep(1000 * time.Millisecond)
 	}

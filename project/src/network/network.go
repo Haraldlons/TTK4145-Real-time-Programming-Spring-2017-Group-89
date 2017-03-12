@@ -10,13 +10,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"os/exec"
+	// "os/exec"
 	"time"
 	// "math"
 	//"bufio"
 	// "log"
 	//"os"
 	//"strconv"
+	"strings"
 )
 
 var bcAddress string = "129.241.187.151"
@@ -25,129 +26,25 @@ var bcAddress string = "129.241.187.151"
 var port string = ":46723"
 var slaveIsAlivePort string = ":46720"
 var masterIsAlivePort string = ":46721"
-var jsonSendPort string = ":46722"
+var jsonSendPort string = ":46724"
+var masterToSlavePort string = ":18900"
+var slaveToMasterPort string = ":18901"
 
 var delay100ms = 100 * time.Millisecond
-
-func check(err error) {
-	if err != nil {
-		fmt.Print("Error in network: ")
-		panic(err)
-	}
-}
-
-func slave(udpListen *net.UDPConn) int {
-	defer fmt.Println("Slave function ended") /*For debugging*/
-	listenChan := make(chan int, 1)
-	slaveCount := 0
-
-	stopSlaveBroadcasting := make(chan int)
-
-	// Run goroutine listening for sent values from master.
-	go listen(listenChan, udpListen)
-	// go sendImAliveMessage(stopSlaveBroadcasting)
-
-	for {
-		select {
-		case slaveCount = <-listenChan:
-			// fmt.Println("slaveCount: ", slaveCount)
-			fmt.Println("Got listen message from master: ", slaveCount)
-			// if slaveCount < 4 && slaveCount > -1 {
-			// 	fmt.Println("Going to floor from slave: ", slaveCount)
-			// 	// go goToFloor(slaveCount, &elevatorState)
-			// }
-			time.Sleep(delay100ms / 2) // wait 50 ms
-			break
-		case <-time.After(30 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
-			// When master dies, slavecount is returned so that a new process of master -> slave
-			// can continue from the last value sent over the network.
-			fmt.Println("Master is dead. Long live the the new king!")
-			stopSlaveBroadcasting <- 1
-			return slaveCount
-		}
-	}
-
-}
-
-func master(startCount int, udpBroadcast *net.UDPConn) {
-	/* Launch new instance of "main".
-	 * This creates the corresponding slave which will loop on listen until master dies
-	 */
-	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-	err := newSlave.Run()
-	check(err)
-	msg := make([]byte, 8)
-
-	count := startCount
-
-	// go listenAfterImAliveMessage()
-
-	for {
-		// Convert count from int to binary/byte and place in msg
-		binary.BigEndian.PutUint64(msg, uint64(count))
-		udpBroadcast.Write(msg)
-
-		// fmt.Println(count)
-		count++
-
-		time.Sleep(10 * delay100ms) // Wait 1 cycle (100 ms)
-	}
-}
-
-func listen(listenChan chan int, udpListen *net.UDPConn) {
-	buf := make([]byte, 8)
-	for {
-		udpListen.ReadFromUDP(buf)
-
-		// Convert byte from buf to int and send over channel.
-		listenChan <- int(binary.BigEndian.Uint64(buf))
-		time.Sleep(10 * delay100ms) // Wait 1 cycle (100 ms)
-	}
-}
-
-func SetupNetwork() {
-
-	// sendJSON()
-
-	udpAddr, err := net.ResolveUDPAddr("udp", port)
-	check(err)
-
-	// Create listen Conn
-	udpListen, err := net.ListenUDP("udp", udpAddr)
-	check(err)
-
-	// Initialize slave
-	// First run of program will return 0 and initialize master->slave topology
-	fmt.Println("Run slave")
-	count := slave(udpListen)
-
-	udpListen.Close()
-
-	udpAddr, err = net.ResolveUDPAddr("udp", bcAddress+port)
-	check(err)
-
-	// Create bcast Conn
-	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
-	check(err)
-
-	count = 10
-	fmt.Println("Run master")
-	// go RecieveJSON()
-	master(count, udpBroadcast)
-
-	fmt.Println("Close broadcast")
-	udpBroadcast.Close()
-}
 
 func SendSlaveIsAliveRegularly(slaveID int, stopSlaveBroadcasting chan bool) {
 	fmt.Println("Sending ImAliveMessage over network")
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveIsAlivePort)
-	check(err)
-	msg := make([]byte, 8)
-
-	// Create bcast Conn
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
-	check(err)
+
+	if err != nil { //Can't connect to the interwebs
+		// fmt.Println("err is not nil", err)
+		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+masterIsAlivePort)
+		udpBroadcast, _ = net.DialUDP("udp", nil, udpAddr)
+	}
+
+	//check(_)
+	msg := make([]byte, 8)
 
 	defer func() {
 		fmt.Println("Actually stopping sending sendImAliveMessage")
@@ -177,14 +74,15 @@ func SendSlaveIsAliveRegularly(slaveID int, stopSlaveBroadcasting chan bool) {
 
 func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 	fmt.Println("Listening after ImAlive messages, list: ", aliveSlavesList)
-	udpAddr, err := net.ResolveUDPAddr("udp", slaveIsAlivePort)
-	check(err)
+	udpAddr, _ := net.ResolveUDPAddr("udp", slaveIsAlivePort)
+
+	//check(_)
 
 	slaveMessagesRecieved := 0
 
 	// Create listen Conn
-	udpListen, err := net.ListenUDP("udp", udpAddr)
-	check(err)
+	udpListen, _ := net.ListenUDP("udp", udpAddr)
+	//check(_)
 	defer udpListen.Close()
 
 	listenChan := make(chan int, 1)
@@ -221,8 +119,8 @@ func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 			// fmt.Println("Have not recieved slave message for the last 3 seconds! ", notRecievedCounter)
 			notRecievedCounter++
 			// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-			// err := newSlave.Run()
-			// check(err)
+			// _ := newSlave.Run()
+			// //check(_)
 			// return
 		}
 	}
@@ -231,14 +129,15 @@ func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 func SendMasterIsAliveRegularly() {
 	fmt.Println("Sending MasterIsAlive over network")
 
-	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+masterIsAlivePort)
-	check(err)
-	msg := make([]byte, 8)
-
-	// Create bcast Conn
+	udpAddr, _ := net.ResolveUDPAddr("udp", bcAddress+masterIsAlivePort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
-	check(err)
+	if err != nil { //Can't connect to the interwebs
+		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+masterIsAlivePort)
+		udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
+	}
+	fmt.Println("udpBroadcast: ", udpBroadcast)
 
+	msg := make([]byte, 8)
 	defer func() {
 		fmt.Println("Actually stopping sending MasterIsAliveMessages")
 		udpBroadcast.Close()
@@ -254,11 +153,12 @@ func SendMasterIsAliveRegularly() {
 
 func ListenAfterAliveMasterRegularly(masterIsAliveChan chan int, stopListening chan bool) {
 	fmt.Println("Listening to check if master is alive")
-	udpAddr, err := net.ResolveUDPAddr("udp", masterIsAlivePort)
-	check(err)
+	udpAddr, _ := net.ResolveUDPAddr("udp", masterIsAlivePort)
+	//check(_)
 	// Create listen Conn
-	udpListen, err := net.ListenUDP("udp", udpAddr)
-	check(err)
+	udpListen, _ := net.ListenUDP("udp", udpAddr)
+
+	//check(_)
 	defer udpListen.Close()
 
 	// masterMessagesRecieved := 0
@@ -288,12 +188,12 @@ func ListenAfterAliveMasterRegularly(masterIsAliveChan chan int, stopListening c
 
 func CheckIfMasterAlreadyExist() bool {
 	fmt.Print("Are there any Masters here? ")
-	udpAddr, err := net.ResolveUDPAddr("udp", masterIsAlivePort)
+	udpAddr, _ := net.ResolveUDPAddr("udp", masterIsAlivePort)
 	// fmt.Println("updAddr: ", udpAddr)
-	check(err)
+	//check(_)
 	// Create listen Conn
-	udpListen, err := net.ListenUDP("udp", udpAddr)
-	check(err)
+	udpListen, _ := net.ListenUDP("udp", udpAddr)
+	//check(_)
 	defer udpListen.Close()
 
 	listenChan := make(chan int)
@@ -320,7 +220,7 @@ func CheckIfMasterAlreadyExist() bool {
 			time.Sleep(delay100ms) // wait 50 ms
 			fmt.Println("YEEEES!")
 			return true
-		case <-time.After(4 * time.Second): // Wait 10 cycles (1 second). Master assumed dead
+		case <-time.After(2 * time.Second): // Wait 10 cycles (1 second). Master assumed dead
 			// udpListen.Close() /*Close instead*/
 			time.Sleep(time.Second)
 			fmt.Println("NOOOO!")
@@ -330,33 +230,26 @@ func CheckIfMasterAlreadyExist() bool {
 
 }
 
-func setOrderOverNetwork(destinationFloor int) {
-	fmt.Println("Sending order over network")
-	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+port)
-	check(err)
-	msg := make([]byte, 8)
-
-	// Create bcast Conn
-	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
-	check(err)
-
-	binary.BigEndian.PutUint64(msg, uint64(destinationFloor))
-	udpBroadcast.Write(msg)
-}
-
 func SendJSON(m interface{}) {
 	defer fmt.Println("Finished sending JSON")
+	fmt.Println("Sending JSON over network. Interface: ", m)
+	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveToMasterPort)
+	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
-	fmt.Println("Sending JSON over network")
-	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+jsonSendPort)
-	check(err)
+	if err != nil { //Can't connect to the interwebs
+		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+slaveToMasterPort)
+		udpBroadcast, _ = net.DialUDP("udp", nil, udpAddr)
+	}
+
+	defer udpBroadcast.Close()
+	//check(_)
 	// msg := make([]byte, 128)
 	// m := definitions.TestMessage{"Alice", "Hello", 1294706395881547000}
 	b, _ := json.Marshal(m)
 
 	// b :=
 
-	fmt.Println("JSON in ByteArray:", b)
+	// fmt.Println("JSON in ByteArray:", b)
 	jsonByteLength := len(b)
 	firstByte := jsonByteLength / 255
 	// fmt.Println("firstByte", firstByte)
@@ -371,26 +264,22 @@ func SendJSON(m interface{}) {
 	// fmt.Println("WITH Length as first byte", b)
 
 	// Create bcast Conn
-	udpBroadcast, _ := net.DialUDP("udp", nil, udpAddr)
-	// check(err)
+	// //check(_)
 
 	udpBroadcast.Write(b)
 }
 
-func RecieveJSON(updatedOrderList chan definitions.Orders) {
-	fmt.Println("Listening after JSON Objectes")
-	udpAddr, err := net.ResolveUDPAddr("udp", jsonSendPort)
-	check(err)
-
-	JSONobjectsRecieved := 0
-
+func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id string) {
+	fmt.Println("Listening after Updates from Master")
+	udpAddr, _ := net.ResolveUDPAddr("udp", masterToSlavePort)
+	//check(_)
 	// Create listen Conn
-	udpListen, err := net.ListenUDP("udp", udpAddr)
-	check(err)
-	m := definitions.Orders{}
+	udpListen, _ := net.ListenUDP("udp", udpAddr)
+	//check(_)
+	msg := definitions.MSG_to_slave{}
 
-	listenChan := make(chan definitions.Orders, 1)
-	// slaveCount := 0
+	messagesRecievedFromMaster := 0
+	listenChan := make(chan definitions.MSG_to_slave, 1)
 
 	go func() {
 		buf := make([]byte, 65536) /*2^16 = max recovery size*/
@@ -404,23 +293,23 @@ func RecieveJSON(updatedOrderList chan definitions.Orders) {
 			// fmt.Println("jsonByteLength:",jsonByteLength)
 
 			// Convert byte from buf to int and send over channel.
-			err := json.Unmarshal(buf[2:jsonByteLength+2], &m)
+			json.Unmarshal(buf[2:jsonByteLength+2], &msg)
 			// fmt.Println("Her kommer m som du skal se på: ", m)
 			// fmt.Println("Ferdig med å vise m")
-			check(err)
-			listenChan <- m
+			//check(_)
+			listenChan <- msg
 			time.Sleep(delay100ms)
 		}
 	}()
 
 	for {
 		select {
-		case JSONByteArray := <-listenChan:
+		case MSG_to_slave := <-listenChan:
 			// fmt.Println("slaveCount: ", slaveCount)
-			fmt.Println("got JSON object: ", JSONByteArray, ", json objects recieved: ", JSONobjectsRecieved)
-			storage.SaveJSONtoFile(JSONByteArray) //This actually works
-			JSONobjectsRecieved++
-			updatedOrderList <- JSONByteArray
+			fmt.Println("got MSG_to_slave object: ", MSG_to_slave, ", json objects recieved: ", messagesRecievedFromMaster)
+			storage.SaveJSONtoFile(MSG_to_slave.Elevators) //This actually works
+			messagesRecievedFromMaster++
+			updatedOrderList <- MSG_to_slave.Elevators.OrderMap[elevator_id]
 			// if slaveCount < 4 && slaveCount > -1 {
 			// 	fmt.Println("Going to floor from slave: ", slaveCount)
 			// 	// go goToFloor(slaveCount, &elevatorState)
@@ -433,8 +322,8 @@ func RecieveJSON(updatedOrderList chan definitions.Orders) {
 			// can continue from the last value sent over the network.
 			// fmt.Println("Have not recieved any JSON message for the last 3 seconds!")
 			// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-			// err := newSlave.Run()
-			check(err)
+			// _ := newSlave.Run()
+			//check(_)
 			// return
 		}
 	}
@@ -445,33 +334,36 @@ func RecieveJSON(updatedOrderList chan definitions.Orders) {
 
 // }
 
-// var localIP string
+var localIP string
 
-// func getLocalIP() (string, error) {
-// 	if localIP == "" {
-// 		conn, err := net.DialTCP("tcp4", nil, &net.TCPAddr{IP: []byte{8, 8, 8, 8}, Port: 53})
-// 		if err != nil {
-// 			return "", err
-// 		}
-// 		defer conn.Close()
-// 		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]
-// 	}
-// 	return localIP, nil
-// }
+func GetLocalIP() (string, error) {
+	fmt.Println("Checking IP")
+	if localIP == "" {
+		fmt.Println("Testing")
+		conn, err := net.DialTCP("tcp4", nil, &net.TCPAddr{IP: []byte{8, 8, 8, 8}, Port: 53})
+		if err != nil {
+			return "", err
+		}
+		defer conn.Close()
+		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]
+	}
+	fmt.Println("Our local IP: ", localIP)
+	return localIP, nil
+}
 
 // func CheckIfMasterAlreadyExist() {
 
 // // }
 // func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 //   fmt.Println("Listening after ImAlive messages, list: ", aliveSlavesList)
-//   udpAddr, err := net.ResolveUDPAddr("udp", slaveIsAlivePort)
-//   check(err)
+//   udpAddr, _ := net.ResolveUDPAddr("udp", slaveIsAlivePort)
+//   //check(_)
 
 //   slaveMessagesRecieved := 0
 
 //   // Create listen Conn
-//   udpListen, err := net.ListenUDP("udp", udpAddr)
-//   check(err)
+//   udpListen, _ := net.ListenUDP("udp", udpAddr)
+//   //check(_)
 
 //   listenChan := make(chan int, 1)
 //   slaveCount := 0
@@ -507,8 +399,8 @@ func RecieveJSON(updatedOrderList chan definitions.Orders) {
 //       fmt.Println("Have not recieved slave message for the last 3 seconds! ", notRecievedCounter)
 //       notRecievedCounter++
 //       // newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-//       // err := newSlave.Run()
-//       // check(err)
+//       // _ := newSlave.Run()
+//       // //check(_)
 //       // return
 //     }
 //   }
@@ -543,12 +435,13 @@ func RecieveJSON(updatedOrderList chan definitions.Orders) {
 
 func ListenToSlave(msgChan chan definitions.MSG_to_master) {
 	fmt.Println("Listening after messages from slave")
-	udpAddr, err := net.ResolveUDPAddr("udp", jsonSendPort)
-	check(err)
+	udpAddr, _ := net.ResolveUDPAddr("udp", slaveToMasterPort)
+	//check(_)
 
 	// Create listen Conn
-	udpListen, err := net.ListenUDP("udp", udpAddr)
-	check(err)
+	udpListen, _ := net.ListenUDP("udp", udpAddr)
+	fmt.Println("udpListen:", *udpListen)
+	//check(_)
 	defer udpListen.Close()
 
 	go func() {
@@ -561,15 +454,53 @@ func ListenToSlave(msgChan chan definitions.MSG_to_master) {
 			jsonByteLength := int(buf[0])*255 + int(buf[1])
 			msg := definitions.MSG_to_master{}
 			// Convert back to struct
-			err := json.Unmarshal(buf[2:jsonByteLength+2], &msg)
-			check(err)
-
+			if jsonByteLength > 0 {
+				// fmt.Println("length of json:", jsonByteLength)
+				json.Unmarshal(buf[2:jsonByteLength+2], &msg)
+				// fmt.Println("Recieved json object from slave. ", msg)
+				//check(_)
+				// fmt.Println("after error")
+				msgChan <- msg
+			}
+			time.Sleep(1000 * time.Millisecond)
 			// Send message over channel
-			msgChan <- msg
 		}
 	}()
+
+	for {
+		time.Sleep(time.Second)
+	}
 }
 
-func sendToSlave() {
+func SendToSlave(msg definitions.MSG_to_slave /*udpBroadcast *net.UDPConn*/) {
 
+	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+masterToSlavePort)
+	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
+
+	if err != nil { //Can't connect to the interwebs
+		fmt.Println("err is not nil", err)
+		udpAddr, err = net.ResolveUDPAddr("udp", "localhost"+masterToSlavePort)
+		udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
+	}
+	//check(_)
+
+	defer udpBroadcast.Close()
+	buf, _ := json.Marshal(msg)
+	// fmt.Println("JSON in ByteArray:", buf)
+	jsonByteLength := len(buf)
+	firstByte := jsonByteLength / 255
+	// fmt.Println("firstByte", firstByte)
+	secondByte := jsonByteLength - firstByte*255
+	// fmt.Println("secondByte:",secondByte)
+	// fmt.Println("JSONByteArrayLength:",jsonByteLength)
+
+	// fmt.Println(byte(len(buf)))
+
+	buf = append([]byte{byte(secondByte)}, buf...)
+	buf = append([]byte{byte(firstByte)}, buf...)
+
+	udpBroadcast.Write(buf)
+	// defer fmt.Println("Have sent message to Slave, buf: ", buf)
+	defer fmt.Println("Actual message: ", msg)
+	return
 }

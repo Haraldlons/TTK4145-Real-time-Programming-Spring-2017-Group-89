@@ -8,25 +8,8 @@ import (
 	"time"
 )
 
-var delay = 50 * time.Millisecond
-var endProgram = false
+var time50ms = 50 * time.Millisecond
 
-// var elevatorActive = false
-// var elevatorState = definitions.ElevatorState{2, 0}
-var msg = make([]byte, 8)
-
-// func ExecuteOrders(orders struct, elevatorState *definitions.ElevatorState) {
-// 	for {
-// 		select {
-// 		case orderListChanged <- orderList:
-// 			go goToFloor(orderListChanged[0].floor)
-// 		}
-// 	}
-// }
-
-// func ExecuteOrders(localOrderList definitions.Orders){
-// 	for
-// }
 func ExecuteOrders(elevatorState *definitions.ElevatorState, orderListForExecuteOrders chan definitions.Orders, updateElevatorStateDirection chan int, completedCurrentOrder chan<- bool) {
 	stopCurrentOrder := make(chan bool)
 	isFirstOrder := true
@@ -61,13 +44,11 @@ func ListenAfterElevatStateUpdatesAndSaveToFile(elevatorState *definitions.Eleva
 	for {
 		select {
 		case tempDirection := <-updateElevatorStateDirection:
-			fmt.Println("UpdateElevatorStateDirection: ", tempDirection)
 			elevatorState.Direction = tempDirection
 			storage.SaveElevatorStateToFile(elevatorState)
 			time.Sleep(10 * time.Millisecond)
 		case tempFloor := <-updateElevatorStateFloor:
 			elevatorState.LastFloor = tempFloor
-			fmt.Println("UpdateElevatorStateFloor: ", tempFloor)
 			storage.SaveElevatorStateToFile(elevatorState)
 			time.Sleep(10 * time.Millisecond)
 		}
@@ -178,7 +159,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 					driver.Elev_set_floor_indicator(destinationFloor)
 					driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
 					// endProgram = true
-					time.Sleep(delay * 10)
+					time.Sleep(time50ms * 10)
 					driver.Elev_set_door_open_lamp(1)
 					// storage.SaveOrderToFile(-1)
 					time.Sleep(time.Millisecond * 100)
@@ -198,7 +179,7 @@ func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, s
 				} else if driver.Elev_get_floor_sensor_signal() == 3 {
 					driver.Elev_set_motor_direction(driver.DIRECTION_DOWN)
 				} else {
-					time.Sleep(delay) // 50ms
+					time.Sleep(time50ms) // 50ms
 				}
 			}
 		}

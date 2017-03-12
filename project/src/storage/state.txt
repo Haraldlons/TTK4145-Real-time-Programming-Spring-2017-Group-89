@@ -1,1 +1,1 @@
-{"LastFloor":2,"Direction":0,"Destination":0}
+{"LastFloor":3,"Direction":0,"Destination":0}

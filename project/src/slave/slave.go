@@ -18,14 +18,22 @@ import (
 	// "encoding/json"
 )
 
-var elevatorState = definitions.ElevatorState{2, 0, 0}
+var elevatorState = definitions.ElevatorState{}
 
 // var orderList = definitions.orderList
 func Run() {
 	fmt.Println("Slave started!")
 	// Initializing
-	driver.Elev_init()
+	value := driver.Elev_init()
+	fmt.Println("Return value from Elev_init()", value)
+
 	driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
+
+	//Get IP address
+	elevator_id, err := network.GetLocalIP()
+	if err != nil {
+		elevator_id = "localhost"
+	}
 
 	// Channel Definitions
 	internalButtonsPressesChan := make(chan [definitions.N_FLOORS]int)
@@ -41,14 +49,14 @@ func Run() {
 
 	///////////////////////////////////////////
 	// Make manually orderList
-	// totalOrderList := definitions.Orders{}
+	totalOrderList := definitions.Orders{}
 	// orderList := definitions.Orders{definitions}
-	// listOfNumbers := []int{0, 1, 2, 1, 3}
-	// secondListOfNumbers := []int{-1, 1, 1, -1, 1}
+	listOfNumbers := []int{0, 1, 2, 1, 3}
+	secondListOfNumbers := []int{-1, 1, 1, -1, 1}
 
-	// for i := range listOfNumbers {
-	// 	totalOrderList = definitions.Orders{append(totalOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
-	// }
+	for i := range listOfNumbers {
+		totalOrderList = definitions.Orders{append(totalOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
+	}
 	// fmt.Println("printing totalOrderList:", totalOrderList)
 	// storage.SaveOrdersToFile(1, totalOrderList)
 	///////////////////////////////////////////
@@ -74,9 +82,7 @@ func Run() {
 
 	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder)
 
-	go network.RecieveJSON(updatedOrderList)
-
-	// go network.CheckForOrderListUpdatesFromMaster(updatedOrderList)
+	go network.ListenToMasterUpdates(updatedOrderList, elevator_id)
 	// go sendUpdatesToMaster()
 
 	// buttonPressesUpdates := make(chan button)
@@ -87,7 +93,10 @@ func Run() {
 	// go elevator.PrintLastFloorIfChanged(&elevatorState)
 	// updatedOrderList <- 1
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
+	fmt.Println("Sending JSON TO MASTER")
+	time.Sleep(time.Second)
+	network.SendJSON(definitions.MSG_to_master{Orders: totalOrderList, Id: elevator_id})
 	// newOrderList := definitions.Orders{}
 	// listOfNumbers := []int{0, 1, 2, 1, 3}
 	// secondListOfNumbers := []int{-1, 1, 1, -1, 1}

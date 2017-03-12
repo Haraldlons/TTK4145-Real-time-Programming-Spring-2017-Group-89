@@ -34,6 +34,7 @@ func main() {
 
 	go func() {
 		stopSignal := 0
+		// time.Sleep(500 * time.Millisecond)
 		for {
 			stopSignal = driver.Elev_get_stop_signal()
 			// fmt.Println("Stopsignal: ", stopSignal)
