@@ -28,7 +28,7 @@ func slave(udpListen *net.UDPConn) int {
 	for {
 		select {
 		case slaveCount = <-listenChan:
-			// fmt.Println("slaveCount: ", slaveCount)
+			fmt.Println("slaveCount: ", slaveCount)
 			time.Sleep(delay / 2) // wait 50 ms
 			break
 		case <-time.After(10 * delay): // Wait 10 cycles (1 second). Master assumed dead

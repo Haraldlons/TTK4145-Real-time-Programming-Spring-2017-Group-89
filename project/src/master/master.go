@@ -259,6 +259,7 @@ func sendToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
 			// fmt.Println("Length of totalOrderlist: ", len(totalOrderList.OrderMap))
 			if len(totalOrderList.OrderMap) != 0 {
 				msg := definitions.MSG_to_slave{Elevators: totalOrderList}
+				fmt.Println("Message sent from Master to slave:", msg)
 				network.SendToSlave(msg)
 			}
 		}

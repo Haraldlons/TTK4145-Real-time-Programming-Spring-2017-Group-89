@@ -93,10 +93,19 @@ func Run() {
 	// go elevator.PrintLastFloorIfChanged(&elevatorState)
 	// updatedOrderList <- 1
 
+	// dfasfdf
 	time.Sleep(2 * time.Second)
 	fmt.Println("Sending JSON TO MASTER")
 	time.Sleep(time.Second)
-	network.SendJSON(definitions.MSG_to_master{Orders: totalOrderList, Id: elevator_id})
+
+	// externalButtonsPress := <-externalButtonsPressesChan,
+	// externalButtonsPresses := []Order{externalButtonsPress}
+
+	msg := definitions.MSG_to_master{Orders: totalOrderList, Id: elevator_id /*ExternalButtonPresses: externalButtonsPresses*/}
+
+	fmt.Println("Sending from slave:", elevator_id, ", Message: ")
+	network.SendJSON(msg)
+
 	// newOrderList := definitions.Orders{}
 	// listOfNumbers := []int{0, 1, 2, 1, 3}
 	// secondListOfNumbers := []int{-1, 1, 1, -1, 1}
@@ -132,6 +141,7 @@ func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int)
 		case <-externalButtonsChan:
 
 			fmt.Println("\nExternal button pressed: ", <-externalButtonsChan)
+
 			// go findFloorAngGoTo(externalButtonsChan)
 			time.Sleep(time.Millisecond * 200)
 
