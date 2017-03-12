@@ -20,7 +20,7 @@ import (
 	"strings"
 )
 
-var bcAddress string = "129.241.187.151"
+var bcAddress string = "129.241.187.255"
 
 //var bcAddress string = "localhost"
 var port string = ":46723"
@@ -145,7 +145,7 @@ func SendMasterIsAliveRegularly() {
 
 	binary.BigEndian.PutUint64(msg, uint64(66))
 	for {
-		// fmt.Println("Sending I'm Alive from Master, msg:", msg)
+		fmt.Println("Sending I'm Alive from Master, msg:", msg)
 		udpBroadcast.Write(msg)
 		time.Sleep(delay100ms * 10)
 	}
