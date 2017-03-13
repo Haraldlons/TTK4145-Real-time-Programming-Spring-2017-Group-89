@@ -3,19 +3,30 @@ package elevator
 import (
 	"../definitions"
 	"../driver"
-	"../storage"
+	// "../storage"
 	"fmt"
 	"time"
 )
 
 var time50ms = 50 * time.Millisecond
 
-func ExecuteOrders(elevatorState *definitions.ElevatorState, orderListForExecuteOrders chan definitions.Orders, updateElevatorStateDirection chan int, completedCurrentOrder chan<- bool) {
+func ExecuteOrders(elevatorStateChanForExecuteOrders <-chan definitions.ElevatorState, orderListForExecuteOrders chan definitions.Orders, updateElevatorStateDirection chan<- int, completedCurrentOrder chan<- bool, updateElevatorDestinationChan chan<- int) {
+	elevatorState := definitions.ElevatorState{}
+
+	go func() {
+		for {
+			select {
+			case elevatorState = <-elevatorStateChanForExecuteOrders:
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
 	stopCurrentOrder := make(chan bool)
 	isFirstOrder := true
 	for {
 		select {
 		case orderList := <-orderListForExecuteOrders:
+			updateElevatorDestination(orderList, updateElevatorDestinationChan, elevatorState)
 			if len(orderList.Orders) > 0 {
 				// fmt.Println("Hopefully going to new floor: ", orderList.Orders[0].Floor, "and if-statement: ", len(orderList.Orders) > 0)
 				if !isFirstOrder {
@@ -40,22 +51,60 @@ func ExecuteOrders(elevatorState *definitions.ElevatorState, orderListForExecute
 	}
 }
 
-func ListenAfterElevatStateUpdatesAndSaveToFile(elevatorState *definitions.ElevatorState, updateElevatorStateDirection chan int, updateElevatorStateFloor chan int) {
-	for {
-		select {
-		case tempDirection := <-updateElevatorStateDirection:
-			elevatorState.Direction = tempDirection
-			storage.SaveElevatorStateToFile(elevatorState)
-			time.Sleep(10 * time.Millisecond)
-		case tempFloor := <-updateElevatorStateFloor:
-			elevatorState.LastFloor = tempFloor
-			storage.SaveElevatorStateToFile(elevatorState)
-			time.Sleep(10 * time.Millisecond)
+func updateElevatorDestination(orderList definitions.Orders, updateElevatorDestinationChan chan<- int, elevatorState definitions.ElevatorState) {
+	if len(orderList.Orders) == 0 {
+		updateElevatorDestinationChan <- definitions.IDLE
+	} else {
+		switch elevatorState.Direction {
+		case definitions.DIR_UP:
+			maxFloor := 0
+			for _, orders := range orderList.Orders {
+				if orders.Floor > maxFloor {
+					maxFloor = orders.Floor
+				}
+			}
+			updateElevatorDestinationChan <- maxFloor
+		case definitions.DIR_DOWN:
+			minFloor := definitions.N_FLOORS
+			for _, orders := range orderList.Orders {
+				if orders.Floor < minFloor {
+					minFloor = orders.Floor
+				}
+			}
+			updateElevatorDestinationChan <- minFloor
+		default:
+			updateElevatorDestinationChan <- orderList.Orders[0].Floor
 		}
 	}
 }
 
-func CheckForElevatorFloorUpdates(elevatorState *definitions.ElevatorState, updateElevatorStateFloor chan int) {
+// func ListenAfterElevatStateUpdatesAndSaveToFile(elevatorState *definitions.ElevatorState, updateElevatorStateDirection chan int, updateElevatorStateFloor chan int) {
+// 	for {
+// 		select {
+// 		case tempDirection := <-updateElevatorStateDirection:
+// 			elevatorState.Direction = tempDirection
+// 			storage.SaveElevatorStateToFile(elevatorState)
+// 			time.Sleep(10 * time.Millisecond)
+// 		case tempFloor := <-updateElevatorStateFloor:
+// 			elevatorState.LastFloor = tempFloor
+// 			storage.SaveElevatorStateToFile(elevatorState)
+// 			time.Sleep(10 * time.Millisecond)
+// 		}
+// 	}
+// }
+
+func CheckForElevatorFloorUpdates(updateElevatorStateFloor chan<- int, elevatorStateForFloorUpdatesChan <-chan definitions.ElevatorState) {
+	elevatorState := definitions.ElevatorState{}
+
+	go func() {
+		for {
+			select {
+			case elevatorState = <-elevatorStateForFloorUpdatesChan:
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+
 	for {
 		lastFloor := driver.Elev_get_floor_sensor_signal()
 		if lastFloor >= 0 && lastFloor < definitions.N_FLOORS && lastFloor != elevatorState.LastFloor {
@@ -92,7 +141,7 @@ func CheckForElevatorFloorUpdates(elevatorState *definitions.ElevatorState, upda
 // func PrintLastFloorIfChanged(elevatorState *definitions.ElevatorState) {
 // }
 
-func GoToFloor(destinationFloor int, elevatorState *definitions.ElevatorState, stopCurrentOrder chan bool, completedCurrentOrder chan<- bool, updateElevatorStateDirection chan int) {
+func GoToFloor(destinationFloor int, elevatorState definitions.ElevatorState, stopCurrentOrder chan bool, completedCurrentOrder chan<- bool, updateElevatorStateDirection chan<- int) {
 	// defer fmt.Println("Exeting goToFloor to floor: ", destinationFloor)
 	// storage.SaveOrderToFile(destinationFloor)
 	// elevatorActive = true

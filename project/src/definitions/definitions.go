@@ -16,7 +16,7 @@ const (
 	OFF              bool = false
 
 	//States
-	IDLE      int = 0
+	IDLE      int = -1
 	MOVING    int = 1
 	DOOR_OPEN int = 2
 

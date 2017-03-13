@@ -1,7 +1,7 @@
 package storage
 
 import (
-	// "../definitions"
+	"../definitions"
 	// "../driver"
 	// "../slave"
 	// "./src/network"
@@ -117,13 +117,18 @@ func SaveJSONtoFile(state interface{}) {
 	checkError(err)
 }
 
-func LoadElevatorStateFromFile(state interface{}) {
+func LoadElevatorStateFromFile(updateElevatorState chan<- definitions.ElevatorState) {
+
+	elevatorState := definitions.ElevatorState{}
+
 	fileName := "state.txt"
 	inFile, err := os.Open(FILEPATH + fileName)
 	defer inFile.Close()
 	checkError(err)
 
 	decoder := json.NewDecoder(inFile)
-	err = decoder.Decode(state)
+	err = decoder.Decode(&elevatorState)
+
+	updateElevatorState <- elevatorState
 	checkError(err)
 }

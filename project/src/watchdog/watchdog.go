@@ -39,7 +39,16 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	}
 }
 
-func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, orderListToExternalPresses chan<- definitions.Orders, elevator_id string, elevatorState definitions.ElevatorState) {
+func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, orderListToExternalPresses chan<- definitions.Orders, elevator_id string, updateElevatorStateForUpdatesInOrderList <-chan definitions.ElevatorState) {
+	elevatorState := definitions.ElevatorState{}
+
+	go func() {
+		for {
+			select {
+			case elevatorState = <-updateElevatorStateForUpdatesInOrderList:
+			}
+		}
+	}()
 
 	currentOrderList := definitions.Orders{}
 	storage.LoadOrdersFromFile(1, &currentOrderList)
@@ -59,6 +68,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 				orderListToExternalPresses <- currentOrderList
 				storage.SaveOrdersToFile(1, currentOrderList)
 				msg := definitions.MSG_to_master{Orders: currentOrderList, Id: elevator_id}
+				fmt.Println("msg_to_master: ", msg)
 				network.SendUpdatesToMaster(msg, elevatorState)
 				time.Sleep(50 * time.Millisecond)
 			}
