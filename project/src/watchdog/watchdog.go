@@ -24,11 +24,11 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	stopListening := make(chan bool)
 
 	go network.ListenAfterAliveMasterRegularly(masterIsAliveChan, stopListening)
-
+	master_id := ""
 	for {
 		select {
-		case master_id := <-masterIsAliveChan:
-			fmt.Println("Master is still alive: , ", master_id)
+		case master_id = <-masterIsAliveChan:
+			// fmt.Println("Master is still alive: , ", master_id)
 		case <-time.After(time.Millisecond * 3000):
 			fmt.Println("Master is not alive for the last three seconds")
 			stopListening <- true
@@ -37,6 +37,7 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 			return
 		}
 	}
+	if master_id == "" {}
 }
 
 func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, orderListToExternalPresses chan<- definitions.Orders, elevator_id string, updateElevatorStateForUpdatesInOrderList <-chan definitions.ElevatorState) {

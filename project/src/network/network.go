@@ -156,7 +156,7 @@ func SendMasterIsAliveRegularly(master_id string) {
 }
 
 func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListening chan bool) {
-	fmt.Println("Listening to check if master is alive")
+	// fmt.Println("Listening to check if master is alive")
 	udpAddr, _ := net.ResolveUDPAddr("udp", masterIsAlivePort)
 	//check(_)
 	// Create listen Conn

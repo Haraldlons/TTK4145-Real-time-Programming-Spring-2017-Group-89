@@ -51,12 +51,12 @@ func Run() {
 	// ElevatorStateChannels
 	updateElevatorState := make(chan definitions.ElevatorState)
 	elevatorStateChanForExecuteOrders := make(chan definitions.ElevatorState)
-	elevatorStateChanForTakeInUpdatesInOrderListAndSendUpdatesOnChannels := make(chan definitions.ElevatorState)
 	ElevatorStateForFloorUpdatesChan := make(chan definitions.ElevatorState)
 	updateElevatorStateDirection := make(chan int)
-	updateElevatorDestination := make(chan int)
+	updateElevatorDestinationChan := make(chan int)
 	updateElevatorStateForUpdatesInOrderList := make(chan definitions.ElevatorState)
 	elevatorStateForExternalPresses := make(chan definitions.ElevatorState)
+
 
 	///////////////////////////////////////////
 	// Make manually orderList
@@ -90,13 +90,14 @@ func Run() {
 
 	go printExternalPresses(externalButtonsPressesChan, orderListToExternalPresses, elevatorStateForExternalPresses)
 	go printInternalPresses(internalButtonsPressesChan)
-	go elevator.ExecuteOrders(elevatorStateChanForExecuteOrders, orderListForExecuteOrders, updateElevatorStateDirection, completedCurrentOrder, updateElevatorDestination)
 
 	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, orderListToExternalPresses, elevator_id, updateElevatorStateForUpdatesInOrderList)
 
 	go network.ListenToMasterUpdates(updatedOrderList, elevator_id)
-	go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, elevatorStateChanForTakeInUpdatesInOrderListAndSendUpdatesOnChannels, ElevatorStateForFloorUpdatesChan, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestination, updateElevatorStateForUpdatesInOrderList, elevatorStateForExternalPresses)
-
+	go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, ElevatorStateForFloorUpdatesChan, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, updateElevatorStateForUpdatesInOrderList, elevatorStateForExternalPresses)
+	time.Sleep(300* time.Millisecond)
+	fmt.Println("Finished Initializing goroutines")
+	go elevator.ExecuteOrders(elevatorStateChanForExecuteOrders, orderListForExecuteOrders, updateElevatorStateDirection, completedCurrentOrder, updateElevatorDestinationChan)
 	// go sendUpdatesToMaster()
 
 	// buttonPressesUpdates := make(chan button)
@@ -150,7 +151,7 @@ func Run() {
 	return
 }
 
-func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan definitions.ElevatorState, elevatorStateChanForExecuteOrders chan<- definitions.ElevatorState, elevatorStateChanForTakeInUpdatesInOrderListAndSendUpdatesOnChannels chan<- definitions.ElevatorState, ElevatorStateForFloorUpdatesChan chan<- definitions.ElevatorState, updateElevatorStateFloor <-chan int, updateElevatorStateDirection <-chan int, updateElevatorDestination <-chan int, updateElevatorStateForUpdatesInOrderList chan<- definitions.ElevatorState, elevatorStateForExternalPresses chan<- definitions.ElevatorState) {
+func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan definitions.ElevatorState, elevatorStateChanForExecuteOrders chan<- definitions.ElevatorState, ElevatorStateForFloorUpdatesChan chan<- definitions.ElevatorState, updateElevatorStateFloor <-chan int, updateElevatorStateDirection <-chan int, updateElevatorDestinationChan <-chan int, updateElevatorStateForUpdatesInOrderList chan<- definitions.ElevatorState, elevatorStateForExternalPresses chan<- definitions.ElevatorState) {
 	elevatorState := definitions.ElevatorState{}
 	for {
 		select {
@@ -158,7 +159,6 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			fmt.Println("updated elevator state: ", elevatorState)
 
 			elevatorStateChanForExecuteOrders <- elevatorState
-			elevatorStateChanForTakeInUpdatesInOrderListAndSendUpdatesOnChannels <- elevatorState
 			ElevatorStateForFloorUpdatesChan <- elevatorState
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
 			elevatorStateForExternalPresses <- elevatorState
@@ -168,7 +168,6 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			elevatorState.LastFloor = updatedFloor
 
 			elevatorStateChanForExecuteOrders <- elevatorState
-			elevatorStateChanForTakeInUpdatesInOrderListAndSendUpdatesOnChannels <- elevatorState
 			ElevatorStateForFloorUpdatesChan <- elevatorState
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
 			elevatorStateForExternalPresses <- elevatorState
@@ -178,17 +177,16 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			elevatorState.Direction = updateDirection
 
 			elevatorStateChanForExecuteOrders <- elevatorState
-			elevatorStateChanForTakeInUpdatesInOrderListAndSendUpdatesOnChannels <- elevatorState
 			ElevatorStateForFloorUpdatesChan <- elevatorState
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
 			elevatorStateForExternalPresses <- elevatorState
-		case updateDestination := <-updateElevatorDestination:
+		case updateDestination := <-updateElevatorDestinationChan:
+			fmt.Println("--------------------------------")
 			fmt.Println("updated destination: ", updateDestination)
 
 			elevatorState.Destination = updateDestination
 
 			elevatorStateChanForExecuteOrders <- elevatorState
-			elevatorStateChanForTakeInUpdatesInOrderListAndSendUpdatesOnChannels <- elevatorState
 			ElevatorStateForFloorUpdatesChan <- elevatorState
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
 			elevatorStateForExternalPresses <- elevatorState

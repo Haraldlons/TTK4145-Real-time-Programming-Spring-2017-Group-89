@@ -17,6 +17,7 @@ func ExecuteOrders(elevatorStateChanForExecuteOrders <-chan definitions.Elevator
 		for {
 			select {
 			case elevatorState = <-elevatorStateChanForExecuteOrders:
+				fmt.Println("Updated ElevatorState in ExecuteOrders: ", elevatorState)
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
@@ -26,15 +27,17 @@ func ExecuteOrders(elevatorStateChanForExecuteOrders <-chan definitions.Elevator
 	for {
 		select {
 		case orderList := <-orderListForExecuteOrders:
+			fmt.Println("Execute orders updated orderlist", orderList, "length: ", len(orderList.Orders))
 			updateElevatorDestination(orderList, updateElevatorDestinationChan, elevatorState)
 			if len(orderList.Orders) > 0 {
-				// fmt.Println("Hopefully going to new floor: ", orderList.Orders[0].Floor, "and if-statement: ", len(orderList.Orders) > 0)
+				fmt.Println("Hopefully going to new floor: ", orderList.Orders[0].Floor, "and if-statement: ", len(orderList.Orders) > 0)
 				if !isFirstOrder {
+					fmt.Println("Stop Curren order to floor:", orderList.Orders[0].Floor)
 					stopCurrentOrder <- true
 					// *localOrderList = definitions.Orders{[]definitions.Order{{Floor: 3, Direction: 1},{Floor: 0, Direction: -1}}}
 				}
 				isFirstOrder = false
-				// fmt.Println(...)
+				fmt.Println("elevatorState: ", elevatorState)
 				go GoToFloor(orderList.Orders[0].Floor, elevatorState, stopCurrentOrder, completedCurrentOrder, updateElevatorStateDirection)
 				time.Sleep(20 * time.Millisecond)
 
@@ -52,19 +55,25 @@ func ExecuteOrders(elevatorStateChanForExecuteOrders <-chan definitions.Elevator
 }
 
 func updateElevatorDestination(orderList definitions.Orders, updateElevatorDestinationChan chan<- int, elevatorState definitions.ElevatorState) {
+
+	lastCheckedFloorInOrderList := 0
 	if len(orderList.Orders) == 0 {
 		updateElevatorDestinationChan <- definitions.IDLE
 	} else {
 		switch elevatorState.Direction {
 		case definitions.DIR_UP:
+			lastCheckedFloorInOrderList = 0
 			maxFloor := 0
 			for _, orders := range orderList.Orders {
-				if orders.Floor > maxFloor {
+				if lastCheckedFloorInOrderList < orders.Floor {
 					maxFloor = orders.Floor
 				}
+				lastCheckedFloorInOrderList = orders.Floor
 			}
 			updateElevatorDestinationChan <- maxFloor
+			break
 		case definitions.DIR_DOWN:
+			lastCheckedFloorInOrderList = definitions.N_FLOORS
 			minFloor := definitions.N_FLOORS
 			for _, orders := range orderList.Orders {
 				if orders.Floor < minFloor {
@@ -76,6 +85,7 @@ func updateElevatorDestination(orderList definitions.Orders, updateElevatorDesti
 			updateElevatorDestinationChan <- orderList.Orders[0].Floor
 		}
 	}
+	return
 }
 
 // func ListenAfterElevatStateUpdatesAndSaveToFile(elevatorState *definitions.ElevatorState, updateElevatorStateDirection chan int, updateElevatorStateFloor chan int) {
