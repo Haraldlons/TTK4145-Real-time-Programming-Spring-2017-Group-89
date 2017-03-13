@@ -149,7 +149,7 @@ func SendMasterIsAliveRegularly(master_id string) {
 	msg := []byte(master_id)
 
 	for {
-		// fmt.Println("Sending I'm Alive from Master, msg:", msg)
+		fmt.Println("Sending I'm Alive from Master, msg:", msg)
 		udpBroadcast.Write(msg)
 		time.Sleep(delay100ms * 10)
 	}
