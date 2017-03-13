@@ -21,7 +21,7 @@ import (
 	"strings"
 )
 
-var bcAddress string = "129.241.187.151"
+var bcAddress string = "129.241.187.255"
 
 //var bcAddress string = "localhost"
 var port string = ":46723"
@@ -243,7 +243,7 @@ func CheckIfMasterAlreadyExist() bool {
 
 }
 
-func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definitions.ElevatorState, elevator_id string) {
+func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definitions.ElevatorState, elevator_id string, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master) {
 	msg.Id = elevator_id
 	msg.ElevatorState = elevatorState
 	// defer fmt.Println("Finished sending JSON")
@@ -257,6 +257,7 @@ func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definition
 	}
 
 	defer udpBroadcast.Close()
+	lastSentMsgToMasterChanForPrinting<- msg
 	//check(_)
 	// msg := make([]byte, 128)
 	// msg := definitions.TestMessage{"Alice", "Hello", 1294706395881547000}
@@ -285,7 +286,7 @@ func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definition
 	return
 }
 
-func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id string) {
+func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id string, lastRecievedMSGFromMasterChanForPrinting chan<- definitions.MSG_to_slave) {
 	fmt.Println("Listening after Updates from Master")
 	udpAddr, _ := net.ResolveUDPAddr("udp", masterToSlavePort)
 	//check(_)
@@ -294,7 +295,7 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 	//check(_)
 	msg := definitions.MSG_to_slave{}
 
-	listenChan := make(chan definitions.MSG_to_slave, 1)
+	listenChan := make(chan definitions.MSG_to_slave)
 
 	go func() {
 		buf := make([]byte, 65536) /*2^16 = max recovery size*/
@@ -313,6 +314,7 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 			// fmt.Println("Ferdig med å vise msg")
 			//check(_)
 			listenChan <- msg
+			lastRecievedMSGFromMasterChanForPrinting <- msg
 			time.Sleep(delay100ms)
 		}
 	}()

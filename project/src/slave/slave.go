@@ -59,6 +59,14 @@ func Run() {
 	ElevatorStateForFloorUpdatesChan := make(chan definitions.ElevatorState)
 	elevatorStateForExternalPresses := make(chan definitions.ElevatorState)
 
+	// Channels for printing in a nice format
+	elevatorStateChanForPrinting := make(chan definitions.ElevatorState)
+	orderListChanForPrinting := make(chan definitions.Orders)
+	lastSentMsgToMasterChanForPrinting := make(chan definitions.MSG_to_master)
+	lastRecievedMSGFromMasterChanForPrinting := make(chan definitions.MSG_to_slave)
+
+	go printEntireElevatorNetworkOnUpdate(elevatorStateChanForPrinting, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, lastRecievedMSGFromMasterChanForPrinting)
+
 	// elevatorStateChanMap := make(map[string] chan definitions.ElevatorState)
 	// elevatorStateChanMap["forExecuteOrders"] = elevatorStateChanForExecuteOrders
 	// elevatorStateChanMap["forExternalPresses"] = elevatorStateForExternalPresses
@@ -94,15 +102,15 @@ func Run() {
 	// go handleInternalButtonPresses(internalButtonsPressesChan)
 	// go handleExternalButtonPresses(externalButtonsPressesChan)
 
-	go printExternalPresses(externalButtonsPressesChan, orderListToExternalPresses, elevatorStateForExternalPresses, elevator_id)
+	go printExternalPresses(externalButtonsPressesChan, orderListToExternalPresses, elevatorStateForExternalPresses, elevator_id, lastSentMsgToMasterChanForPrinting)
 	go printInternalPresses(internalButtonsPressesChan)
 
-	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, orderListToExternalPresses, elevator_id, updateElevatorStateForUpdatesInOrderList)
-
-	go network.ListenToMasterUpdates(updatedOrderList, elevator_id)
-	go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, ElevatorStateForFloorUpdatesChan, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, updateElevatorStateForUpdatesInOrderList, elevatorStateForExternalPresses)
+	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, orderListToExternalPresses, elevator_id, updateElevatorStateForUpdatesInOrderList, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting)
+	go network.ListenToMasterUpdates(updatedOrderList, elevator_id, lastRecievedMSGFromMasterChanForPrinting)
+	go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, ElevatorStateForFloorUpdatesChan, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, updateElevatorStateForUpdatesInOrderList, elevatorStateForExternalPresses, elevatorStateChanForPrinting)
 	go elevator.ExecuteOrders(elevatorStateChanForExecuteOrders, orderListForExecuteOrders, updateElevatorStateDirection, completedCurrentOrder, updateElevatorDestinationChan)
-
+	// fmt.Println("GOROUTINES HAVE STARTED!")
+	// go watchdog.CheckIfElevatorIsStuck(executeOrdersIsAliveChan)
 
 	for {
 		select {
@@ -117,11 +125,12 @@ func Run() {
 	}
 }
 
-func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan definitions.ElevatorState, elevatorStateChanForExecuteOrders chan<- definitions.ElevatorState, ElevatorStateForFloorUpdatesChan chan<- definitions.ElevatorState, updateElevatorStateFloor <-chan int, updateElevatorStateDirection <-chan int, updateElevatorDestinationChan <-chan int, updateElevatorStateForUpdatesInOrderList chan<- definitions.ElevatorState, elevatorStateForExternalPresses chan<- definitions.ElevatorState) {
+func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan definitions.ElevatorState, elevatorStateChanForExecuteOrders chan<- definitions.ElevatorState, ElevatorStateForFloorUpdatesChan chan<- definitions.ElevatorState, updateElevatorStateFloor <-chan int, updateElevatorStateDirection <-chan int, updateElevatorDestinationChan <-chan int, updateElevatorStateForUpdatesInOrderList chan<- definitions.ElevatorState, elevatorStateForExternalPresses chan<- definitions.ElevatorState, elevatorStateChanForPrinting chan<- definitions.ElevatorState) {
 	elevatorState := definitions.ElevatorState{}
 	for {
 		select {
 		case elevatorState := <-updateElevatorState:
+			fmt.Println("updateState")
 
 			fmt.Println("--------------------------------")
 			fmt.Println("Current updated elevator state:", elevatorState)
@@ -131,7 +140,9 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			ElevatorStateForFloorUpdatesChan <- elevatorState
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
 			elevatorStateForExternalPresses <- elevatorState
+			elevatorStateChanForPrinting <- elevatorState
 		case updatedFloor := <-updateElevatorStateFloor:
+			fmt.Println("updateFloor")
 			elevatorState.LastFloor = updatedFloor
 
 			// fmt.Println("--------------------------------")
@@ -142,7 +153,9 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			ElevatorStateForFloorUpdatesChan <- elevatorState
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
 			elevatorStateForExternalPresses <- elevatorState
+			elevatorStateChanForPrinting <- elevatorState
 		case updateDirection := <-updateElevatorStateDirection:
+			fmt.Println("updateDirection")
 			elevatorState.Direction = updateDirection
 
 			// fmt.Println("--------------------------------")
@@ -153,7 +166,9 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			ElevatorStateForFloorUpdatesChan <- elevatorState
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
 			elevatorStateForExternalPresses <- elevatorState
+			elevatorStateChanForPrinting <- elevatorState
 		case updateDestination := <-updateElevatorDestinationChan:
+			fmt.Println("Mottok updateElevatorDestinationChan")
 			elevatorState.Destination = updateDestination
 
 			// fmt.Println("--------------------------------")
@@ -164,37 +179,110 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			ElevatorStateForFloorUpdatesChan <- elevatorState
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
 			elevatorStateForExternalPresses <- elevatorState
+			elevatorStateChanForPrinting <- elevatorState
 		}
+		time.Sleep(50*time.Millisecond)
 	}
 }
+
+
+func printEntireElevatorNetworkOnUpdate(elevatorStateChanForPrinting <-chan definitions.ElevatorState, orderListChanForPrinting <-chan definitions.Orders, lastSentMsgToMasterChanForPrinting <-chan definitions.MSG_to_master, lastRecievedMSGFromMasterChanForPrinting <-chan definitions.MSG_to_slave){
+	elevatorState := definitions.ElevatorState{}
+	orderList := definitions.Orders{}
+	lastSentMsgToMaster := definitions.MSG_to_master{}
+	lastRecievedMSGFromMaster := definitions.MSG_to_slave{}
+	updateNrMap := make(map[string] int)
+	updateNrMap["totalUpdates"] = 0
+	updateNrMap["elevatorState"] = 0
+	updateNrMap["orderList"] = 0
+	updateNrMap["msgToMaster"] = 0
+	updateNrMap["msgToSlave"] = 0
+
+		for {
+			select {
+			case elevatorState = <- elevatorStateChanForPrinting:
+				updateNrMap["elevatorState"]++
+				printNicely(updateNrMap,elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
+			case orderList = <- orderListChanForPrinting:
+				updateNrMap["orderList"]++
+				printNicely(updateNrMap,elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
+			case lastSentMsgToMaster = <- lastSentMsgToMasterChanForPrinting:
+				updateNrMap["msgToMaster"]++
+				printNicely(updateNrMap,elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
+			case lastRecievedMSGFromMaster = <-lastRecievedMSGFromMasterChanForPrinting:
+				updateNrMap["msgToSlave"]++
+				printNicely(updateNrMap,elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
+			}
+			updateNrMap["totalUpdates"]++
+		}
+}
+
+func printNicely(updateNrMap map[string] int, elevatorState definitions.ElevatorState, orderList definitions.Orders, lastSentMsgToMaster definitions.MSG_to_master, lastRecievedMSGFromMaster definitions.MSG_to_slave){
+	// direction := ""
+	// if(elevatorState.Direction == 1){
+	// 	direction = "Up"
+	// }else if elevatorState.Direction == -1{
+	// 	direction = "Down"
+	// }else {
+	// 	direction = "Uknown"
+	// }
+
+	// lengthOrderList := len(orderList.Orders)
+
+	// print("\033[H\033[2J") /*Clears the screen*/
+	// fmt.Println("------------------------------------------------------------")
+	// fmt.Printf("----------------------- Update NR: %d ----------------------\n", updateNrMap["totalUpdates"])
+	// fmt.Println("------------------------------------------------------------\n")
+	// fmt.Printf("ElevStatNr: %d, OrderListNr: %d, MsgTOMasterNr: %d, MsgTOSlaveNr: %d\n", updateNrMap["elevatorState"], updateNrMap["orderList"], updateNrMap["msgToMaster"], updateNrMap["msgToSlave"])
+	// fmt.Println("")
+	// fmt.Printf("State: LastFloor: %d (0-3), Direction: %s, Destination %d (0-3)\n", elevatorState.LastFloor,direction ,elevatorState.Destination)
+	// fmt.Println("")
+	// fmt.Println("OrderList: ", orderList)
+	// for i, orders := range orderList.Orders {
+	// 	fmt.Printf("%d. Floor: %d - Direction: %d\n",i+1, orders.Floor, orders.Direction )
+	// }
+	// for i := 0; i < (5-lengthOrderList); i++ {
+	// 	fmt.Println("")
+	// }
+	// fmt.Println("")
+	// fmt.Println("Last message sent to Master: ", lastSentMsgToMaster)
+	// fmt.Println("")
+	// fmt.Println("Last message recieved from Master: ", lastRecievedMSGFromMaster)
+	// fmt.Println("")
+	// fmt.Println("------------------------------------------------------------")
+	// fmt.Println("------------------------------------------------------------")
+	// fmt.Println("------------------------------------------------------------")
+
+}
+
 
 func Change_master() bool { /*Do we need this?*/
 	return true
 }
 
-func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int, orderListToExternalPresses chan definitions.Orders, elevatorStateForExternalPresses <-chan definitions.ElevatorState, elevator_id string) {
+func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int, orderListToExternalPresses chan definitions.Orders, elevatorStateForExternalPresses <-chan definitions.ElevatorState, elevator_id string, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master) {
 	orderList := definitions.Orders{}
 	msg_to_master := definitions.MSG_to_master{}
-	go func() {
-		for {
-			select {
-			case orderList = <-orderListToExternalPresses:
-				// fmt.Println("OrderList to ExternalPresses has been updated with: ", orderList)
-				msg_to_master.Orders = orderList
-				// fmt.Println("MsgTOMaster in printExternalPresses: ", msg_to_master)
-			}
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case orderList = <-orderListToExternalPresses:
+	// 			// fmt.Println("OrderList to ExternalPresses has been updated with: ", orderList)
+	// 			msg_to_master.Orders = orderList
+	// 			// fmt.Println("MsgTOMaster in printExternalPresses: ", msg_to_master)
+	// 		}
+	// 	}
+	// }()
 
 	elevatorState := definitions.ElevatorState{}
 
-	go func() {
-		for {
-			select {
-			case elevatorState = <-elevatorStateForExternalPresses:
-			}
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case elevatorState = <-elevatorStateForExternalPresses:
+	// 		}
+	// 	}
+	// }()
 
 	for {
 		select {
@@ -209,12 +297,17 @@ func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int,
 			// fmt.Println("------------------------------------")
 			// fmt.Println("------------------------------------")
 			// fmt.Println("msg_to_master.ExternalButtonPresses", msg_to_master.ExternalButtonPresses)
-			network.SendUpdatesToMaster(msg_to_master, elevatorState, elevator_id)
+			network.SendUpdatesToMaster(msg_to_master, elevatorState, elevator_id, lastSentMsgToMasterChanForPrinting)
 			msg_to_master.ExternalButtonPresses = []definitions.Order{}
 
 			// go findFloorAngGoTo(externalButtonsChan)
 
 			time.Sleep(time.Millisecond * 10)
+		case elevatorState = <-elevatorStateForExternalPresses:
+		case orderList = <-orderListToExternalPresses:
+		// fmt.Println("OrderList to ExternalPresses has been updated with: ", orderList)
+		msg_to_master.Orders = orderList
+
 
 			// default:
 			// fmt.Println("No button pressed")
