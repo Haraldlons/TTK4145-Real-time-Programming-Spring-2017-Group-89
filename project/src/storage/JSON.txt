@@ -1,1 +1,1 @@
-{"OrderMap":{"129.241.187.38":{"Orders":[{"Floor":0,"Direction":1}]}},"ElevatorStateMap":{"129.241.187.38":{"LastFloor":2,"Direction":0,"Destination":0}}}
+{"OrderMap":{"129.241.187.38":{"Orders":[{"Floor":1,"Direction":-1},{"Floor":0,"Direction":1},{"Floor":1,"Direction":1},{"Floor":2,"Direction":1}]}},"ElevatorStateMap":{"129.241.187.38":{"LastFloor":1,"Direction":0,"Destination":0}}}

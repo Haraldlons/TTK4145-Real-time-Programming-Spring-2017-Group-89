@@ -135,12 +135,18 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			fmt.Println("--------------------------------")
 			fmt.Println("Current updated elevator state:", elevatorState)
 			fmt.Println("--------------------------------")
+			fmt.Println("1")
 
 			elevatorStateChanForExecuteOrders <- elevatorState
+			fmt.Println("1")
 			ElevatorStateForFloorUpdatesChan <- elevatorState
+			fmt.Println("2")
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
+			fmt.Println("3")
 			elevatorStateForExternalPresses <- elevatorState
+			fmt.Println("4")
 			elevatorStateChanForPrinting <- elevatorState
+			fmt.Println("5")
 		case updatedFloor := <-updateElevatorStateFloor:
 			fmt.Println("updateFloor")
 			elevatorState.LastFloor = updatedFloor
@@ -150,36 +156,53 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			// fmt.Println("--------------------------------")
 
 			elevatorStateChanForExecuteOrders <- elevatorState
+			fmt.Println("6")
 			ElevatorStateForFloorUpdatesChan <- elevatorState
+			fmt.Println("7")
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
+			fmt.Println("8")
 			elevatorStateForExternalPresses <- elevatorState
+			fmt.Println("9")
 			elevatorStateChanForPrinting <- elevatorState
+			fmt.Println("10")
 		case updateDirection := <-updateElevatorStateDirection:
 			fmt.Println("updateDirection")
 			elevatorState.Direction = updateDirection
+			fmt.Println("11")
 
 			// fmt.Println("--------------------------------")
 			// fmt.Println("Current updated elevator state:", elevatorState)
 			// fmt.Println("--------------------------------")
 
 			elevatorStateChanForExecuteOrders <- elevatorState
+			fmt.Println("12")
 			ElevatorStateForFloorUpdatesChan <- elevatorState
+			fmt.Println("13")
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
+			fmt.Println("14")
 			elevatorStateForExternalPresses <- elevatorState
+			fmt.Println("15")
 			elevatorStateChanForPrinting <- elevatorState
+			fmt.Println("16")
 		case updateDestination := <-updateElevatorDestinationChan:
 			fmt.Println("Mottok updateElevatorDestinationChan")
 			elevatorState.Destination = updateDestination
+			fmt.Println("17")
 
 			// fmt.Println("--------------------------------")
 			// fmt.Println("Current updated elevator state:", elevatorState)
 			// fmt.Println("--------------------------------")
 
 			elevatorStateChanForExecuteOrders <- elevatorState
+			fmt.Println("18")
 			ElevatorStateForFloorUpdatesChan <- elevatorState
+			fmt.Println("19")
 			updateElevatorStateForUpdatesInOrderList <- elevatorState
+			fmt.Println("20")
 			elevatorStateForExternalPresses <- elevatorState
+			fmt.Println("21")
 			elevatorStateChanForPrinting <- elevatorState
+			fmt.Println("22")
 		}
 		time.Sleep(50*time.Millisecond)
 	}

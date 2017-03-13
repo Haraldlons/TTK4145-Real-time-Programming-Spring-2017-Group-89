@@ -81,23 +81,35 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 		select {
 		case currentOrderList := <-updatedOrderList:
 			// if currentOrderList != updatedOrderList { /*If orderlist from master is identical to our copy*/
+			fmt.Println("40")
+
 			orderListForExecuteOrders <- currentOrderList
+			fmt.Println("41")
 			orderListToExternalPresses <- currentOrderList
+			fmt.Println("42")
 			orderListChanForPrinting <- currentOrderList
+			fmt.Println("43")
 			storage.SaveOrdersToFile(1, currentOrderList)
 			// sendOrderListUpdateToMaster(currentOrderList)
+			fmt.Println("40")
+			
 			time.Sleep(50 * time.Millisecond)
 		case <-completedCurrentOrder:
 			if len(currentOrderList.Orders) > 0 {
 				currentOrderList = definitions.Orders{currentOrderList.Orders[1:]}
 			}
 			orderListForExecuteOrders <- currentOrderList
+			fmt.Println("44")
 			orderListToExternalPresses <- currentOrderList
+			fmt.Println("45")
 			storage.SaveOrdersToFile(1, currentOrderList)
 			orderListChanForPrinting <- currentOrderList
+			fmt.Println("46")
 			msg := definitions.MSG_to_master{Orders: currentOrderList, Id: elevator_id}
 			// fmt.Println("msg_to_master: ", msg)
+			fmt.Println("47")
 			network.SendUpdatesToMaster(msg, elevatorState, elevator_id, lastSentMsgToMasterChanForPrinting)
+			fmt.Println("48")
 			time.Sleep(50 * time.Millisecond)
 		case elevatorState = <-updateElevatorStateForUpdatesInOrderList:
 

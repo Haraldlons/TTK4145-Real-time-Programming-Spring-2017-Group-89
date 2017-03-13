@@ -37,10 +37,14 @@ func ExecuteOrders(elevatorStateChanForExecuteOrders <-chan definitions.Elevator
 			// updateElevatorDestination(orderList, updateElevatorDestinationChan, elevatorState)
 			fmt.Println("Testing after updateElevatorDestination")
 			if len(orderList.Orders) > 0 {
-				// fmt.Println("Hopefully going to new floor: ", orderList.Orders[0].Floor, "and if-statement: ", len(orderList.Orders) > 0)
+				fmt.Println("Hopefully going to new floor: ", orderList.Orders[0].Floor, "and if-statement: ", len(orderList.Orders) > 0)
 				if !isFirstOrder {
 					fmt.Println("Stop Current order to floor:", orderList.Orders[0].Floor)
+					fmt.Println()
 					stopCurrentOrder <- true
+					fmt.Println("Has stopped current order to floor: ", orderList.Orders[0].Floor)
+
+
 					// *localOrderList = definitions.Orders{[]definitions.Order{{Floor: 3, Direction: 1},{Floor: 0, Direction: -1}}}
 				}
 				isFirstOrder = false
