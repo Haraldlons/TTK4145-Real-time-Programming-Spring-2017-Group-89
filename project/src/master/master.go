@@ -4,7 +4,7 @@ import (
 	"../definitions"
 	// "../driver"
 	"../network"
-	// "../storage"
+	"../storage"
 	"fmt"
 	"math"
 	"os/exec"
@@ -18,31 +18,35 @@ func Run() {
 	fmt.Println("I'm a MASTER!")
 
 	// Channel definitions
-	totalOrderListChan := make(chan definitions.Elevators, 1) // Create channel for passing totalOrderList
+	totalOrderListChan := make(chan definitions.Elevators) // Channel for passing totalOrderList
+	updateInAllSlavesMap := make(chan map[string]bool)     // Channel for passing updates to map containing all slaves
 
 	time.Sleep(time.Second)
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 	err := newSlave.Run()
 	if err != nil {
 	}
-	aliveSlavesList := []int{1, 2, 3}
-	// updateInAliveSlaves := make(chan bool)
+
+	// Various declarations
+	// aliveSlavesList := []int{1, 2, 3}
+	allSlavesMap := make(map[string]bool) // "true" implies slave is alive
 
 	go network.ListenAfterAliveSlavesRegularly(&aliveSlavesList)
+	go keepTrackOfAllAliveSlaves(updateInAllSlavesMap)
+
 	go network.SendMasterIsAliveRegularly()
 
-	// go handleUpdateInAliveSlaves(aliveSlavesList, updateInAliveSlaves)
-	// time.Sleep(5 * time.Second)
-
-	go handleUpdatesFromSlaves(totalOrderListChan)
 	go sendToSlavesOnUpdate(totalOrderListChan)
+
+	// Needs allSlavesMap to be updated with all currently alive slaves
+	redistributeOrders(allSlavesMap, totalOrderListChan) // Should only be ran on start-up. Depends on "sendToSlavesOnUpdate()"
+
+	// "handleUpdatesFromSlaves" cannot be started before redistributeOrders() has returned
+	go handleUpdatesFromSlaves(totalOrderListChan)
 
 	for {
 		time.Sleep(time.Second)
 	}
-
-	// // Load from storage if available
-	// storage.LoadOrdersFromFile(&totalOrderList)
 
 	// listOfAliveSlaves := network.GetSlavesAlive()
 	// redistributeOrders(&listOfAliveSlaves)
@@ -215,7 +219,7 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 }
 
 func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
-	msgChan := make(chan definitions.MSG_to_master, 1)
+	msgChan := make(chan definitions.MSG_to_master)
 	totalOrderList := definitions.Elevators{}
 	// Initialize maps
 	totalOrderList.OrderMap = make(map[string]definitions.Orders)
@@ -265,4 +269,35 @@ func sendToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
 		}
 		time.Sleep(1000 * time.Millisecond)
 	}
+}
+
+// Function to be ran when program is booting.
+// Used to redistribute active orders of elevators that have died
+func redistributeOrders(allSlavesMap map[string]bool, totalOrderListChan chan<- definitions.Elevators) {
+	defer fmt.Println("Orders have been redistributed and sent to network")
+	totalOrderList := definitions.Elevators{}
+	storage.LoadElevatorsFromFile(&totalOrderList)
+
+	// Loop through the id of every currently alive slave
+	for id_slaves, isAlive := range allSlavesMap {
+		// Loop through maps of every elevator loaded from storage
+		for id := range totalOrderList.OrderMap {
+			if id_slaves == id && !isAlive { // Dead elevator
+				orders := totalOrderList.OrderMap[id].Orders
+				// Loop through every order
+				for i := range orders {
+					if orders[i].Direction != 0 { // Not an internal order
+						// Find elevator with lowest cost, and add order to corresponding orderList
+						elevator_id := findLowestCostElevator(totalOrderList.ElevatorStateMap, orders[i])
+						updatedOrders := totalOrderList.OrderMap[id]
+						updateOrders(&updatedOrders, orders[i], totalOrderList.ElevatorStateMap[elevator_id])
+						totalOrderList.OrderMap[id] = updatedOrders
+					}
+				}
+			}
+		}
+	}
+
+	// Send updates to channel, which in turn is sent over network
+	totalOrderListChan <- totalOrderList
 }
