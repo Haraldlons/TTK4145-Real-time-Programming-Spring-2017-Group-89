@@ -24,6 +24,7 @@ const (
 	FILENAME_INTERNAL_BUTTON_PRESSES = "internal_button_presses"
 	FILENAME_EXTERNAL_BUTTON_PRESSES = "external_button_presses"
 	FILENAME_ELEVATOR_ORDERS         = "elevatorOrders"
+	FILENAME_ELEVATORS               = "elevators"
 )
 
 func checkError(err error) {
@@ -130,5 +131,29 @@ func LoadElevatorStateFromFile(updateElevatorState chan<- definitions.ElevatorSt
 	err = decoder.Decode(&elevatorState)
 
 	updateElevatorState <- elevatorState
+	checkError(err)
+}
+
+func SaveElevatorsToFile(elevators definitions.Elevators) {
+	fmt.Println("Saving elevators to file")
+	fileName := "FILENAME_ELEVATORS"
+	outFile, err := os.Create(FILEPATH + fileName)
+	defer outFile.Close()
+	checkError(err)
+
+	encoder := json.NewEncoder(outFile)
+	err = encoder.Encode(elevators)
+	checkError(err)
+}
+
+func LoadElevatorsFromFile(elevators *definitions.Elevators) {
+	fmt.Println("Loading elevators from file")
+	fileName := "FILENAME_ELEVATORS"
+	inFile, err := os.Open(FILEPATH + fileName)
+	defer inFile.Close()
+	checkError(err)
+
+	decoder := json.NewDecoder(inFile)
+	err = decoder.Decode(elevators)
 	checkError(err)
 }

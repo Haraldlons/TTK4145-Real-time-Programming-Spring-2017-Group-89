@@ -6,11 +6,15 @@ https://www.youtube.com/watch?v=CF9S4QZuV30&t=923s
 
 
 # TODO:
-* Finne ut hva watchdog skal gjøre
-* Controller-flyt for knappetrykk, ender med å sende over nettverk.
+* Finne ut hva watchdog skal gjøre.
 * Recovery fra storage (Hva skal master og controller gjøre når det finnes stuff i storage?)
-* Fikse channels for å unngå farlig delte vaiabler i "slave"
-  * Innebærer både ordre-lista og "elevatorState"
+* Internal button presses
+* Holde  styr på slaver som er i live
+* Sette direction (ElevatorState) i slave
+* Fikse programflyt for skifte av master
+  * Inkluderer dersom det finnes flere master
+* Kontinuerlig hld styr på hvilke slaver som er i live. Send over channel
+  * Ved slave-død, kall på redistributeOrders()
 
 
 # Bugs:
@@ -18,3 +22,4 @@ https://www.youtube.com/watch?v=CF9S4QZuV30&t=923s
 
 * Nettverk er vanskelig å få til å fungere. Saken er at om jeg ikke closer en socket/connect(whatever it's called) så får jeg problemer neste gang jeg kjører programmet. Tror kanskje det kan være lurt å definere og close sockets helt i main.go, men vi må skrive om flere funksjoner da.
   * Er til en viss grad fikset (12/03/17)
+

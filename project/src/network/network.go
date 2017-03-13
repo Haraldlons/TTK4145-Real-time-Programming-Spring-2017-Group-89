@@ -21,7 +21,7 @@ import (
 	"strings"
 )
 
-var bcAddress string = "129.241.187.255"
+var bcAddress string = "129.241.187.151"
 
 //var bcAddress string = "localhost"
 var port string = ":46723"
@@ -492,6 +492,7 @@ func SendToSlave(msg definitions.MSG_to_slave /*udpBroadcast *net.UDPConn*/) {
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
 	if err != nil { //Can't connect to the interwebs
+		fmt.Println("err is not nil", err)
 		udpAddr, err = net.ResolveUDPAddr("udp", "localhost"+masterToSlavePort)
 		udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
 	}
@@ -499,14 +500,21 @@ func SendToSlave(msg definitions.MSG_to_slave /*udpBroadcast *net.UDPConn*/) {
 
 	defer udpBroadcast.Close()
 	buf, _ := json.Marshal(msg)
-
+	// fmt.Println("JSON in ByteArray:", buf)
 	jsonByteLength := len(buf)
 	firstByte := jsonByteLength / 255
+	// fmt.Println("firstByte", firstByte)
 	secondByte := jsonByteLength - firstByte*255
+	// fmt.Println("secondByte:",secondByte)
+	// fmt.Println("JSONByteArrayLength:",jsonByteLength)
+
+	// fmt.Println(byte(len(buf)))
 
 	buf = append([]byte{byte(secondByte)}, buf...)
 	buf = append([]byte{byte(firstByte)}, buf...)
 
 	udpBroadcast.Write(buf)
+	// defer fmt.Println("Have sent message to Slave, buf: ", buf)
+	defer fmt.Println("Actual message: ", msg)
 	return
 }
