@@ -19,7 +19,7 @@ import (
 // }
 
 func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
-	masterIsAliveChan := make(chan string, 1)
+	masterIsAliveChan := make(chan string)
 
 	stopListening := make(chan bool)
 
@@ -37,7 +37,8 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 			return
 		}
 	}
-	if master_id == "" {}
+	if master_id == "" {
+	}
 }
 
 func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, orderListToExternalPresses chan<- definitions.Orders, elevator_id string, updateElevatorStateForUpdatesInOrderList <-chan definitions.ElevatorState) {
@@ -91,48 +92,35 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 	}
 }
 
-/*
-func CheckNetworkAlive(udpListen *net.UDPConn) int {
-	listenChan := make(chan int, 1)
-	lifeCheck := 1
-
-	// Run listening goroutine
-	go listen(listenChan, udpListen)
+func slavesAlive(updatedSlaveIdChanMap map[string](chan string), allSlavesMapChanMap map[string](chan map[string]bool)) {
+	allSlavesMap := make(map[string]bool)
+	deadTime := time.Second * 3 // 3 seconds and slave is assumed dead
+	// timer := time.NewTimer(deadTime)
+	timerMap := make(map[string]*time.Timer)
+	timerMapChan := make(chan map[string]*time.Timer)
 
 	for {
 		select {
-		case lifeCheck = <-listenChan:
-			if lifeCheck == 1 {
-				time.Sleep(listenTimer)
-			} else { // Possibly dangerous. RETHINK!
-				return -1
+		case slave_id := <-updatedSlaveIdChanMap["toWatchDog"]:
+			for id := range timerMap {
+				if timerMap[id] != nil {
+					timerMap[id] = time.NewTimer(deadTime)
+					timerMapChan <- timerMap
+				}
 			}
-		case <-time.After(timeLimit): // Node assumed dead
-			return -1
+
+			timerMapChan[id]
+
+		default:
+			for id, timer := range timerMap {
+
+			}
+
 		}
+		allSlavesMap[slave_id] = true
+
+		// Send map of all slaves to channel
+		allSlavesMapChanMap["toKeepTrackOfAllAliveSlaves"] <- allSlavesMap
 	}
-}
-
-func listen(listenChan chan int, udpListen *net.UDPConn) {
-	buf := make([]byte, 1024)
-	for {
-		udpListen.ReadFromUDP(buf)
-		listenChan <- int(buf)
-		time.Sleep(listenTimer)
-	}
-}*/
-
-/*
-func CheckElevatorState(state var) var {
-	state := true
-	return state
-}
-
-func reset_Master() {
 
 }
-
-func reset_Elevator() {
-
-}
-*/

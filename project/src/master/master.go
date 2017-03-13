@@ -17,36 +17,41 @@ import (
 func Run() {
 	fmt.Println("I'm a MASTER!")
 
-	master_id, _ := network.GetLocalIP()
+	// Spawn new "personal" slaves
+	// time.Sleep(time.Second)
+	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+	newSlave.Run()
 
 	// Channel definitions
 	totalOrderListChan := make(chan definitions.Elevators) // Channel for passing totalOrderList
-	// updateInAllSlavesMap := make(chan map[string]bool)     // Channel for passing updates to map containing all slaves
-	// allSlavesMap := make(map[string]bool)                  // "true" implies slave is alive
 
-	time.Sleep(time.Second)
-		newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-		err := newSlave.Run()
-		
-	if err != nil {
+	allSlavesMapChanMap := map[string]chan map[string]bool{
+		"toKeepTrackOfAllAliveSlaves": make(chan map[string]bool),
+		"toRun": make(chan map[string]bool),
 	}
 
-	// Various declarations
-	// aliveSlavesList := []int{1, 2, 3}
+	// allSlavesMapChan := make(chan map[string]bool)
 
-	//go network.ListenAfterAliveSlavesRegularly(&aliveSlavesList)
-	// go keepTrackOfAllAliveSlaves(updateInAllSlavesMap)
+	updatedSlaveIdChanMap := map[string]chan string{
+		"toWatchdog":                  make(chan string),
+		"toKeepTrackOfAllAliveSlaves": make(chan string),
+	}
+
+	master_id, _ := network.GetLocalIP()
+
+	// Send alive messages from master regularly
 	go network.SendMasterIsAliveRegularly(master_id)
 
+	go keepTrackOfAllAliveSlaves(updatedSlaveIdChanMap, allSlavesMapChanMap, master_id)
+	go handleUpdatesFromSlaves(totalOrderListChan, master_id)
 	go sendToSlavesOnUpdate(totalOrderListChan)
 
-	// Needs allSlavesMap to be updated with all currently alive slaves
-	// redistributeOrders(allSlavesMap, totalOrderListChan, master_id) // Should only be ran on start-up. Depends on "sendToSlavesOnUpdate()"
-
-	// "handleUpdatesFromSlaves" cannot be started before redistributeOrders() has returned
-	go handleUpdatesFromSlaves(totalOrderListChan, master_id)
-
+	time.Sleep(time.Second)
 	for {
+		select {
+		case allSlavesMap := <-allSlavesMapChanMap["toRun"]:
+			redistributeOrders(allSlavesMap, totalOrderListChan, master_id)
+		}
 		time.Sleep(time.Second)
 	}
 }
@@ -136,35 +141,6 @@ func floorIsInbetween(orderFloor int, buttonFloor int, elevatorFloor int, direct
 		return false
 	}
 }
-
-// func KeepTrackOfAliveSlaves(&listOfAliveSlaves){
-
-// 	AliveMessageFromSlave := make(chan slave)
-
-// 	go network.listenAfterSlaves(AliveMessageFromSlave)
-// 	select {
-// 		case AliveMessageFromSlave := <-AliveMessageFromSlave
-// 			for slave := range(listOfAliveSlaves){
-// 				if AliveMessageFromSlave == listOfAliveSlaves[i]{
-// 					slave<- "slave number" + slave "is alive"
-// 				}
-
-// 			}
-// 	}
-
-// 	for slave := range(listOfAliveSlaves){
-// 		go func(){
-// 			select {
-// 				case <-slave
-// 					fmt.Println("Slave:", slave, "is alive")
-// 				case time.After(5*time.Second)
-// 					fmt.Println("Slave:", slave, "died!")
-// 					listOfAliveSlaves = listOfAliveSlaves.slice(deadSlave)
-// 					redistributeOrders()
-// 			}
-// 		}()
-// 	}
-// }
 
 // Returns id of best suited elevator, assuming elevatorStates is a map with ids
 func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState, externalButtonPress definitions.Order, master_id string) string {
@@ -326,4 +302,16 @@ func redistributeOrders(allSlavesMap map[string]bool, totalOrderListChan chan<- 
 
 	// Send updates to channel, which in turn is sent over network
 	totalOrderListChan <- totalOrderList
+}
+
+func keepTrackOfAllAliveSlaves(updatedSlaveIdChanMap map[string]chan string, allSlavesMapChanMap map[string]chan map[string]bool, master_id string) {
+	allSlavesMap := make(map[string]bool)
+	go network.ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap)
+	for {
+		select {
+		case allSlavesMap = <-allSlavesMapChanMap["toKeepTrackOfAllAliveSlaves"]: // Receive update on alive slaves
+			// Send over channel to Run()
+			allSlavesMapChanMap["toRun"] <- allSlavesMap
+		}
+	}
 }
