@@ -302,9 +302,7 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 	go func() {
 		buf := make([]byte, 65536) /*2^16 = max recovery size*/
 		for {
-			
 			udpListen.ReadFromUDP(buf)
-
 
 			// fmt.Println("buffer after read from UDP: ", buf)
 
@@ -329,7 +327,7 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 		select {
 		case MSG_to_slave := <-listenChan:
 			// fmt.Println("slaveCount: ", slaveCount)
-			fmt.Println("Message received from master:", MSG_to_slave)
+			fmt.Println("Received from master:", MSG_to_slave)
 			storage.SaveJSONtoFile(MSG_to_slave.Elevators) //This actually works
 			mutex.Lock()
 			updatedOrderList <- MSG_to_slave.Elevators.OrderMap[elevator_id]

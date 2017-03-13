@@ -242,7 +242,6 @@ func sendUpdatesToMaster(elevator_id string, elevatorStateToMaster chan definiti
 				externalButtonpresses = []definitions.Order{}
 		}
 	}
-
 }
 
 func printEntireElevatorNetworkOnUpdate(elevatorStateChanForPrinting <-chan definitions.ElevatorState, orderListChanForPrinting <-chan definitions.Orders, lastSentMsgToMasterChanForPrinting <-chan definitions.MSG_to_master, lastRecievedMSGFromMasterChanForPrinting <-chan definitions.MSG_to_slave, mutex *sync.Mutex){
