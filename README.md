@@ -12,6 +12,7 @@ https://www.youtube.com/watch?v=CF9S4QZuV30&t=923s
 * Holde  styr på slaver som er i live
 * Sette direction (ElevatorState) i slave
 * Fikse programflyt for skifte av master
+  * Inkluderer dersom det finnes flere master
 
 
 # Bugs:
