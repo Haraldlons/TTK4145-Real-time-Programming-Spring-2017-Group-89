@@ -69,8 +69,8 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 				orderListToExternalPresses <- currentOrderList
 				storage.SaveOrdersToFile(1, currentOrderList)
 				msg := definitions.MSG_to_master{Orders: currentOrderList, Id: elevator_id}
-				fmt.Println("msg_to_master: ", msg)
-				network.SendUpdatesToMaster(msg, elevatorState)
+				// fmt.Println("msg_to_master: ", msg)
+				network.SendUpdatesToMaster(msg, elevatorState, elevator_id)
 				time.Sleep(50 * time.Millisecond)
 			}
 		}

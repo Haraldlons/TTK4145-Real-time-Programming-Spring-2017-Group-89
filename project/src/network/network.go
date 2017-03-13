@@ -243,8 +243,8 @@ func CheckIfMasterAlreadyExist() bool {
 
 }
 
-func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definitions.ElevatorState) {
-	msg.Id, _ = GetLocalIP()
+func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definitions.ElevatorState, elevator_id string) {
+	msg.Id = elevator_id
 	msg.ElevatorState = elevatorState
 	// defer fmt.Println("Finished sending JSON")
 	fmt.Println("Sending UPDATED OrderList To Master. MSG_to_master: ", msg)

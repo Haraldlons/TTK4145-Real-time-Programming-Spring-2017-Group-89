@@ -248,7 +248,7 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 			// fmt.Println("List of orders from msgChan:", msg.Orders)
 			// fmt.Println("List of orders from totalOrderList:", totalOrderList.OrderMap[msg.Id])
 			// Update totalOrderList with information from message
-			fmt.Println()
+			fmt.Println("---------------------------------")
 			fmt.Println("Message received from slave:", msg)
 			totalOrderList.OrderMap[msg.Id] = msg.Orders
 			totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState

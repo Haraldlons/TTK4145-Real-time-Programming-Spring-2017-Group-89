@@ -51,19 +51,19 @@ func main() {
 	}()
 	// udpAddr, _ := net.ResolveUDPAddr("udp", port)
 	// fmt.Println("udpAddr", udpAddr)
-
-	if network.CheckIfMasterAlreadyExist() {
-		slave.Run()
-		master.Run()
-	} else {
-		master.Run()
-	}
-	// slave.Run()
-	// master.Run()
-
-	return
-
-	// TestChange with haraldlons as user
-	// Another testcommit with haraldlons@gmail.com as user.email
-
-} //End mai
+	go func(){
+		for {
+			if network.CheckIfMasterAlreadyExist() {
+				slave.Run()
+				// master.Run()
+			} else {
+				master.Run()
+			}
+		}
+			
+		}()
+		for {
+			time.Sleep(time.Second)
+		}
+	
+}
