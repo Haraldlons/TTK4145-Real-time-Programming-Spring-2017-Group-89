@@ -20,6 +20,7 @@ func Run() {
 	// Channel definitions
 	totalOrderListChan := make(chan definitions.Elevators) // Channel for passing totalOrderList
 	updateInAllSlavesMap := make(chan map[string]bool)     // Channel for passing updates to map containing all slaves
+	allSlavesMap := make(map[string]bool)                  // "true" implies slave is alive
 
 	time.Sleep(time.Second)
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
@@ -29,7 +30,6 @@ func Run() {
 
 	// Various declarations
 	// aliveSlavesList := []int{1, 2, 3}
-	allSlavesMap := make(map[string]bool) // "true" implies slave is alive
 
 	go network.ListenAfterAliveSlavesRegularly(&aliveSlavesList)
 	go keepTrackOfAllAliveSlaves(updateInAllSlavesMap)
