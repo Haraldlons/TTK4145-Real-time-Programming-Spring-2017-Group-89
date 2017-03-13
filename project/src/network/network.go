@@ -356,7 +356,7 @@ func GetLocalIP() (string, error) {
 		// fmt.Println("Testing")
 		conn, err := net.DialTCP("tcp4", nil, &net.TCPAddr{IP: []byte{8, 8, 8, 8}, Port: 53})
 		if err != nil {
-			return "", err
+			return "localhost", err
 		}
 		defer conn.Close()
 		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]

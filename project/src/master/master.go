@@ -31,7 +31,7 @@ func Run() {
 	// go handleUpdateInAliveSlaves(aliveSlavesList, updateInAliveSlaves)
 	// time.Sleep(5 * time.Second)
 
-	go handleUpdatesFromSlaves(totalOrderListChan)
+	go handleUpdatesFromSlaves(totalOrderListChan, master_id)
 	go sendToSlavesOnUpdate(totalOrderListChan)
 	// time.Sleep(3 * time.Second)
 	time.Sleep(time.Second)
@@ -170,9 +170,9 @@ func floorIsInbetween(orderFloor int, buttonFloor int, elevatorFloor int, direct
 // }
 
 // Returns id of best suited elevator, assuming elevatorStates is a map with ids
-func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState, externalButtonPress definitions.Order) string {
+func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState, externalButtonPress definitions.Order, master_id string) string {
 	minCost := 2 * definitions.N_FLOORS
-	bestElevator := "localhost"
+	bestElevator_id := master_id
 	destinationFloor := externalButtonPress.Floor
 	destinationDirection := externalButtonPress.Direction
 
@@ -194,12 +194,12 @@ func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState,
 
 		if tempCost < minCost {
 			minCost = tempCost
-			bestElevator = id
+			bestElevator_id = id
 		}
 		// fmt.Println("Cost of elevator", id, ":", tempCost)
 	}
 	// fmt.Println("Minimum cost:", minCost)
-	return bestElevator
+	return bestElevator_id
 }
 
 func findTravelDirection(startFloor int, destinationFloor int) int {
@@ -226,7 +226,7 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
 
-func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
+func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elevator_id string) {
 	msgChan := make(chan definitions.MSG_to_master)
 	// completedUpdateOfOrderList := make(chan bool)
 	// go func() {
@@ -258,10 +258,13 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators) {
 
 			// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
 			for i := range msg.ExternalButtonPresses {
-				elevator_id := findLowestCostElevator(elevatorStateMap, msg.ExternalButtonPresses[i])
-				orders := totalOrderList.OrderMap[elevator_id]
-				updateOrders(&orders, msg.ExternalButtonPresses[i], elevatorStateMap[elevator_id])
-				totalOrderList.OrderMap[elevator_id] = orders
+				bestElevator_id := findLowestCostElevator(elevatorStateMap, msg.ExternalButtonPresses[i], elevator_id)
+
+				fmt.Println("Best elevator:", bestElevator_id, ", for order", msg.ExternalButtonPresses[i])
+
+				orders := totalOrderList.OrderMap[bestElevator_id]
+				updateOrders(&orders, msg.ExternalButtonPresses[i], elevatorStateMap[bestElevator_id])
+				totalOrderList.OrderMap[bestElevator_id] = orders
 			}
 
 			// fmt.Println("Total order list: ", totalOrderList)
