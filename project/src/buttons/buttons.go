@@ -3,7 +3,7 @@ package buttons
 import (
 	"../definitions"
 	"../driver"
-	"fmt"
+	// "fmt"
 	"time"
 )
 
@@ -63,7 +63,7 @@ func Check_button_external(buttonPressesChan chan [definitions.N_FLOORS][2]int) 
 					}
 					buttonArray[i][j] = 1
 					if buttonArray != lastButtonArray {
-						fmt.Println("lastButtonArray:", lastButtonArray)
+						// fmt.Println("lastButtonArray:", lastButtonArray)
 						lastButtonArray[last_i][last_j] = 0
 						buttonPressesChan <- buttonArray
 						time.Sleep(200 * time.Millisecond)

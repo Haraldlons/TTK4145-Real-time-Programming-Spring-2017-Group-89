@@ -12,12 +12,14 @@ import (
 	// "math/rand"
 	// "net"
 	"time"
+	"sync"
 )
 
 func Run() {
 	fmt.Println("I'm a MASTER!")
 
 	master_id, _ := network.GetLocalIP()
+	mutex := &sync.Mutex{}
 
 	// Channel definitions
 	totalOrderListChan := make(chan definitions.Elevators) // Channel for passing totalOrderList
@@ -25,7 +27,7 @@ func Run() {
 	// allSlavesMap := make(map[string]bool)                  // "true" implies slave is alive
 
 	time.Sleep(time.Second)
-		newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+		newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run -race main.go")
 		err := newSlave.Run()
 		
 	if err != nil {
@@ -38,13 +40,13 @@ func Run() {
 	// go keepTrackOfAllAliveSlaves(updateInAllSlavesMap)
 	go network.SendMasterIsAliveRegularly(master_id)
 
-	go sendToSlavesOnUpdate(totalOrderListChan)
+	go sendToSlavesOnUpdate(totalOrderListChan, mutex)
 
 	// Needs allSlavesMap to be updated with all currently alive slaves
 	// redistributeOrders(allSlavesMap, totalOrderListChan, master_id) // Should only be ran on start-up. Depends on "sendToSlavesOnUpdate()"
 
 	// "handleUpdatesFromSlaves" cannot be started before redistributeOrders() has returned
-	go handleUpdatesFromSlaves(totalOrderListChan, master_id)
+	go handleUpdatesFromSlaves(totalOrderListChan, master_id, mutex)
 
 	for {
 		time.Sleep(time.Second)
@@ -223,7 +225,7 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
 
-func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elevator_id string) {
+func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elevator_id string, mutex *sync.Mutex) {
 	msgChan := make(chan definitions.MSG_to_master)
 	// completedUpdateOfOrderList := make(chan bool)
 	// go func() {
@@ -237,6 +239,7 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 
 	// Start goroutine to listen for updates from slaves
 	go network.ListenToSlave(msgChan)
+
 	for {
 		// 	select {
 		// 	case <-completedUpdateOfOrderList:
@@ -246,9 +249,14 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 			// fmt.Println("List of orders from totalOrderList:", totalOrderList.OrderMap[msg.Id])
 			// Update totalOrderList with information from message
 			fmt.Println("---------------------------------")
+			mutex.Lock()
 			fmt.Println("Message received from slave:", msg)
+			mutex.Unlock()
+
+			mutex.Lock()
 			totalOrderList.OrderMap[msg.Id] = msg.Orders
 			totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState
+			mutex.Unlock()
 
 			// Get map of states
 			elevatorStateMap := totalOrderList.ElevatorStateMap
@@ -259,9 +267,12 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 
 				fmt.Println("Best elevator:", bestElevator_id, ", for order", msg.ExternalButtonPresses[i])
 
+				mutex.Lock()
 				orders := totalOrderList.OrderMap[bestElevator_id]
 				updateOrders(&orders, msg.ExternalButtonPresses[i], elevatorStateMap[bestElevator_id])
 				totalOrderList.OrderMap[bestElevator_id] = orders
+				mutex.Unlock()
+
 			}
 
 			// fmt.Println("Total order list: ", totalOrderList)
@@ -272,15 +283,12 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 			// 	completedUpdateOfOrderList <- true
 			// }()
 			time.Sleep(time.Millisecond * 100)
-
 		}
-
-		// }
 	}
 }
 
 // When totalorderlist is updated, send to all slaves
-func sendToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
+func sendToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators, mutex *sync.Mutex) {
 	// fmt.Println("Starting sending orders to slave")
 
 	for {
@@ -290,7 +298,7 @@ func sendToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
 			if len(totalOrderList.OrderMap) != 0 {
 				msg := definitions.MSG_to_slave{Elevators: totalOrderList}
 				fmt.Println("Message sent to slave:", msg)
-				network.SendToSlave(msg)
+				network.SendToSlave(msg, mutex)
 			}
 		}
 		time.Sleep(300 * time.Millisecond)

@@ -40,7 +40,7 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	if master_id == "" {}
 }
 
-func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, orderListToExternalPresses chan<- definitions.Orders, elevator_id string, updateElevatorStateForUpdatesInOrderList <-chan definitions.ElevatorState, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master) {
+func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, orderListToExternalPresses chan<- definitions.Orders, elevator_id string, updateElevatorStateForUpdatesInOrderList <-chan definitions.ElevatorState, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders) {
 	elevatorState := definitions.ElevatorState{}
 
 	// go func() {
@@ -79,10 +79,10 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 
 	for {
 		select {
-		case currentOrderList := <-updatedOrderList:
+		case currentOrderList = <-updatedOrderList:
+			fmt.Println("New Update to OrderList: ", currentOrderList)
 			// if currentOrderList != updatedOrderList { /*If orderlist from master is identical to our copy*/
 			fmt.Println("40")
-
 			orderListForExecuteOrders <- currentOrderList
 			fmt.Println("41")
 			orderListToExternalPresses <- currentOrderList
@@ -90,29 +90,37 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			orderListChanForPrinting <- currentOrderList
 			fmt.Println("43")
 			storage.SaveOrdersToFile(1, currentOrderList)
+			fmt.Println("44")
+			orderListForSendingToMaster <- currentOrderList
+			fmt.Println("44,5")
 			// sendOrderListUpdateToMaster(currentOrderList)
-			fmt.Println("40")
-			
+
 			time.Sleep(50 * time.Millisecond)
 		case <-completedCurrentOrder:
+			fmt.Printf("completedCurrentOrder")
+			fmt.Println("CurrentOrderlist in special case:", currentOrderList)
 			if len(currentOrderList.Orders) > 0 {
+				fmt.Println("completedCurrentOrder23")
 				currentOrderList = definitions.Orders{currentOrderList.Orders[1:]}
+				fmt.Println("orderListafterSlice: ", currentOrderList)
 			}
 			orderListForExecuteOrders <- currentOrderList
-			fmt.Println("44")
-			orderListToExternalPresses <- currentOrderList
 			fmt.Println("45")
+			orderListToExternalPresses <- currentOrderList
+			fmt.Println("46")
 			storage.SaveOrdersToFile(1, currentOrderList)
 			orderListChanForPrinting <- currentOrderList
-			fmt.Println("46")
+			fmt.Println("47")
 			msg := definitions.MSG_to_master{Orders: currentOrderList, Id: elevator_id}
 			// fmt.Println("msg_to_master: ", msg)
-			fmt.Println("47")
-			network.SendUpdatesToMaster(msg, elevatorState, elevator_id, lastSentMsgToMasterChanForPrinting)
 			fmt.Println("48")
+			network.SendUpdatesToMaster(msg, lastSentMsgToMasterChanForPrinting)
+			fmt.Println("49")
+			orderListForSendingToMaster <- currentOrderList
+			fmt.Println("50")
 			time.Sleep(50 * time.Millisecond)
 		case elevatorState = <-updateElevatorStateForUpdatesInOrderList:
-
+				if elevatorState.LastFloor > 0 {}
 			// }
 		}
 	}
