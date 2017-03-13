@@ -17,6 +17,7 @@ import (
 	// "log"
 	//"os"
 	//"strconv"
+	"bytes"
 	"strings"
 )
 
@@ -126,8 +127,8 @@ func ListenAfterAliveSlavesRegularly(aliveSlavesList *[]int) {
 	}
 }
 
-func SendMasterIsAliveRegularly() {
-	fmt.Println("Sending MasterIsAlive over network")
+func SendMasterIsAliveRegularly(master_id string) {
+	// fmt.Println("Sending MasterIsAlive over network")
 
 	udpAddr, _ := net.ResolveUDPAddr("udp", bcAddress+masterIsAlivePort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
@@ -135,15 +136,18 @@ func SendMasterIsAliveRegularly() {
 		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+masterIsAlivePort)
 		udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
 	}
-	fmt.Println("udpBroadcast: ", udpBroadcast)
+	// fmt.Println("udpBroadcast: ", udpBroadcast)
 
-	msg := make([]byte, 8)
+	// msg := make([]byte, 16)
 	defer func() {
 		fmt.Println("Actually stopping sending MasterIsAliveMessages")
 		udpBroadcast.Close()
 	}()
 
-	binary.BigEndian.PutUint64(msg, uint64(66))
+	// binary.BigEndian.PutUint64(msg, uint64(66))
+
+	msg := []byte(master_id)
+
 	for {
 		// fmt.Println("Sending I'm Alive from Master, msg:", msg)
 		udpBroadcast.Write(msg)
@@ -151,8 +155,8 @@ func SendMasterIsAliveRegularly() {
 	}
 }
 
-func ListenAfterAliveMasterRegularly(masterIsAliveChan chan int, stopListening chan bool) {
-	fmt.Println("Listening to check if master is alive")
+func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListening chan bool) {
+	// fmt.Println("Listening to check if master is alive")
 	udpAddr, _ := net.ResolveUDPAddr("udp", masterIsAlivePort)
 	//check(_)
 	// Create listen Conn
@@ -163,13 +167,19 @@ func ListenAfterAliveMasterRegularly(masterIsAliveChan chan int, stopListening c
 
 	// masterMessagesRecieved := 0
 
-	buf := make([]byte, 8)
+	buf := make([]byte, 16)
 
 	go func() {
 		for {
 			// fmt.Println("Reading fromUDPbuf")
 			udpListen.ReadFromUDP(buf)
-			masterIsAliveChan <- int(binary.BigEndian.Uint64(buf))
+			n := bytes.IndexByte(buf, 0)
+			master_id := string(buf[:n])
+			// fmt.Println("master_ID: ", master_id)
+			// Convert byte from buf to int and send over channel.
+
+			// masterIsAliveChan <- int(binary.BigEndian.Uint64(buf))
+			masterIsAliveChan <- master_id
 			time.Sleep(100 * time.Millisecond) // Wait 1 cycle (100 ms)
 		}
 
@@ -196,17 +206,20 @@ func CheckIfMasterAlreadyExist() bool {
 	//check(_)
 	defer udpListen.Close()
 
-	listenChan := make(chan int)
+	listenChan := make(chan string)
 
 	// masterMessagesRecieved := 0
 
 	go func() {
-		buf := make([]byte, 8)
+		buf := make([]byte, 16)
 		for {
 			udpListen.ReadFromUDP(buf)
+			n := bytes.IndexByte(buf, 0)
+			master_id := string(buf[:n])
+			// fmt.Println("master id byte length n: ", n, "master id: ", master_id)
 			// Convert byte from buf to int and send over channel.
-			listenChan <- int(binary.BigEndian.Uint64(buf))
-			fmt.Println("Got message that master already exist, buf:", buf)
+			listenChan <- master_id
+			// fmt.Println("Got message that master already exist, buf:", buf)
 			time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
 		}
 	}()
@@ -230,9 +243,11 @@ func CheckIfMasterAlreadyExist() bool {
 
 }
 
-func SendJSON(m interface{}) {
-	defer fmt.Println("Finished sending JSON")
-	fmt.Println("Sending JSON over network. Interface: ", m)
+func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definitions.ElevatorState) {
+	msg.Id, _ = GetLocalIP()
+	msg.ElevatorState = elevatorState
+	// defer fmt.Println("Finished sending JSON")
+	fmt.Println("Sending UPDATED OrderList To Master. MSG_to_master: ", msg)
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveToMasterPort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
@@ -244,8 +259,8 @@ func SendJSON(m interface{}) {
 	defer udpBroadcast.Close()
 	//check(_)
 	// msg := make([]byte, 128)
-	// m := definitions.TestMessage{"Alice", "Hello", 1294706395881547000}
-	b, _ := json.Marshal(m)
+	// msg := definitions.TestMessage{"Alice", "Hello", 1294706395881547000}
+	b, _ := json.Marshal(msg)
 
 	// b :=
 
@@ -257,7 +272,7 @@ func SendJSON(m interface{}) {
 	// fmt.Println("secondByte:",secondByte)
 	// fmt.Println("JSONByteArrayLength:",jsonByteLength)
 
-	fmt.Println(byte(len(b)))
+	// fmt.Println(byte(len(b)))
 
 	b = append([]byte{byte(secondByte)}, b...)
 	b = append([]byte{byte(firstByte)}, b...)
@@ -267,6 +282,7 @@ func SendJSON(m interface{}) {
 	// //check(_)
 
 	udpBroadcast.Write(b)
+	return
 }
 
 func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id string) {
@@ -278,7 +294,6 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 	//check(_)
 	msg := definitions.MSG_to_slave{}
 
-	messagesRecievedFromMaster := 0
 	listenChan := make(chan definitions.MSG_to_slave, 1)
 
 	go func() {
@@ -294,8 +309,8 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 
 			// Convert byte from buf to int and send over channel.
 			json.Unmarshal(buf[2:jsonByteLength+2], &msg)
-			// fmt.Println("Her kommer m som du skal se på: ", m)
-			// fmt.Println("Ferdig med å vise m")
+			// fmt.Println("Her kommer msg som du skal se på: ", msg)
+			// fmt.Println("Ferdig med å vise msg")
 			//check(_)
 			listenChan <- msg
 			time.Sleep(delay100ms)
@@ -306,9 +321,8 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 		select {
 		case MSG_to_slave := <-listenChan:
 			// fmt.Println("slaveCount: ", slaveCount)
-			fmt.Println("got MSG_to_slave object: ", MSG_to_slave, ", json objects recieved: ", messagesRecievedFromMaster)
+			fmt.Println("Message received from master:", MSG_to_slave)
 			storage.SaveJSONtoFile(MSG_to_slave.Elevators) //This actually works
-			messagesRecievedFromMaster++
 			updatedOrderList <- MSG_to_slave.Elevators.OrderMap[elevator_id]
 			// if slaveCount < 4 && slaveCount > -1 {
 			// 	fmt.Println("Going to floor from slave: ", slaveCount)
@@ -337,17 +351,17 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 var localIP string
 
 func GetLocalIP() (string, error) {
-	fmt.Println("Checking IP")
+	// fmt.Println("Checking IP")
 	if localIP == "" {
-		fmt.Println("Testing")
+		// fmt.Println("Testing")
 		conn, err := net.DialTCP("tcp4", nil, &net.TCPAddr{IP: []byte{8, 8, 8, 8}, Port: 53})
 		if err != nil {
-			return "", err
+			return "localhost", err
 		}
 		defer conn.Close()
 		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]
 	}
-	fmt.Println("Our local IP: ", localIP)
+	// fmt.Println("Our local IP: ", localIP)
 	return localIP, nil
 }
 
@@ -462,7 +476,7 @@ func ListenToSlave(msgChan chan definitions.MSG_to_master) {
 				// fmt.Println("after error")
 				msgChan <- msg
 			}
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 			// Send message over channel
 		}
 	}()
