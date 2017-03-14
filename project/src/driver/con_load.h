@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 
 // Load values from a config file
 // 

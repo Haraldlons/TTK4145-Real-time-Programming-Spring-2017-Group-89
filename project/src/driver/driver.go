@@ -2,7 +2,7 @@ package driver
 
 /*
 #cgo CFLAGS: -std=gnu11
-#cgo LDFLAGS: -lcomedi -lm
+#cgo LDFLAGS: -lpthread -lcomedi -lm
 #include "elev.h"
 #include "channels.h"
 #include "io.h"
