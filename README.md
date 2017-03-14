@@ -15,6 +15,7 @@ https://www.youtube.com/watch?v=CF9S4QZuV30&t=923s
   * Inkluderer dersom det finnes flere master
 * Kontinuerlig hld styr på hvilke slaver som er i live. Send over channel
   * Ved slave-død, kall på redistributeOrders()
+* PACKET LOSS ER NOE DE TESTER, MÅ HÅNDTERES
 
 
 # Bugs:
