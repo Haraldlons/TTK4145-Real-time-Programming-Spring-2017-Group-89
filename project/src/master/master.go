@@ -7,7 +7,7 @@ import (
 	"../storage"
 	"fmt"
 	"math"
-	// "os/exec"
+	"os/exec"
 	// "string"
 	// "math/rand"
 	// "net"
@@ -27,8 +27,8 @@ func Run() {
 	// allSlavesMap := make(map[string]bool)                  // "true" implies slave is alive
 
 	// time.Sleep(time.Second)
-	// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run -race main.go")
-	// newSlave.Run()
+	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run -race main.go")
+	newSlave.Run()
 
 	// Various declarations
 	// aliveSlavesList := []int{1, 2, 3}
@@ -63,7 +63,7 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 
 	if len(orders.Orders) > 0 { // For safety
 		// Check to see if order should be placed first based on current elevator state
-		if elevatorState.Direction == externalButtonPress.Direction && floorIsInbetween(orders.Orders[0].Floor, externalButtonPress.Floor, elevatorState.LastFloor, elevatorState.Direction) {
+		if elevatorState.Direction == externalButtonPress.Direction && FloorIsInbetween(orders.Orders[0].Floor, externalButtonPress.Floor, elevatorState.LastFloor, elevatorState.Direction) {
 			// Insert Order in first position
 			// fmt.Println("Inserting order in first postion")
 
@@ -123,13 +123,13 @@ func checkForDuplicateOrder(orders *definitions.Orders, externalButtonPress defi
 	return false
 }
 
-func floorIsInbetween(orderFloor int, buttonFloor int, elevatorFloor int, direction int) bool {
-	switch direction {
+func FloorIsInbetween(orderFloor int, buttonFloor int, elevatorLastFloor int, elevatorDirection int) bool {
+	switch elevatorDirection {
 	case definitions.DIR_UP:
-		return buttonFloor > elevatorFloor &&
+		return buttonFloor > elevatorLastFloor &&
 			buttonFloor < orderFloor
 	case definitions.DIR_DOWN:
-		return buttonFloor < elevatorFloor &&
+		return buttonFloor < elevatorLastFloor &&
 			buttonFloor > orderFloor
 	default:
 		fmt.Println("Something is wrong in floorIsBetween()")
@@ -261,7 +261,9 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 
 			// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
 			for i := range msg.ExternalButtonPresses {
+				mutex.Lock()
 				bestElevator_id := findLowestCostElevator(elevatorStateMap, msg.ExternalButtonPresses[i], elevator_id)
+				mutex.Unlock()
 
 				fmt.Println("Best elevator:", bestElevator_id, ", for order", msg.ExternalButtonPresses[i])
 
@@ -281,6 +283,7 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 			// 	completedUpdateOfOrderList <- true
 			// }()
 			time.Sleep(time.Millisecond * 100)
+		// case slavesAliveMap = <- slavesAliveMapToHandleUpdatesFromSlavesChan /*To be implemented*/
 		}
 	}
 }

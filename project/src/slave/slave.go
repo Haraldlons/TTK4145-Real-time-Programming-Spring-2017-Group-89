@@ -380,7 +380,10 @@ func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
 			// 	stopCurrentOrder <- 1
 			// } //Value in channel doesn't matter
 			// go findFloorAndGoTo(internalButtonsChan, <-internalButtonsChan, stopCurrentOrder)
+			
 			time.Sleep(time.Millisecond * 200)
+			o := getFloorFromInternalPress(list)
+			fmt.Println("Decoded to going to FLOOR INTERNAL PRESS:", o)
 			// isFirstButtonPress = false
 			// default:
 			// 	fmt.Println("No button pressed")
