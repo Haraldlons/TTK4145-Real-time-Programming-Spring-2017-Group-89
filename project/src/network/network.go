@@ -84,11 +84,11 @@ func ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap map[string]chan strin
 			updatedSlaveIdChanMap["toKeepTrackOfAllAliveSlaves"] <- slave_id
 			updatedSlaveIdChanMap["toWatchdog"] <- slave_id
 
-			time.Sleep(delay100ms) // Wait 1 cycle (100 ms)
+			time.Sleep(time.Millisecond * 100) // Wait 1 cycle (100 ms)
 		}
 	}()
 
-	for {
+	for { //Infinite loop
 		time.Sleep(time.Second)
 	}
 }
@@ -226,11 +226,11 @@ func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definition
 
 func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id string) {
 	fmt.Println("Listening after Updates from Master")
+
 	udpAddr, _ := net.ResolveUDPAddr("udp", masterToSlavePort)
-	//check(_)
-	// Create listen Conn
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
-	//check(_)
+	defer udpListen.Close()
+
 	msg := definitions.MSG_to_slave{}
 
 	listenChan := make(chan definitions.MSG_to_slave, 1)

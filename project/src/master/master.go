@@ -309,8 +309,9 @@ func keepTrackOfAllAliveSlaves(updatedSlaveIdChanMap map[string]chan string, all
 	go network.ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap)
 	for {
 		select {
-		case allSlavesMap = <-allSlavesMapChanMap["toKeepTrackOfAllAliveSlaves"]: // Receive update on alive slaves
-			// Send over channel to Run()
+		// Receive status of all slaves from watchdog
+		case allSlavesMap = <-allSlavesMapChanMap["toKeepTrackOfAllAliveSlaves"]:
+			// Send status to Run()
 			allSlavesMapChanMap["toRun"] <- allSlavesMap
 		}
 	}

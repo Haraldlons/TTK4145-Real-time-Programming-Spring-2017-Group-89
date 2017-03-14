@@ -29,15 +29,13 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 		select {
 		case master_id = <-masterIsAliveChan:
 			// fmt.Println("Master is still alive: , ", master_id)
-		case <-time.After(time.Millisecond * 3000):
+		case <-time.After(time.Second * 3):
 			fmt.Println("Master is not alive for the last three seconds")
 			stopListening <- true
 			fmt.Println("Has send stopListening signal to network.ListenAfterAliveMasterRegularly")
 			masterHasDiedChan <- true
 			return
 		}
-	}
-	if master_id == "" {
 	}
 }
 
@@ -92,35 +90,57 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 	}
 }
 
-func slavesAlive(updatedSlaveIdChanMap map[string](chan string), allSlavesMapChanMap map[string](chan map[string]bool)) {
+func SlavesAlive(updatedSlaveIdChanMap map[string](chan string), allSlavesMapChanMap map[string](chan map[string]bool)) {
 	allSlavesMap := make(map[string]bool)
 	deadTime := time.Second * 3 // 3 seconds and slave is assumed dead
-	// timer := time.NewTimer(deadTime)
 	timerMap := make(map[string]*time.Timer)
-	timerMapChan := make(chan map[string]*time.Timer)
 
 	for {
 		select {
 		case slave_id := <-updatedSlaveIdChanMap["toWatchDog"]:
-			for id := range timerMap {
-				if timerMap[id] != nil {
-					timerMap[id] = time.NewTimer(deadTime)
-					timerMapChan <- timerMap
-				}
+			if allSlavesMap[slave_id] == false { // If slave is new
+				fmt.Println("Creating new timer for:", slave_id)
+				timerMap[slave_id] = time.NewTimer(deadTime)
 			}
+			fmt.Println("Slave ", slave_id, "is alive!")
 
-			timerMapChan[id]
+			// We have to use a mutex, as maps are passed by reference
+			// mutex.Lock()
+			allSlavesMap[slave_id] = true
+			// mutex.Unlock()
 
+			fmt.Println("Resetting timer for:", slave_id)
+			// Resetting timer, as slave is alive
+			timerMap[slave_id].Stop()
+			timerMap[slave_id].Reset(deadTime)
 		default:
 			for id, timer := range timerMap {
+				select {
+				case <-timer.C: // deadTime has passed
+					fmt.Println("\nSlave ", id, "is assumed dead\n")
+					// mutex.Lock()
+					allSlavesMap[id] = false // Slave is assumed dead
+					// mutex.Unlock()
 
+				default: // Needed to avoid blocking of channels
+					time.Sleep(time.Millisecond * 10)
+				}
 			}
-
 		}
-		allSlavesMap[slave_id] = true
-
 		// Send map of all slaves to channel
 		allSlavesMapChanMap["toKeepTrackOfAllAliveSlaves"] <- allSlavesMap
 	}
+}
 
+func ElevatorAlive(aliveMessageFromElevatorFunctionsChanMap map[string]chan bool) {
+	deadTime := time.Second * 3          // Time until reboot is needed
+	killTimer := time.NewTimer(deadTime) // Initialize timer
+
+	select {}
+	for {
+		if isAlive {
+			killTimer.Stop()
+			killTimer.Reset(deadTime)
+		}
+	}
 }
