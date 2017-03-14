@@ -11,8 +11,8 @@ import (
 	// "string"
 	// "math/rand"
 	// "net"
-	"time"
 	"sync"
+	"time"
 )
 
 func Run() {
@@ -27,9 +27,9 @@ func Run() {
 	// allSlavesMap := make(map[string]bool)                  // "true" implies slave is alive
 
 	time.Sleep(time.Second)
-		newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run -race main.go")
-		err := newSlave.Run()
-		
+	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run -race main.go")
+	err := newSlave.Run()
+
 	if err != nil {
 	}
 
@@ -116,9 +116,10 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 	// fmt.Println("Orders returned by updateOrders():", orders)
 }
 
+// Don't accept more orders to same floor. Assume every person gets on elevator.
 func checkForDuplicateOrder(orders *definitions.Orders, externalButtonPress definitions.Order) bool {
 	for i := range orders.Orders {
-		if orders.Orders[i] == externalButtonPress {
+		if orders.Orders[i].Floor == externalButtonPress.Floor {
 			return true
 		}
 	}
