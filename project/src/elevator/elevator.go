@@ -169,10 +169,13 @@ func ExecuteOrders(elevatorStateChanForExecuteOrders <-chan definitions.Elevator
 					fmt.Println("You reached your desired floor. Walk out\n")
 					fmt.Println("OrderList: ", orderList)
 					// if newOrderList {
-					go func() {
-						fmt.Println("Sending completedCurrentOrder=true from ExecuteOrders")
-						completedCurrentOrder <- true
-					}()
+					// currentOrderList = definitions.Orders{orderList.Orders[1:]}
+
+					orderListForExecuteOrders <- definitions.Orders{orderList.Orders[1:]}
+					// go func() {
+					// 	fmt.Println("Sending completedCurrentOrder=true from ExecuteOrders")
+					// 	completedCurrentOrder <- true
+					// }()
 					// newOrderList = false
 					driver.Elev_set_motor_direction(definitions.DIR_STOP)
 					// } else {
