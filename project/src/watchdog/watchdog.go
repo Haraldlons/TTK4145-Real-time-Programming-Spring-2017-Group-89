@@ -42,16 +42,8 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	}
 }
 
-func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, elevator_id string, updateElevatorStateForUpdatesInOrderList <-chan definitions.ElevatorState, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders, internalPressOrderChan <-chan definitions.Order) {
-	elevatorState := definitions.ElevatorState{}
+func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders) {
 
-	// go func() {
-	// 	for {
-	// 		select {
-	// 		case elevatorState = <-updateElevatorStateForUpdatesInOrderList:
-	// 		}
-	// 	}
-	// }()
 
 	currentOrderList := definitions.Orders{}
 	storage.LoadOrdersFromFile(1, &currentOrderList)
@@ -80,6 +72,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 	// 		}
 	// 	}
 	// }()
+
 	lastOrderList := definitions.Orders{}
 
 	for {
@@ -88,7 +81,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			fmt.Println("Is this orderList going to currentOrderlist? ", currentOrderList, " lastOrderLIST:", lastOrderList)
 			if checkIfChangedOrderList(lastOrderList, currentOrderList) {
 				lastOrderList = currentOrderList
-				time.Sleep(100 * time.Millisecond)
+				// time.Sleep(100 * time.Millisecond)
 				fmt.Println("New Update to OrderList: ", currentOrderList)
 				// if currentOrderList != updatedOrderList { /*If orderlist from master is identical to our copy*/
 				fmt.Println("40")
@@ -111,7 +104,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 				fmt.Println("THEY ARE THE SAMMMEEMEMEMEMEMEMEMMEMEME")
 			}
 
-			time.Sleep(50 * time.Millisecond)
+			// time.Sleep(50 * time.Millisecond)
 		case <-completedCurrentOrder:
 			fmt.Printf("completedCurrentOrder")
 			fmt.Println("CurrentOrderlist in special case:", currentOrderList)
@@ -133,13 +126,6 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			fmt.Println("49")
 			orderListForSendingToMaster <- currentOrderList
 			fmt.Println("50")
-			time.Sleep(50 * time.Millisecond)
-		case elevatorState = <-updateElevatorStateForUpdatesInOrderList:
-			if elevatorState.LastFloor > 0 {
-			}
-		case internalPressOrder = <-internalPressOrderChan:
-			currentOrderList = distributeInternalOrderToOrderList(internalPressOrder, currentOrderList, elevatorState)
-			// }
 		}
 	}
 }
@@ -258,3 +244,4 @@ func reset_Elevator() {
 
 }
 */
+

@@ -8,7 +8,7 @@ import (
 	"../elevator"
 	"../network"
 	//"./src/driver"
-	"../storage"
+	// "../storage"
 	//"./src/master"
 	"../watchdog"
 	// "network"
@@ -50,14 +50,8 @@ func Run() {
 	updatedOrderList := make(chan definitions.Orders)
 
 	// Channels for listening to updates in elevatorState variables
-	updateElevatorStateFloor := make(chan int)
-	updateElevatorStateDirection := make(chan int)
-	updateElevatorDestinationChan := make(chan int)
-	updateElevatorState := make(chan definitions.ElevatorState)
-	updateElevatorStateForUpdatesInOrderList := make(chan definitions.ElevatorState)
 
 	// Channels for setting updates in elevatorState
-	elevatorStateChanForExecuteOrders := make(chan definitions.ElevatorState)
 
 	// Channels for printing in a nice format
 	elevatorStateChanForPrinting := make(chan definitions.ElevatorState)
@@ -67,7 +61,7 @@ func Run() {
 
 	// Channels for preparing msg to master
 	orderListForSendingToMaster := make(chan definitions.Orders)
-	elevatorStateToMaster := make(chan definitions.ElevatorState)
+	elevatorStateToMasterChan := make(chan definitions.ElevatorState)
 	extButToMaster := make(chan definitions.Order)
 	sendMessageToMaster := make(chan bool)
 
@@ -77,28 +71,6 @@ func Run() {
 	// elevatorStateChanMap["forExecuteOrders"] = elevatorStateChanForExecuteOrders
 	// elevatorStateChanMap["forExternalPresses"] = elevatorStateForExternalPresses
 	// elevatorStateChanMap["forFloorUpdates"] = ElevatorStateForFloorUpdatesChan
-
-	///////////////////////////////////////////
-	// Make manually orderList
-	totalOrderList := definitions.Orders{}
-	// orderList := definitions.Orders{definitions}
-	listOfNumbers := []int{0, 3}
-	secondListOfNumbers := []int{1, -1}
-
-	for i := range listOfNumbers {
-		totalOrderList = definitions.Orders{append(totalOrderList.Orders, definitions.Order{Floor: listOfNumbers[i], Direction: secondListOfNumbers[i]})}
-	}
-	// fmt.Println("printing totalOrderList:", totalOrderList)
-	// storage.SaveOrdersToFile(1, totalOrderList)
-	///////////////////////////////////////////
-
-	// storage.LoadOrdersFromFile(1, &totalOrderList)
-	// fmt.Println("Loaded totalOrderlist from a file. Result: ", totalOrderList)Sending JSON over network. Interface:  {{[]} {1 0 0} [] 129.241.187.151}
-
-	go storage.LoadElevatorStateFromFile(updateElevatorState)
-
-	go elevator.CheckForElevatorFloorUpdates(updateElevatorStateFloor)
-	// go elevator.ListenAfterElevatStateUpdatesAndSaveToFile(&elevatorState, updateElevatorStateDirection, updateElevatorStateFloor)
 
 	go network.SendSlaveIsAliveRegularly(44, stopSendingImAliveMessage)
 	go watchdog.CheckIfMasterIsAliveRegularly(masterHasDiedChan)
@@ -111,11 +83,13 @@ func Run() {
 	go printExternalPresses(externalButtonsPressesChan, elevator_id, lastSentMsgToMasterChanForPrinting, extButToMaster, sendMessageToMaster)
 	go printInternalPresses(internalButtonsPressesChan)
 
-	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, elevator_id, updateElevatorStateForUpdatesInOrderList, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster)
+	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, elevator_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster)
 	go network.ListenToMasterUpdates(updatedOrderList, elevator_id, lastRecievedMSGFromMasterChanForPrinting)
-	go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, updateElevatorStateForUpdatesInOrderList, elevatorStateChanForPrinting, elevatorStateToMaster)
-	go elevator.ExecuteOrders(elevatorStateChanForExecuteOrders, orderListForExecuteOrders, updateElevatorStateDirection, completedCurrentOrder, updateElevatorDestinationChan)
-	go sendUpdatesToMaster(elevator_id, elevatorStateToMaster, orderListForSendingToMaster, extButToMaster, sendMessageToMaster, lastSentMsgToMasterChanForPrinting)
+
+	// go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, elevatorStateChanForPrinting, elevatorStateToMaster)
+
+	go elevator.ExecuteOrders(orderListForExecuteOrders, completedCurrentOrder, elevatorStateToMasterChan, elevatorStateChanForPrinting)
+	go sendUpdatesToMaster(elevator_id, elevatorStateToMasterChan, orderListForSendingToMaster, extButToMaster, sendMessageToMaster, lastSentMsgToMasterChanForPrinting)
 	// fmt.Println("GOROUTINES HAVE STARTED!")
 	// go watchdog.CheckIfElevatorIsStuck(executeOrdersIsAliveChan)
 
@@ -131,7 +105,7 @@ func Run() {
 	}
 }
 
-func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan definitions.ElevatorState, elevatorStateChanForExecuteOrders chan<- definitions.ElevatorState, updateElevatorStateFloor <-chan int, updateElevatorStateDirection <-chan int, updateElevatorDestinationChan <-chan int, updateElevatorStateForUpdatesInOrderList chan<- definitions.ElevatorState, elevatorStateChanForPrinting chan<- definitions.ElevatorState, elevatorStateToMaster chan<- definitions.ElevatorState) {
+func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan definitions.ElevatorState, elevatorStateChanForExecuteOrders chan<- definitions.ElevatorState, updateElevatorStateFloor <-chan int, updateElevatorStateDirection <-chan int, updateElevatorDestinationChan <-chan int, elevatorStateChanForPrinting chan<- definitions.ElevatorState, elevatorStateToMaster chan<- definitions.ElevatorState) {
 	elevatorState := definitions.ElevatorState{}
 
 	for {
@@ -142,15 +116,15 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			fmt.Println("Current updated elevator state:", elevatorState)
 			fmt.Println("--------------------------------")
 			fmt.Println("0")
-			elevatorStateChanForExecuteOrders <- elevatorState
-			fmt.Println("1")
-			fmt.Println("2")
-			updateElevatorStateForUpdatesInOrderList <- elevatorState
-			fmt.Println("3")
-			fmt.Println("4")
-			elevatorStateChanForPrinting <- elevatorState
-			fmt.Println("5")
-			elevatorStateToMaster <- elevatorState
+	
+				elevatorStateChanForExecuteOrders <- elevatorState
+				fmt.Println("1")
+				fmt.Println("2")
+				fmt.Println("3")
+				fmt.Println("4")
+				elevatorStateChanForPrinting <- elevatorState
+				fmt.Println("5")
+				elevatorStateToMaster <- elevatorState
 		case updatedFloor := <-updateElevatorStateFloor:
 			fmt.Println("updateFloor")
 			elevatorState.LastFloor = updatedFloor
@@ -160,15 +134,26 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			// fmt.Println("--------------------------------")
 
 			fmt.Println("6")
-			elevatorStateChanForExecuteOrders <- elevatorState
-			fmt.Println("7")
-			updateElevatorStateForUpdatesInOrderList <- elevatorState
-			fmt.Println("8")
-			fmt.Println("9")
-			elevatorStateChanForPrinting <- elevatorState
-			fmt.Println("10")
-			elevatorStateToMaster <- elevatorState
-			fmt.Println("11")
+			select {
+			case elevatorState.Direction = <-updateElevatorStateDirection:
+				elevatorStateChanForExecuteOrders <- elevatorState
+				fmt.Println("7")
+				fmt.Println("8")
+				fmt.Println("9")
+				elevatorStateChanForPrinting <- elevatorState
+				fmt.Println("10")
+				elevatorStateToMaster <- elevatorState
+				fmt.Println("11")
+			default:
+				elevatorStateChanForExecuteOrders <- elevatorState
+				fmt.Println("7")
+				fmt.Println("8")
+				fmt.Println("9")
+				elevatorStateChanForPrinting <- elevatorState
+				fmt.Println("10")
+				elevatorStateToMaster <- elevatorState
+				fmt.Println("11")
+		}
 		case updateDirection := <-updateElevatorStateDirection:
 			fmt.Println("12")
 			elevatorState.Direction = updateDirection
@@ -181,7 +166,6 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			elevatorStateChanForExecuteOrders <- elevatorState
 			fmt.Println("14")
 			fmt.Println("15")
-			updateElevatorStateForUpdatesInOrderList <- elevatorState
 			fmt.Println("16")
 			fmt.Println("17")
 			elevatorStateChanForPrinting <- elevatorState
@@ -194,16 +178,20 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			// fmt.Println("--------------------------------")
 			// fmt.Println("Current updated elevator state:", elevatorState)
 			// fmt.Println("--------------------------------")
-			elevatorStateChanForExecuteOrders <- elevatorState
-			fmt.Println("20")
-			fmt.Println("21")
-			updateElevatorStateForUpdatesInOrderList <- elevatorState
-			fmt.Println("22")
-			fmt.Println("23")
-			elevatorStateChanForPrinting <- elevatorState
-			fmt.Println("24")
-			elevatorStateToMaster <- elevatorState
-			fmt.Println("25")
+			select {
+				case elevatorState.Direction = <-updateElevatorStateDirection:
+				default:
+				elevatorStateChanForExecuteOrders <- elevatorState
+				fmt.Println("20")
+				fmt.Println("21")
+				fmt.Println("22")
+				fmt.Println("23")
+				elevatorStateChanForPrinting <- elevatorState
+				fmt.Println("24")
+				elevatorStateToMaster <- elevatorState
+				fmt.Println("25")
+					
+			}
 		}
 		time.Sleep(50 * time.Millisecond)
 	}

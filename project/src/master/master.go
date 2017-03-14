@@ -7,7 +7,7 @@ import (
 	"../storage"
 	"fmt"
 	"math"
-	"os/exec"
+	// "os/exec"
 	// "string"
 	// "math/rand"
 	// "net"
@@ -26,12 +26,9 @@ func Run() {
 	// updateInAllSlavesMap := make(chan map[string]bool)     // Channel for passing updates to map containing all slaves
 	// allSlavesMap := make(map[string]bool)                  // "true" implies slave is alive
 
-	time.Sleep(time.Second)
-	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run -race main.go")
-	err := newSlave.Run()
-
-	if err != nil {
-	}
+	// time.Sleep(time.Second)
+	// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run -race main.go")
+	// newSlave.Run()
 
 	// Various declarations
 	// aliveSlavesList := []int{1, 2, 3}
