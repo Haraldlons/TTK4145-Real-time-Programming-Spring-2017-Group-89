@@ -33,7 +33,7 @@ var slaveToMasterPort string = ":18901"
 
 var delay100ms = 100 * time.Millisecond
 
-func SendSlaveIsAliveRegularly(elevator_id string, stopSending chan bool) {
+func SendSlaveIsAliveRegularly(elevator_id string, stopSendingChan chan bool) {
 	// fmt.Println("Sending ImAliveMessage over network")
 
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveIsAlivePort)
@@ -52,7 +52,7 @@ func SendSlaveIsAliveRegularly(elevator_id string, stopSending chan bool) {
 	msg := []byte(elevator_id)
 	for {
 		select {
-		case <-stopSending:
+		case <-stopSendingChan:
 			// time.Sleep(10 * time.Millisecond)
 			return
 		default:
@@ -63,7 +63,7 @@ func SendSlaveIsAliveRegularly(elevator_id string, stopSending chan bool) {
 	}
 }
 
-func ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap map[string]chan string, stopListening bool) {
+func ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap map[string]chan string, stopListeningChan chan bool) {
 	// allSlavesMap := make(map[string]bool)
 
 	// Create listen Conn
@@ -71,29 +71,31 @@ func ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap map[string]chan strin
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
 	defer udpListen.Close()
 
-	go func() {
-		buf := make([]byte, 16)
-		for {
-			udpListen.ReadFromUDP(buf)
+	// go func() {
+	buf := make([]byte, 16)
+	for {
+		udpListen.ReadFromUDP(buf)
 
-			// Convert buf from byte to string (IP-address)
-			n := bytes.IndexByte(buf, 0)
-			slave_id := string(buf[:n])
+		// Convert buf from byte to string (IP-address)
+		n := bytes.IndexByte(buf, 0)
+		slave_id := string(buf[:n])
 
-			// Send update to "keepTrackOfAllAliveSlaves()" and watchDog
-			updatedSlaveIdChanMap["toKeepTrackOfAllAliveSlaves"] <- slave_id
-			updatedSlaveIdChanMap["toWatchdog"] <- slave_id
-
-			time.Sleep(time.Millisecond * 100) // Wait 1 cycle (100 ms)
+		// Send update to "run " and watchDog
+		//updatedSlaveIdChanMap["toKeepTrackOfAllAliveSlaves"] <- slave_id
+		for key := range updatedSlaveIdChanMap {
+			updatedSlaveIdChanMap[key] <- slave_id
 		}
-	}()
 
-	for { //Infinite loop
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 10) // Wait 1 cycle (100 ms)
 	}
+	// }()
+
+	// for { //Infinite loop
+	// time.Sleep(time.Second)
+	// }
 }
 
-func SendMasterIsAliveRegularly(master_id string, stopSending chan bool) {
+func SendMasterIsAliveRegularly(master_id string, stopSendingChan chan bool) {
 	udpAddr, _ := net.ResolveUDPAddr("udp", bcAddress+masterIsAlivePort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 	if err != nil { //Can't connect to the interwebs
@@ -109,7 +111,7 @@ func SendMasterIsAliveRegularly(master_id string, stopSending chan bool) {
 	msg := []byte(master_id)
 	for {
 		select {
-		case <-stopSending:
+		case <-stopSendingChan:
 			return
 		default:
 			fmt.Println("Sending I'm Alive from Master, msg:", msg)
@@ -119,7 +121,7 @@ func SendMasterIsAliveRegularly(master_id string, stopSending chan bool) {
 	}
 }
 
-func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListening chan bool) {
+func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListeningChan chan bool) {
 	// fmt.Println("Listening to check if master is alive")
 	udpAddr, _ := net.ResolveUDPAddr("udp", masterIsAlivePort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
@@ -140,7 +142,7 @@ func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListenin
 
 	for {
 		select {
-		case <-stopListening:
+		case <-stopListeningChan:
 			return
 		}
 	}
@@ -196,7 +198,7 @@ func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definition
 	}
 
 	defer udpBroadcast.Close()
-	lastSentMsgToMasterChanForPrinting<- msg
+	lastSentMsgToMasterChanForPrinting <- msg
 	//check(_)
 	// msg := make([]byte, 128)
 	// msg := definitions.TestMessage{"Alice", "Hello", 1294706395881547000}

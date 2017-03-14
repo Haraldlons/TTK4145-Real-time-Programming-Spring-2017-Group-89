@@ -24,11 +24,12 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	stopListening := make(chan bool)
 
 	go network.ListenAfterAliveMasterRegularly(masterIsAliveChan, stopListening)
-	master_id := ""
 	for {
 		select {
-		case master_id = <-masterIsAliveChan:
-			// fmt.Println("Master is still alive: , ", master_id)
+		// case master_id := <-masterIsAliveChan:
+
+		// fmt.Println("Master is still alive: , ", master_id)
+
 		case <-time.After(time.Second * 3):
 			fmt.Println("Master is not alive for the last three seconds")
 			stopListening <- true
@@ -117,14 +118,14 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 	}
 }
 
-func SlavesAlive(updatedSlaveIdChanMap map[string](chan string), allSlavesMapChanMap map[string](chan map[string]bool)) {
+func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesMapChanMap map[string](chan map[string]bool)) {
 	allSlavesMap := make(map[string]bool)
 	deadTime := time.Second * 3 // 3 seconds and slave is assumed dead
 	timerMap := make(map[string]*time.Timer)
 
 	for {
 		select {
-		case slave_id := <-updatedSlaveIdChanMap["toWatchDog"]:
+		case slave_id := <-updatedSlaveIdChan:
 			if allSlavesMap[slave_id] == false { // If slave is new
 				fmt.Println("Creating new timer for:", slave_id)
 				timerMap[slave_id] = time.NewTimer(deadTime)
@@ -154,20 +155,22 @@ func SlavesAlive(updatedSlaveIdChanMap map[string](chan string), allSlavesMapCha
 				}
 			}
 		}
-		// Send map of all slaves to channel
-		allSlavesMapChanMap["toKeepTrackOfAllAliveSlaves"] <- allSlavesMap
-	}
-}
-
-func ElevatorAlive(aliveMessageFromElevatorFunctionsChanMap map[string]chan bool) {
-	deadTime := time.Second * 3          // Time until reboot is needed
-	killTimer := time.NewTimer(deadTime) // Initialize timer
-
-	select {}
-	for {
-		if isAlive {
-			killTimer.Stop()
-			killTimer.Reset(deadTime)
+		// Send map of all slaves to all channels
+		for key := range allSlavesMapChanMap {
+			allSlavesMapChanMap[key] <- allSlavesMap
 		}
 	}
 }
+
+// func ElevatorAlive(aliveMessageFromElevatorFunctionsChanMap map[string]chan bool) {
+// 	deadTime := time.Second * 3          // Time until reboot is needed
+// 	killTimer := time.NewTimer(deadTime) // Initialize timer
+
+// 	select {}
+// 	for {
+// 		if isAlive {
+// 			killTimer.Stop()
+// 			killTimer.Reset(deadTime)
+// 		}
+// 	}
+// }

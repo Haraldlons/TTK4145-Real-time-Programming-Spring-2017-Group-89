@@ -2,6 +2,7 @@ package master
 
 import (
 	"../definitions"
+	"../watchdog"
 	// "../driver"
 	"../network"
 	"../storage"
@@ -22,37 +23,46 @@ func Run() {
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 	newSlave.Run()
 
-	// Channel definitions
+	// Channel for passing totalOrderList from listener->handler->sender
 	totalOrderListChan := make(chan definitions.Elevators) // Channel for passing totalOrderList
 
+	// Channel for sending kill-signal to all network-related goroutines
+	stopSendingChan := make(chan bool)
+
+	// Channels for sending a map with alive-status of all slaves connected to the network
 	allSlavesMapChanMap := map[string]chan map[string]bool{
-		"toKeepTrackOfAllAliveSlaves": make(chan map[string]bool),
-		"toRun": make(chan map[string]bool),
+		// "toKeepTrackOfAllAliveSlaves": make(chan map[string]bool),
+		"toRun":                     make(chan map[string]bool),
+		"toHandleUpdatesFromSlaves": make(chan map[string]bool),
 	}
 
-	// allSlavesMapChan := make(chan map[string]bool)
-
+	// Channels for sending the id of a slave from the listener to others
 	updatedSlaveIdChanMap := map[string]chan string{
-		"toWatchdog":                  make(chan string),
-		"toKeepTrackOfAllAliveSlaves": make(chan string),
+		"toWatchdog": make(chan string),
+		// "toKeepTrackOfAllAliveSlaves": make(chan string),
 	}
 
+	// Might change when network is unplugged. THIS MUST BE HANDLED!!!
 	master_id, _ := network.GetLocalIP()
 
 	// Send alive messages from master regularly
-	go network.SendMasterIsAliveRegularly(master_id)
+	go network.SendMasterIsAliveRegularly(master_id, stopSendingChan)
 
-	go keepTrackOfAllAliveSlaves(updatedSlaveIdChanMap, allSlavesMapChanMap, master_id)
+	// Listen after alive slaves and keep track of alive ones
+	go network.ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap, stopSendingChan)
+	go watchdog.KeepTrackOfAllAliveSlaves(updatedSlaveIdChanMap["toWatchdog"], allSlavesMapChanMap)
+
+	// Receive messages from slaves, handle, then send to all slaves
 	go handleUpdatesFromSlaves(totalOrderListChan, master_id)
-	go sendToSlavesOnUpdate(totalOrderListChan)
+	go sendMessageToSlavesOnUpdate(totalOrderListChan)
 
-	time.Sleep(time.Second)
 	for {
 		select {
+		// Blocking statement to listen for changes in slaves' status
 		case allSlavesMap := <-allSlavesMapChanMap["toRun"]:
+			// If any slaves died, their last known orders will be redistributed to alive slaves
 			redistributeOrders(allSlavesMap, totalOrderListChan, master_id)
 		}
-		time.Sleep(time.Second)
 	}
 }
 
@@ -256,7 +266,7 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 }
 
 // When totalorderlist is updated, send to all slaves
-func sendToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
+func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
 	// fmt.Println("Starting sending orders to slave")
 
 	for {
@@ -304,15 +314,22 @@ func redistributeOrders(allSlavesMap map[string]bool, totalOrderListChan chan<- 
 	totalOrderListChan <- totalOrderList
 }
 
-func keepTrackOfAllAliveSlaves(updatedSlaveIdChanMap map[string]chan string, allSlavesMapChanMap map[string]chan map[string]bool, master_id string) {
-	allSlavesMap := make(map[string]bool)
-	go network.ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap)
-	for {
-		select {
-		// Receive status of all slaves from watchdog
-		case allSlavesMap = <-allSlavesMapChanMap["toKeepTrackOfAllAliveSlaves"]:
-			// Send status to Run()
-			allSlavesMapChanMap["toRun"] <- allSlavesMap
-		}
-	}
+// func keepTrackOfAllAliveSlaves(updatedSlaveIdChanMap map[string]chan string, allSlavesMapChanMap map[string]chan map[string]bool, master_id string) {
+// 	allSlavesMap := make(map[string]bool)
+// 	go network.ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap)
+// 	for {
+// 		select {
+// 		// Receive status of all slaves from watchdog
+// 		case allSlavesMap = <-allSlavesMapChanMap["toKeepTrackOfAllAliveSlaves"]:
+// 			// Send status to Run()
+// 			allSlavesMapChanMap["toRun"] <- allSlavesMap
+// 		}
+// 	}
+// }
+
+// Compare two IP-addresses, and return the one with the largest last three digits
+func compareIdsAndReturnLargest(id_1 string, id_2 string) string {
+	largest := "localhost"
+	// if len(id_1) ==
+	return largest
 }
