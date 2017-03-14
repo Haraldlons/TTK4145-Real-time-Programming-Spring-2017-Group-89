@@ -1,8 +1,8 @@
 package main
 
 import (
+	"./src/definitions"
 	"./src/slave"
-	// "./src/definitions"
 	//"./src/driver"
 	// "./src/elevator"
 	"./src/network"
@@ -40,9 +40,9 @@ func main() {
 			// fmt.Println("Stopsignal: ", stopSignal)
 			if stopSignal != 0 {
 				// setOrderOverNetwork(0)
-				driver.Elev_set_motor_direction(driver.DIRECTION_STOP)
-				fmt.Println("Stopping program, with stop signal: ", stopSignal)
-				fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())
+				driver.Elev_set_motor_direction(definitions.DIR_STOP)
+				// fmt.Println("Stopping program, with stop signal: ", stopSignal)
+				// fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())
 				time.Sleep(100 * time.Millisecond)
 				// return
 			}
@@ -51,7 +51,7 @@ func main() {
 	}()
 	// udpAddr, _ := net.ResolveUDPAddr("udp", port)
 	// fmt.Println("udpAddr", udpAddr)
-	go func(){
+	go func() {
 		for {
 			if network.CheckIfMasterAlreadyExist() {
 				slave.Run()
@@ -60,10 +60,10 @@ func main() {
 				master.Run()
 			}
 		}
-			
-		}()
-		for {
-			time.Sleep(time.Second)
-		}
-	
+
+	}()
+	for {
+		time.Sleep(time.Second)
+	}
+
 }

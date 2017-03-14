@@ -42,18 +42,19 @@ func ExecuteOrders(elevatorStateChanForExecuteOrders <-chan definitions.Elevator
 
 				// You're allready on desired floor
 				if driver.Elev_get_floor_sensor_signal() == orderList.Orders[0].Floor {
-					driver.Elev_set_door_open_lamp(1)
+					// driver.Elev_set_door_open_lamp(1)
 
-					// storage.SaveOrderToFile(-1)
+					// // storage.SaveOrderToFile(-1)
 					fmt.Println("You are allready on the desired floor")
-					// elevatorActive = false
+					// // elevatorActive = false
 
-					driver.Elev_set_motor_direction(definitions.DIR_STOP)
-					// if newOrderList {
-					fmt.Println("completedCurrentOrder <- true to floor: ", orderList.Orders[0].Floor)
-					go func() {
-						completedCurrentOrder <- true
-					}()
+					// driver.Elev_set_motor_direction(definitions.DIR_STOP)
+					// // if newOrderList {
+					// fmt.Printf("completedCurrentOrder <- true to floor: ", orderList.Orders[0].Floor, " ")
+					// go func() {
+					// completedCurrentOrder <- true
+					// fmt.Println("RECIEVED")
+					// }()
 					// newOrderList = false
 					// }
 
@@ -163,15 +164,16 @@ func ExecuteOrders(elevatorStateChanForExecuteOrders <-chan definitions.Elevator
 		default:
 			// fmt.Println("Does this happen?", driver.Elev_get_floor_sensor_signal())
 			// Sjekk om er kommet fram til riktig etasje
+			// fmt.Printf(".", len(orderList.Orders))
 			if len(orderList.Orders) > 0 {
-				// fmt.Println("driver.Elev_get_floor_sensor_signal() == orderList.Orders[0].Floor: ", driver.Elev_get_floor_sensor_signal(),",", orderList.Orders[0].Floor)
+				// fmt.Println("driver.Elev_get_floor_sensor_signal() == orderList.Orders[0].Floor: ", driver.Elev_get_floor_sensor_signal(), ",", orderList.Orders[0].Floor)
 				if driver.Elev_get_floor_sensor_signal() == orderList.Orders[0].Floor {
 					fmt.Println("You reached your desired floor. Walk out\n")
 					fmt.Println("OrderList: ", orderList)
 					// if newOrderList {
 					// currentOrderList = definitions.Orders{orderList.Orders[1:]}
-
-					orderListForExecuteOrders <- definitions.Orders{orderList.Orders[1:]}
+					// fmt.Printf("complededOrderTo: ")
+					completedCurrentOrder <- true
 					// go func() {
 					// 	fmt.Println("Sending completedCurrentOrder=true from ExecuteOrders")
 					// 	completedCurrentOrder <- true
@@ -194,7 +196,7 @@ func ExecuteOrders(elevatorStateChanForExecuteOrders <-chan definitions.Elevator
 					driver.Elev_set_door_open_lamp(1)
 					// storage.SaveOrderToFile(-1)
 					// time.Sleep(time.Millisecond * 100)
-					time.Sleep(1000 * time.Millisecond) // Keep door open
+					time.Sleep(500 * time.Millisecond) // Keep door open
 					driver.Elev_set_door_open_lamp(0)
 				} else if driver.Elev_get_floor_sensor_signal() == 0 { /*This is just to be fail safe*/
 					driver.Elev_set_motor_direction(definitions.DIR_UP)

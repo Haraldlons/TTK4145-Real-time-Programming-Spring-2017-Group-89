@@ -9,8 +9,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"net"
+	"sync"
 	// "os/exec"
 	"time"
 	// "math"
@@ -22,9 +22,9 @@ import (
 	"strings"
 )
 
-var bcAddress string = "129.241.187.255"
+// var bcAddress string = "129.241.187.255"
 
-//var bcAddress string = "localhost"
+var bcAddress string = "localhost"
 var port string = ":46723"
 var slaveIsAlivePort string = ":46720"
 var masterIsAlivePort string = ":46721"
@@ -137,7 +137,8 @@ func SendMasterIsAliveRegularly(master_id string) {
 		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+masterIsAlivePort)
 		udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
 	}
-	// fmt.Println("udpBroadcast: ", udpBroadcast)
+
+	fmt.Println("udpBroadcast for sending masterisAliveRegularly: ", udpBroadcast)
 
 	// msg := make([]byte, 16)
 	defer func() {
@@ -204,6 +205,7 @@ func CheckIfMasterAlreadyExist() bool {
 	//check(_)
 	// Create listen Conn
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
+	fmt.Println("Checking master with udpListen:", udpListen)
 	//check(_)
 	defer udpListen.Close()
 
@@ -247,7 +249,6 @@ func SendUpdatesToMaster(msg definitions.MSG_to_master, lastSentMsgToMasterChanF
 	// msg.Id = elevator_id
 	// msg.ElevatorState = elevatorState
 	// defer fmt.Println("Finished sending JSON")
-	fmt.Println("Sending UPDATED OrderList To Master. MSG_to_master: ", msg)
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveToMasterPort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
@@ -257,7 +258,9 @@ func SendUpdatesToMaster(msg definitions.MSG_to_master, lastSentMsgToMasterChanF
 	}
 
 	defer udpBroadcast.Close()
-	lastSentMsgToMasterChanForPrinting<- msg
+	fmt.Println("Sending OrderList to Master: \n", msg)
+	fmt.Println("------------------------------------")
+	lastSentMsgToMasterChanForPrinting <- msg
 	//check(_)
 	// msg := make([]byte, 128)
 	// msg := definitions.TestMessage{"Alice", "Hello", 1294706395881547000}
@@ -330,7 +333,9 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 			fmt.Println("Received from master:", MSG_to_slave)
 			storage.SaveJSONtoFile(MSG_to_slave.Elevators) //This actually works
 			mutex.Lock()
+			fmt.Printf("SendingToUpdatedOrderLIst")
 			updatedOrderList <- MSG_to_slave.Elevators.OrderMap[elevator_id]
+			fmt.Println("RECIEVED!!!!!!!!!!!!!!!!!")
 			mutex.Unlock()
 			// if slaveCount < 4 && slaveCount > -1 {
 			// 	fmt.Println("Going to floor from slave: ", slaveCount)+
@@ -338,7 +343,7 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 			// }
 			// sendImAliveMessage()
 			time.Sleep(delay100ms / 2) // wait 50 ms
-			
+
 		case <-time.After(30 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
 			// When master dies, slavecount is returned so that a new process of master -> slave
 			// can continue from the last value sent over the network.

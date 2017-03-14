@@ -37,10 +37,11 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 			return
 		}
 	}
-	if master_id == "" {}
+	if master_id == "" {
+	}
 }
 
-func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, orderListToExternalPresses chan<- definitions.Orders, elevator_id string, updateElevatorStateForUpdatesInOrderList <-chan definitions.ElevatorState, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders) {
+func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, elevator_id string, updateElevatorStateForUpdatesInOrderList <-chan definitions.ElevatorState, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders) {
 	elevatorState := definitions.ElevatorState{}
 
 	// go func() {
@@ -76,24 +77,36 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 	// 		}
 	// 	}
 	// }()
+	lastOrderList := definitions.Orders{}
 
 	for {
 		select {
 		case currentOrderList = <-updatedOrderList:
-			fmt.Println("New Update to OrderList: ", currentOrderList)
-			// if currentOrderList != updatedOrderList { /*If orderlist from master is identical to our copy*/
-			fmt.Println("40")
-			orderListForExecuteOrders <- currentOrderList
-			fmt.Println("41")
-			orderListToExternalPresses <- currentOrderList
-			fmt.Println("42")
-			orderListChanForPrinting <- currentOrderList
-			fmt.Println("43")
-			storage.SaveOrdersToFile(1, currentOrderList)
-			fmt.Println("44")
-			orderListForSendingToMaster <- currentOrderList
-			fmt.Println("44,5")
-			// sendOrderListUpdateToMaster(currentOrderList)
+			fmt.Println("Is this orderList going to currentOrderlist? ", currentOrderList, " lastOrderLIST:", lastOrderList)
+			if checkIfChangedOrderList(lastOrderList, currentOrderList) {
+				lastOrderList = currentOrderList
+				time.Sleep(100 * time.Millisecond)
+				fmt.Println("New Update to OrderList: ", currentOrderList)
+				// if currentOrderList != updatedOrderList { /*If orderlist from master is identical to our copy*/
+				fmt.Println("40")
+				select {
+				case <-completedCurrentOrder:
+					fmt.Println("40,5")
+				default:
+					fmt.Println("41")
+					orderListForExecuteOrders <- currentOrderList
+					fmt.Println("42")
+					orderListChanForPrinting <- currentOrderList
+					fmt.Println("43")
+					storage.SaveOrdersToFile(1, currentOrderList)
+					fmt.Println("44")
+					// sendOrderListUpdateToMaster(currentOrderList)
+				}
+				orderListForSendingToMaster <- currentOrderList
+				fmt.Println("44,5")
+			} else {
+				fmt.Println("THEY ARE THE SAMMMEEMEMEMEMEMEMEMMEMEME")
+			}
 
 			time.Sleep(50 * time.Millisecond)
 		case <-completedCurrentOrder:
@@ -106,7 +119,6 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			}
 			orderListForExecuteOrders <- currentOrderList
 			fmt.Println("45")
-			orderListToExternalPresses <- currentOrderList
 			fmt.Println("46")
 			storage.SaveOrdersToFile(1, currentOrderList)
 			orderListChanForPrinting <- currentOrderList
@@ -120,23 +132,36 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			fmt.Println("50")
 			time.Sleep(50 * time.Millisecond)
 		case elevatorState = <-updateElevatorStateForUpdatesInOrderList:
-				if elevatorState.LastFloor > 0 {}
+			if elevatorState.LastFloor > 0 {
+			}
 			// }
 		}
 	}
 }
 
-func CheckIfElevatorIsStuck(executeOrdersIsAliveChan <-chan bool){
+func CheckIfElevatorIsStuck(executeOrdersIsAliveChan <-chan bool) {
 
 	for {
 		select {
-			case <- executeOrdersIsAliveChan:
+		case <-executeOrdersIsAliveChan:
 			fmt.Println("executeOrders Is still alive! Yeah")
-			case <- time.After(time.Millisecond* 1000):
-				fmt.Println("Have not recieved signal from executeOrders for 1 second")
+		case <-time.After(time.Millisecond * 1000):
+			fmt.Println("Have not recieved signal from executeOrders for 1 second")
 		}
-		time.Sleep(40*time.Millisecond)
+		time.Sleep(40 * time.Millisecond)
 	}
+}
+
+func checkIfChangedOrderList(lastOrderList definitions.Orders, currentOrderList definitions.Orders) bool {
+	if len(lastOrderList.Orders) != len(currentOrderList.Orders) {
+		return true
+	}
+	for i, order := range lastOrderList.Orders {
+		if order.Floor != currentOrderList.Orders[i].Floor {
+			return true
+		}
+	}
+	return false
 }
 
 /*
