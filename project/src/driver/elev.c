@@ -31,8 +31,8 @@ static const int button_channel_matrix[N_FLOORS][N_BUTTONS] = {
 
 
 
-// static elev_type elevatorType = ET_Comedi;
-static elev_type elevatorType = ET_Simulation;
+static elev_type elevatorType = ET_Comedi;
+// static elev_type elevatorType = ET_Simulation;
 static int sockfd;
 static pthread_mutex_t sockmtx;
 

@@ -22,9 +22,9 @@ import (
 	"strings"
 )
 
-// var bcAddress string = "129.241.187.255"
+var bcAddress string = "129.241.187.255"
 
-var bcAddress string = "localhost"
+// var bcAddress string = "localhost"
 var port string = ":46723"
 var slaveIsAlivePort string = ":46720"
 var masterIsAlivePort string = ":46721"
