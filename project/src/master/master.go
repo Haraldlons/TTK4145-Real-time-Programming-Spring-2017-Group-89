@@ -52,7 +52,7 @@ func Run() {
 
 // Update order list in "orders" object with the command defined by externalButtonPress
 func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorState definitions.ElevatorState) {
-	if checkForDuplicateOrder(orders, externalButtonPress) {
+	if CheckForDuplicateOrder(orders, externalButtonPress.Floor) {
 		fmt.Println("This order is already in the queue!")
 		return
 	}
@@ -114,9 +114,9 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 }
 
 // Don't accept more orders to same floor. Assume every person gets on elevator.
-func checkForDuplicateOrder(orders *definitions.Orders, externalButtonPress definitions.Order) bool {
+func CheckForDuplicateOrder(orders *definitions.Orders, buttonPressedFloor int) bool {
 	for i := range orders.Orders {
-		if orders.Orders[i].Floor == externalButtonPress.Floor {
+		if orders.Orders[i].Floor == buttonPressedFloor {
 			return true
 		}
 	}
