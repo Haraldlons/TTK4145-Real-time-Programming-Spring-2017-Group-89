@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"sync"
 	// "os/exec"
 	"time"
 	// "math"
@@ -23,7 +24,7 @@ import (
 
 var bcAddress string = "129.241.187.255"
 
-//var bcAddress string = "localhost"
+// var bcAddress string = "localhost"
 var port string = ":46723"
 var slaveIsAlivePort string = ":46720"
 var masterIsAlivePort string = ":46721"
@@ -153,6 +154,7 @@ func CheckIfMasterAlreadyExist() bool {
 
 	udpAddr, _ := net.ResolveUDPAddr("udp", masterIsAlivePort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
+
 	defer udpListen.Close()
 
 	listenChan := make(chan string)
@@ -184,11 +186,10 @@ func CheckIfMasterAlreadyExist() bool {
 	}
 }
 
-func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definitions.ElevatorState, elevator_id string, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master) {
-	msg.Id = elevator_id
-	msg.ElevatorState = elevatorState
+func SendUpdatesToMaster(msg definitions.MSG_to_master, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master) {
+	// msg.Id = elevator_id
+	// msg.ElevatorState = elevatorState
 	// defer fmt.Println("Finished sending JSON")
-	fmt.Println("Sending UPDATED OrderList To Master. MSG_to_master: ", msg)
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveToMasterPort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
@@ -198,33 +199,23 @@ func SendUpdatesToMaster(msg definitions.MSG_to_master, elevatorState definition
 	}
 
 	defer udpBroadcast.Close()
+
+	fmt.Println("Sending OrderList to Master: \n", msg)
+	fmt.Println("------------------------------------")
+
+	// Send message on channel
 	lastSentMsgToMasterChanForPrinting <- msg
-	//check(_)
-	// msg := make([]byte, 128)
-	// msg := definitions.TestMessage{"Alice", "Hello", 1294706395881547000}
+
 	b, _ := json.Marshal(msg)
 
-	// b :=
-
-	// fmt.Println("JSON in ByteArray:", b)
 	jsonByteLength := len(b)
 	firstByte := jsonByteLength / 255
-	// fmt.Println("firstByte", firstByte)
 	secondByte := jsonByteLength - firstByte*255
-	// fmt.Println("secondByte:",secondByte)
-	// fmt.Println("JSONByteArrayLength:",jsonByteLength)
-
-	// fmt.Println(byte(len(b)))
 
 	b = append([]byte{byte(secondByte)}, b...)
 	b = append([]byte{byte(firstByte)}, b...)
-	// fmt.Println("WITH Length as first byte", b)
-
-	// Create bcast Conn
-	// //check(_)
 
 	udpBroadcast.Write(b)
-	return
 }
 
 func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id string, lastRecievedMSGFromMasterChanForPrinting chan<- definitions.MSG_to_slave) {
@@ -234,6 +225,8 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
 	defer udpListen.Close()
 
+	// TODO
+	mutex := &sync.Mutex{}
 	msg := definitions.MSG_to_slave{}
 
 	listenChan := make(chan definitions.MSG_to_slave)
@@ -250,11 +243,17 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 			// fmt.Println("jsonByteLength:",jsonByteLength)
 
 			// Convert byte from buf to int and send over channel.
-			json.Unmarshal(buf[2:jsonByteLength+2], &msg)
-			// fmt.Println("Her kommer msg som du skal se på: ", msg)
-			// fmt.Println("Ferdig med å vise msg")
-			//check(_)
+			mutex.Lock()
+			err := json.Unmarshal(buf[2:jsonByteLength+2], &msg)
+			if err != nil {
+				//TODO
+			}
+			mutex.Unlock()
+		
+			// Send message over local channel 
 			listenChan <- msg
+
+			// Send message over channel to print-function
 			lastRecievedMSGFromMasterChanForPrinting <- msg
 			time.Sleep(delay100ms)
 		}
@@ -264,24 +263,14 @@ func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id
 		select {
 		case MSG_to_slave := <-listenChan:
 			// fmt.Println("slaveCount: ", slaveCount)
-			fmt.Println("Message received from master:", MSG_to_slave)
+			fmt.Println("Received from master:", MSG_to_slave)
 			storage.SaveJSONtoFile(MSG_to_slave.Elevators) //This actually works
+			mutex.Lock()
+			fmt.Printf("SendingToUpdatedOrderLIst")
 			updatedOrderList <- MSG_to_slave.Elevators.OrderMap[elevator_id]
-			// if slaveCount < 4 && slaveCount > -1 {
-			// 	fmt.Println("Going to floor from slave: ", slaveCount)
-			// 	// go goToFloor(slaveCount, &elevatorState)
-			// }
-			// sendImAliveMessage()
-			time.Sleep(delay100ms / 2) // wait 50 ms
-			break
-		case <-time.After(30 * delay100ms): // Wait 10 cycles (1 second). Master assumed dead
-			// When master dies, slavecount is returned so that a new process of master -> slave
-			// can continue from the last value sent over the network.
-			// fmt.Println("Have not recieved any JSON message for the last 3 seconds!")
-			// newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-			// _ := newSlave.Run()
-			//check(_)
-			// return
+			fmt.Println("RECIEVED!!!!!!!!!!!!!!!!!")
+			mutex.Unlock()
+			time.Sleep(delay100ms / 2) // wait 50 ms TODO
 		}
 	}
 
@@ -330,7 +319,7 @@ func ListenToSlave(msgChan chan definitions.MSG_to_master) {
 	}
 }
 
-func SendToSlave(msg definitions.MSG_to_slave /*udpBroadcast *net.UDPConn*/) {
+func SendToSlave(msg definitions.MSG_to_slave, mutex *sync.Mutex) {
 
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+masterToSlavePort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)

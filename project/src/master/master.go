@@ -12,16 +12,22 @@ import (
 	// "string"
 	// "math/rand"
 	// "net"
+	"sync"
 	"time"
 )
 
 func Run() {
 	fmt.Println("I'm a MASTER!")
 
+
 	// Spawn new "personal" slaves
-	// time.Sleep(time.Second)
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 	newSlave.Run()
+
+	// Might change when network is unplugged. THIS MUST BE HANDLED!!!
+	// TODO
+	master_id, _ := network.GetLocalIP()
+	mutex := &sync.Mutex{}
 
 	// Channel for passing totalOrderList from listener->handler->sender
 	totalOrderListChan := make(chan definitions.Elevators) // Channel for passing totalOrderList
@@ -36,14 +42,14 @@ func Run() {
 		"toHandleUpdatesFromSlaves": make(chan map[string]bool),
 	}
 
+
 	// Channels for sending the id of a slave from the listener to others
 	updatedSlaveIdChanMap := map[string]chan string{
 		"toWatchdog": make(chan string),
 		// "toKeepTrackOfAllAliveSlaves": make(chan string),
 	}
 
-	// Might change when network is unplugged. THIS MUST BE HANDLED!!!
-	master_id, _ := network.GetLocalIP()
+
 
 	// Send alive messages from master regularly
 	go network.SendMasterIsAliveRegularly(master_id, stopSendingChan)
@@ -53,7 +59,7 @@ func Run() {
 	go watchdog.KeepTrackOfAllAliveSlaves(updatedSlaveIdChanMap["toWatchdog"], allSlavesMapChanMap)
 
 	// Receive messages from slaves, handle, then send to all slaves
-	go handleUpdatesFromSlaves(totalOrderListChan, master_id)
+	go handleUpdatesFromSlaves(totalOrderListChan, master_id, mutex)
 	go sendMessageToSlavesOnUpdate(totalOrderListChan)
 
 	for {
@@ -68,7 +74,7 @@ func Run() {
 
 // Update order list in "orders" object with the command defined by externalButtonPress
 func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorState definitions.ElevatorState) {
-	if checkForDuplicateOrder(orders, externalButtonPress) {
+	if CheckForDuplicateOrder(orders, externalButtonPress.Floor) {
 		fmt.Println("This order is already in the queue!")
 		return
 	}
@@ -79,7 +85,7 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 
 	if len(orders.Orders) > 0 { // For safety
 		// Check to see if order should be placed first based on current elevator state
-		if elevatorState.Direction == externalButtonPress.Direction && floorIsInbetween(orders.Orders[0].Floor, externalButtonPress.Floor, elevatorState.LastFloor, elevatorState.Direction) {
+		if elevatorState.Direction == externalButtonPress.Direction && FloorIsInbetween(orders.Orders[0].Floor, externalButtonPress.Floor, elevatorState.LastFloor, elevatorState.Direction) {
 			// Insert Order in first position
 			// fmt.Println("Inserting order in first postion")
 
@@ -129,22 +135,23 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 	// fmt.Println("Orders returned by updateOrders():", orders)
 }
 
-func checkForDuplicateOrder(orders *definitions.Orders, externalButtonPress definitions.Order) bool {
+// Don't accept more orders to same floor. Assume every person gets on elevator.
+func CheckForDuplicateOrder(orders *definitions.Orders, buttonPressedFloor int) bool {
 	for i := range orders.Orders {
-		if orders.Orders[i] == externalButtonPress {
+		if orders.Orders[i].Floor == buttonPressedFloor {
 			return true
 		}
 	}
 	return false
 }
 
-func floorIsInbetween(orderFloor int, buttonFloor int, elevatorFloor int, direction int) bool {
-	switch direction {
+func FloorIsInbetween(orderFloor int, buttonFloor int, elevatorLastFloor int, elevatorDirection int) bool {
+	switch elevatorDirection {
 	case definitions.DIR_UP:
-		return buttonFloor > elevatorFloor &&
+		return buttonFloor > elevatorLastFloor &&
 			buttonFloor < orderFloor
 	case definitions.DIR_DOWN:
-		return buttonFloor < elevatorFloor &&
+		return buttonFloor < elevatorLastFloor &&
 			buttonFloor > orderFloor
 	default:
 		fmt.Println("Something is wrong in floorIsBetween()")
@@ -209,7 +216,7 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
 
-func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elevator_id string) {
+func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elevator_id string, mutex *sync.Mutex) {
 	msgChan := make(chan definitions.MSG_to_master)
 	// completedUpdateOfOrderList := make(chan bool)
 	// go func() {
@@ -223,6 +230,7 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 
 	// Start goroutine to listen for updates from slaves
 	go network.ListenToSlave(msgChan)
+
 	for {
 		// 	select {
 		// 	case <-completedUpdateOfOrderList:
@@ -232,22 +240,32 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 			// fmt.Println("List of orders from totalOrderList:", totalOrderList.OrderMap[msg.Id])
 			// Update totalOrderList with information from message
 			fmt.Println("---------------------------------")
+			mutex.Lock()
 			fmt.Println("Message received from slave:", msg)
+			mutex.Unlock()
+
+			mutex.Lock()
 			totalOrderList.OrderMap[msg.Id] = msg.Orders
 			totalOrderList.ElevatorStateMap[msg.Id] = msg.ElevatorState
+			mutex.Unlock()
 
 			// Get map of states
 			elevatorStateMap := totalOrderList.ElevatorStateMap
 
 			// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
 			for i := range msg.ExternalButtonPresses {
+				mutex.Lock()
 				bestElevator_id := findLowestCostElevator(elevatorStateMap, msg.ExternalButtonPresses[i], elevator_id)
+				mutex.Unlock()
 
 				fmt.Println("Best elevator:", bestElevator_id, ", for order", msg.ExternalButtonPresses[i])
 
+				mutex.Lock()
 				orders := totalOrderList.OrderMap[bestElevator_id]
 				updateOrders(&orders, msg.ExternalButtonPresses[i], elevatorStateMap[bestElevator_id])
 				totalOrderList.OrderMap[bestElevator_id] = orders
+				mutex.Unlock()
+
 			}
 
 			// fmt.Println("Total order list: ", totalOrderList)
@@ -258,16 +276,13 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 			// 	completedUpdateOfOrderList <- true
 			// }()
 			time.Sleep(time.Millisecond * 100)
-
+		// case slavesAliveMap = <- slavesAliveMapToHandleUpdatesFromSlavesChan /*To be implemented*/
 		}
-
-		// }
 	}
 }
 
 // When totalorderlist is updated, send to all slaves
 func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
-	// fmt.Println("Starting sending orders to slave")
 
 	for {
 		select {
@@ -276,7 +291,7 @@ func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators
 			if len(totalOrderList.OrderMap) != 0 {
 				msg := definitions.MSG_to_slave{Elevators: totalOrderList}
 				fmt.Println("Message sent to slave:", msg)
-				network.SendToSlave(msg)
+				network.SendToSlave(msg, mutex)
 			}
 		}
 		time.Sleep(300 * time.Millisecond)
