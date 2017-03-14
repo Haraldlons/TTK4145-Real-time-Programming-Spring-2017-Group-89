@@ -117,7 +117,7 @@ func Run() {
 	go network.ListenToMasterUpdates(updatedOrderList, elevator_id, lastRecievedMSGFromMasterChanForPrinting)
 	go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, updateElevatorStateForUpdatesInOrderList, elevatorStateForExternalPresses, elevatorStateChanForPrinting, elevatorStateToMaster)
 	go elevator.ExecuteOrders(elevatorStateChanForExecuteOrders, orderListForExecuteOrders, updateElevatorStateDirection, completedCurrentOrder, updateElevatorDestinationChan)
-	go sendUpdatesToMaster(elevator_id, elevatorStateToMaster, orderListForSendingToMaster, extButToMaster , sendMessageToMaster, lastSentMsgToMasterChanForPrinting )
+	go sendUpdatesToMaster(elevator_id, elevatorStateToMaster, orderListForSendingToMaster, extButToMaster, sendMessageToMaster, lastSentMsgToMasterChanForPrinting)
 	// fmt.Println("GOROUTINES HAVE STARTED!")
 	// go watchdog.CheckIfElevatorIsStuck(executeOrdersIsAliveChan)
 
@@ -135,6 +135,7 @@ func Run() {
 
 func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan definitions.ElevatorState, elevatorStateChanForExecuteOrders chan<- definitions.ElevatorState, updateElevatorStateFloor <-chan int, updateElevatorStateDirection <-chan int, updateElevatorDestinationChan <-chan int, updateElevatorStateForUpdatesInOrderList chan<- definitions.ElevatorState, elevatorStateForExternalPresses chan<- definitions.ElevatorState, elevatorStateChanForPrinting chan<- definitions.ElevatorState, elevatorStateToMaster chan<- definitions.ElevatorState) {
 	elevatorState := definitions.ElevatorState{}
+
 	for {
 		select {
 		case elevatorState := <-updateElevatorState:
@@ -169,7 +170,7 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			elevatorStateForExternalPresses <- elevatorState
 			fmt.Println("9")
 			elevatorStateChanForPrinting <- elevatorState
-			fmt.Println("10")			
+			fmt.Println("10")
 			fmt.Println("11")
 			elevatorStateToMaster <- elevatorState
 		case updateDirection := <-updateElevatorStateDirection:
@@ -198,7 +199,6 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			// fmt.Println("--------------------------------")
 			// fmt.Println("Current updated elevator state:", elevatorState)
 			// fmt.Println("--------------------------------")
-
 			elevatorStateChanForExecuteOrders <- elevatorState
 			fmt.Println("20")
 			fmt.Println("21")
@@ -210,15 +210,12 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			fmt.Println("24")
 			elevatorStateToMaster <- elevatorState
 			fmt.Println("25")
-
 		}
-		time.Sleep(50*time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
-
-
-func sendUpdatesToMaster(elevator_id string, elevatorStateToMaster chan definitions.ElevatorState, orderListForSendingToMaster chan definitions.Orders, extButToMaster chan definitions.Order, sendMessageToMaster chan bool, lastSentMsgToMasterChanForPrinting chan definitions.MSG_to_master){
+func sendUpdatesToMaster(elevator_id string, elevatorStateToMaster chan definitions.ElevatorState, orderListForSendingToMaster chan definitions.Orders, extButToMaster chan definitions.Order, sendMessageToMaster chan bool, lastSentMsgToMasterChanForPrinting chan definitions.MSG_to_master) {
 
 	elevatorState := definitions.ElevatorState{}
 	orderList := definitions.Orders{}
@@ -228,74 +225,74 @@ func sendUpdatesToMaster(elevator_id string, elevatorStateToMaster chan definiti
 
 	for {
 		select {
-			case msg_to_master.Orders = <- orderListForSendingToMaster:
-				fmt.Println("Updated orderListForSendingToMaster: ", msg_to_master.Orders)
-			case msg_to_master.ElevatorState = <-elevatorStateToMaster:
-				fmt.Println("Updated orderListForSendingToMaster: ", msg_to_master.ElevatorState)
-			case externalButtonpress = <-extButToMaster:
-				externalButtonpresses = append(externalButtonpresses, externalButtonpress)
-				msg_to_master.ExternalButtonPresses = externalButtonpresses
-				fmt.Println("Updated orderListForSendingToMaster: ", msg_to_master.ExternalButtonPresses)
-			case <-sendMessageToMaster:
-				fmt.Println("Message ready to be sent to master: ", msg_to_master)
-				network.SendUpdatesToMaster(msg_to_master, lastSentMsgToMasterChanForPrinting)
-				externalButtonpresses = []definitions.Order{}
+		case msg_to_master.Orders = <-orderListForSendingToMaster:
+			fmt.Println("Updated orderListForSendingToMaster: ", msg_to_master.Orders)
+		case msg_to_master.ElevatorState = <-elevatorStateToMaster:
+			fmt.Println("Updated orderListForSendingToMaster: ", msg_to_master.ElevatorState)
+		case externalButtonpress = <-extButToMaster:
+			externalButtonpresses = append(externalButtonpresses, externalButtonpress)
+			msg_to_master.ExternalButtonPresses = externalButtonpresses
+			fmt.Println("Updated orderListForSendingToMaster: ", msg_to_master.ExternalButtonPresses)
+		case <-sendMessageToMaster:
+			fmt.Println("Message ready to be sent to master: ", msg_to_master)
+			network.SendUpdatesToMaster(msg_to_master, lastSentMsgToMasterChanForPrinting)
+			externalButtonpresses = []definitions.Order{}
 		}
 	}
 }
 
-func printEntireElevatorNetworkOnUpdate(elevatorStateChanForPrinting <-chan definitions.ElevatorState, orderListChanForPrinting <-chan definitions.Orders, lastSentMsgToMasterChanForPrinting <-chan definitions.MSG_to_master, lastRecievedMSGFromMasterChanForPrinting <-chan definitions.MSG_to_slave, mutex *sync.Mutex){
+func printEntireElevatorNetworkOnUpdate(elevatorStateChanForPrinting <-chan definitions.ElevatorState, orderListChanForPrinting <-chan definitions.Orders, lastSentMsgToMasterChanForPrinting <-chan definitions.MSG_to_master, lastRecievedMSGFromMasterChanForPrinting <-chan definitions.MSG_to_slave, mutex *sync.Mutex) {
 	elevatorState := definitions.ElevatorState{}
 	orderList := definitions.Orders{}
 	lastSentMsgToMaster := definitions.MSG_to_master{}
 	lastRecievedMSGFromMaster := definitions.MSG_to_slave{}
-	updateNrMap := make(map[string] int)
+	updateNrMap := make(map[string]int)
 	updateNrMap["totalUpdates"] = 0
 	updateNrMap["elevatorState"] = 0
 	updateNrMap["orderList"] = 0
 	updateNrMap["msgToMaster"] = 0
 	updateNrMap["msgToSlave"] = 0
-		for {
-			select {
-			case elevatorState = <- elevatorStateChanForPrinting:
-				updateNrMap["elevatorState"]++
+	for {
+		select {
+		case elevatorState = <-elevatorStateChanForPrinting:
+			updateNrMap["elevatorState"]++
 
-				mutex.Lock()
-				printNicely(updateNrMap,elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
-				mutex.Unlock()
+			mutex.Lock()
+			printNicely(updateNrMap, elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
+			mutex.Unlock()
 
-			case orderList = <- orderListChanForPrinting:
-				updateNrMap["orderList"]++
+		case orderList = <-orderListChanForPrinting:
+			updateNrMap["orderList"]++
 
-				mutex.Lock()
-				printNicely(updateNrMap,elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
-				mutex.Unlock()
+			mutex.Lock()
+			printNicely(updateNrMap, elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
+			mutex.Unlock()
 
-			case lastSentMsgToMaster = <- lastSentMsgToMasterChanForPrinting:
-				updateNrMap["msgToMaster"]++
+		case lastSentMsgToMaster = <-lastSentMsgToMasterChanForPrinting:
+			updateNrMap["msgToMaster"]++
 
-				mutex.Lock()
-				printNicely(updateNrMap,elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
-				mutex.Unlock()
+			mutex.Lock()
+			printNicely(updateNrMap, elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
+			mutex.Unlock()
 
-			case lastRecievedMSGFromMaster = <-lastRecievedMSGFromMasterChanForPrinting:
-				updateNrMap["msgToSlave"]++
+		case lastRecievedMSGFromMaster = <-lastRecievedMSGFromMasterChanForPrinting:
+			updateNrMap["msgToSlave"]++
 
-				mutex.Lock() 
-				printNicely(updateNrMap,elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
-				mutex.Unlock()
-			}
-			updateNrMap["totalUpdates"]++
+			mutex.Lock()
+			printNicely(updateNrMap, elevatorState, orderList, lastSentMsgToMaster, lastRecievedMSGFromMaster)
+			mutex.Unlock()
 		}
+		updateNrMap["totalUpdates"]++
+	}
 }
 
-func printNicely(updateNrMap map[string] int, elevatorState definitions.ElevatorState, orderList definitions.Orders, lastSentMsgToMaster definitions.MSG_to_master, lastRecievedMSGFromMaster definitions.MSG_to_slave){
+func printNicely(updateNrMap map[string]int, elevatorState definitions.ElevatorState, orderList definitions.Orders, lastSentMsgToMaster definitions.MSG_to_master, lastRecievedMSGFromMaster definitions.MSG_to_slave) {
 	direction := ""
-	if(elevatorState.Direction == 1){
+	if elevatorState.Direction == 1 {
 		direction = "Up"
-	}else if elevatorState.Direction == -1{
+	} else if elevatorState.Direction == -1 {
 		direction = "Down"
-	}else {
+	} else {
 		direction = "Uknown"
 	}
 
@@ -307,13 +304,13 @@ func printNicely(updateNrMap map[string] int, elevatorState definitions.Elevator
 	fmt.Println("------------------------------------------------------------\n")
 	fmt.Printf("ElevStatNr: %d, OrderListNr: %d, MsgTOMasterNr: %d, MsgTOSlaveNr: %d\n", updateNrMap["elevatorState"], updateNrMap["orderList"], updateNrMap["msgToMaster"], updateNrMap["msgToSlave"])
 	fmt.Println("")
-	fmt.Printf("State: LastFloor: %d (0-3), Direction: %s, Destination %d (0-3)\n", elevatorState.LastFloor,direction ,elevatorState.Destination)
+	fmt.Printf("State: LastFloor: %d (0-3), Direction: %s, Destination %d (0-3)\n", elevatorState.LastFloor, direction, elevatorState.Destination)
 	fmt.Println("")
 	fmt.Println("OrderList: ", orderList)
 	for i, orders := range orderList.Orders {
-		fmt.Printf("%d. Floor: %d - Direction: %d\n",i+1, orders.Floor, orders.Direction )
+		fmt.Printf("%d. Floor: %d - Direction: %d\n", i+1, orders.Floor, orders.Direction)
 	}
-	for i := 0; i < (5-lengthOrderList); i++ {
+	for i := 0; i < (5 - lengthOrderList); i++ {
 		fmt.Println("")
 	}
 	fmt.Println("")
@@ -326,7 +323,6 @@ func printNicely(updateNrMap map[string] int, elevatorState definitions.Elevator
 	fmt.Println("------------------------------------------------------------")
 
 }
-
 
 func Change_master() bool { /*Do we need this?*/
 	return true
@@ -376,13 +372,12 @@ func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int,
 			extButToMaster <- externalButtonOrder
 			time.Sleep(time.Millisecond * 100)
 			sendMessageToMaster <- true
-		// case elevatorState = <-elevatorStateForExternalPresses:
+			// case elevatorState = <-elevatorStateForExternalPresses:
 			// if elevatorState.LastFloor > 0 {}
-		// case orderList = <-orderListToExternalPresses:
+			// case orderList = <-orderListToExternalPresses:
 			// fmt.Println("Something", orderList)
-		// fmt.Println("OrderList to ExternalPresses has been updated with: ", orderList)
-		// msg_to_master.Orders = orderList
-
+			// fmt.Println("OrderList to ExternalPresses has been updated with: ", orderList)
+			// msg_to_master.Orders = orderList
 
 			// default:
 			// fmt.Println("No button pressed")
