@@ -368,20 +368,15 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 
 		if elevatorState.Direction == 1 {
 			// You are going up
-			fmt.Println("You are going up")
 			if currentOrderList.Orders[0].Floor == elevatorState.Destination { /* You can add in front of currentOrderList */
-				fmt.Println("First order is the destination floor")
 				currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 				copy(currentOrderList.Orders[1:], currentOrderList.Orders[:])
 				currentOrderList.Orders[0] = internalPressOrder
 				return
 			} else { /* There are orders before destinationOrder */
 				for i, order := range currentOrderList.Orders {
-					fmt.Println("Order[", i, "]: ", order)
 					if order.Floor > tempNum { // To check where you turn
-						fmt.Println(" order.Floor > tempNum ")
 						if order.Floor > internalPressOrder.Floor && elevatorState.LastFloor < internalPressOrder.Floor {
-							fmt.Println("This IF STATEMENT")
 							currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 							copy(currentOrderList.Orders[i+1:], currentOrderList.Orders[i:])
 							currentOrderList.Orders[i] = internalPressOrder
@@ -390,21 +385,14 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 						tempNum = order.Floor
 					}
 					if tempNum == elevatorState.Destination {
-						fmt.Println("tempNum == elevatorState.Destination")
-
 						for j, order2 := range currentOrderList.Orders {
-							fmt.Println("Length, ", len(currentOrderList.Orders), ", j, ", j)
 							if j > i {
 								if order2.Floor < internalPressOrder.Floor {
-									fmt.Println("The other IF STATEMENT")
-
 									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+1:], currentOrderList.Orders[j:])
 									currentOrderList.Orders[j] = internalPressOrder
 									return 
 								} else if j == len(currentOrderList.Orders)-1 {
-									fmt.Println("This third STATEMENT")
-
 									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+2:], currentOrderList.Orders[j+1:])
 									currentOrderList.Orders[j+1] = internalPressOrder
@@ -417,20 +405,15 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 			}
 		} else {
 			tempNum = def.N_FLOORS -1
-			fmt.Println("You are going down")
 			if currentOrderList.Orders[0].Floor == elevatorState.Destination { /* You can add in front of currentOrderList */
-				fmt.Println("First order is the destination floor")
 				currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 				copy(currentOrderList.Orders[1:], currentOrderList.Orders[:])
 				currentOrderList.Orders[0] = internalPressOrder
 				return 
 			} else { /* There are orders before destinationOrder */
 				for i, order := range currentOrderList.Orders {
-					fmt.Println("Order[", i, "]: ", order)
 					if order.Floor < tempNum { // To check where you turn
-						fmt.Println(" order.Floor > tempNum ")
 						if order.Floor < internalPressOrder.Floor && elevatorState.LastFloor < internalPressOrder.Floor {
-							fmt.Println("This IF STATEMENT")
 							currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 							copy(currentOrderList.Orders[i+1:], currentOrderList.Orders[i:])
 							currentOrderList.Orders[i] = internalPressOrder
@@ -439,21 +422,14 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 						tempNum = order.Floor
 					}
 					if tempNum == elevatorState.Destination {
-						fmt.Println("tempNum == elevatorState.Destination")
-
 						for j, order2 := range currentOrderList.Orders {
-							fmt.Println("Length, ", len(currentOrderList.Orders), ", j, ", j)
 							if j > i {
 								if order2.Floor > internalPressOrder.Floor {
-									fmt.Println("The other IF STATEMENT")
-
 									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+1:], currentOrderList.Orders[j:])
 									currentOrderList.Orders[j] = internalPressOrder
 									return 
 								} else if j == len(currentOrderList.Orders)-1 {
-									fmt.Println("This third STATEMENT")
-
 									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+2:], currentOrderList.Orders[j+1:])
 									currentOrderList.Orders[j+1] = internalPressOrder

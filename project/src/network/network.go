@@ -2,16 +2,11 @@ package network
 
 import (
 	"../def"
-	// "../driver"
-	// "../buttons"
 	"../storage"
-	// "../elevator"
-	// "encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net"
 	"sync"
-	// "os/exec"
 	"time"
 	// "math"
 	//"bufio"
@@ -37,7 +32,6 @@ func SendSlaveIsAliveRegularly(slave_id string, stopSendingChan chan bool) {
 	for {
 		select {
 		case <-stopSendingChan:
-			// return
 		default:
 			udpBroadcast.Write(msg)
 			time.Sleep(time.Millisecond * 200)
@@ -62,7 +56,6 @@ func SendMasterIsAliveRegularly(master_id string, stopSendingChan chan bool) {
 		case <-stopSendingChan:
 			return
 		default:
-			// fmt.Println("Sending I'm Alive from Master, msg:", master_id)
 			udpBroadcast.Write(msg)
 			time.Sleep(time.Millisecond * 200)
 		}
@@ -144,11 +137,9 @@ func CheckIfMasterAlreadyExist() bool {
 	for {
 		select {
 		case <-listenChan:
-			fmt.Println("YEEEES!")
 			return true
 		case <-time.After(2 * time.Second): // Master assumed dead
 			time.Sleep(time.Second)
-			fmt.Println("NOOOO!")
 			return false
 		}
 	}
