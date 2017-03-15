@@ -5,7 +5,7 @@ import (
 	"../watchdog"
 	// "../driver"
 	"../network"
-	"../storage"
+	// "../storage"
 	"fmt"
 	"math"
 	"os/exec"
@@ -73,7 +73,11 @@ func Run() {
 
 // Update order list in "orders" object with the command defined by externalButtonPress
 func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorState definitions.ElevatorState) {
-	if CheckForDuplicateOrder(orders, externalButtonPress.Floor) { // TODO: DO NOT REMOVE ORDERS ALONG THE SAME DIRECTION
+	if externalButtonPress.Direction == definitions.DIR_STOP {
+		/*Detected internal button press*/
+		distributeInternalOrderToOrderList(externalButtonPress, orders, elevatorState)
+	}
+	if checkForDuplicateOrder(orders, externalButtonPress.Floor) { // TODO: DO NOT REMOVE ORDERS ALONG THE SAME DIRECTION
 		// fmt.Println("This order is already in the queue!")
 		// fmt.Println("\nORDERS BEFORE findAndReplaceOrderIfSameDirection():", orders)
 		findAndReplaceOrderIfSameDirection(orders, externalButtonPress, elevatorState.Direction) //TODO
@@ -138,7 +142,7 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 }
 
 // Don't accept more orders to same floor. Assume every person gets on elevator.
-func CheckForDuplicateOrder(orders *definitions.Orders, buttonPressedFloor int) bool {
+func checkForDuplicateOrder(orders *definitions.Orders, buttonPressedFloor int) bool {
 	for _, order := range orders.Orders {
 		if order.Floor == buttonPressedFloor {
 			return true
@@ -213,7 +217,7 @@ func findTravelDirection(startFloor int, destinationFloor int) int {
 	if destinationFloor > startFloor {
 		return definitions.DIR_UP
 	} else if destinationFloor == startFloor {
-		return definitions.DIR_STOP
+		return definitions.DIR_UP
 	} else {
 		return definitions.DIR_DOWN
 	}
@@ -270,18 +274,26 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, allS
 
 			// Get map of states
 			elevatorStateMap := totalOrderList.ElevatorStateMap
+			bestElevator_id := ""
 
 			// Find elevator best suited for taking the received orders, and add orders to corresponding order lists
-			for i := range msg.ExternalButtonPresses {
-				mutex.Lock()
-				bestElevator_id := findLowestCostElevator(elevatorStateMap, msg.ExternalButtonPresses[i], elevator_id)
+			for _, externalButtonPress := range msg.ExternalButtonPresses {
+
+				mutex.Lock() // For accesing maps
+				if externalButtonPress.Direction == definitions.DIR_STOP {
+					// Actually an internal button press. Has to be executed by sender
+					bestElevator_id = msg.Id
+					fmt.Println("Internal button press. Best elevator is sender:", bestElevator_id)
+				} else {
+					bestElevator_id = findLowestCostElevator(elevatorStateMap, externalButtonPress, elevator_id)
+				}
 				mutex.Unlock()
 
-				fmt.Println("Best elevator:", bestElevator_id, ", for order", msg.ExternalButtonPresses[i])
+				fmt.Println("Best elevator:", bestElevator_id, ", for order", externalButtonPress)
 
 				mutex.Lock()
 				orders := totalOrderList.OrderMap[bestElevator_id]
-				updateOrders(&orders, msg.ExternalButtonPresses[i], elevatorStateMap[bestElevator_id])
+				updateOrders(&orders, externalButtonPress, elevatorStateMap[bestElevator_id])
 				totalOrderList.OrderMap[bestElevator_id] = orders
 				mutex.Unlock()
 			}
@@ -332,7 +344,7 @@ func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators
 // Used to redistribute active orders of elevators that have died
 func redistributeOrders(allSlavesAliveMap map[string]bool, totalOrderListChan chan<- definitions.Elevators, master_id string) {
 	totalOrderList := definitions.Elevators{}
-	storage.LoadElevatorsFromFile(&totalOrderList)
+	// storage.LoadElevatorsFromFile(&totalOrderList) //TODO
 
 	// Loop through the id of every currently alive slave
 	for id_slaves, isAlive := range allSlavesAliveMap {
@@ -376,4 +388,117 @@ func compareIdsAndReturnLargest(id_1 string, id_2 string) string {
 	largest := "localhost"
 	// if len(id_1) ==
 	return largest
+}
+
+func distributeInternalOrderToOrderList(internalPressOrder definitions.Order, currentOrderList *definitions.Orders, elevatorState definitions.ElevatorState){
+
+	if checkForDuplicateOrder(currentOrderList, internalPressOrder.Floor) {
+		return
+	}
+
+	tempNum := 0
+	if len(currentOrderList.Orders) > 0 {
+
+		if elevatorState.Direction == 1 {
+			// You are going up
+			fmt.Println("You are going up")
+			if currentOrderList.Orders[0].Floor == elevatorState.Destination { /* You can add in front of currentOrderList */
+				fmt.Println("First order is the destination floor")
+				currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+				copy(currentOrderList.Orders[1:], currentOrderList.Orders[:])
+				currentOrderList.Orders[0] = internalPressOrder
+				return
+			} else { /* There are orders before destinationOrder */
+				for i, order := range currentOrderList.Orders {
+					fmt.Println("Order[", i, "]: ", order)
+					if order.Floor > tempNum { // To check where you turn
+						fmt.Println(" order.Floor > tempNum ")
+						if order.Floor > internalPressOrder.Floor && elevatorState.LastFloor < internalPressOrder.Floor {
+							fmt.Println("This IF STATEMENT")
+							currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+							copy(currentOrderList.Orders[i+1:], currentOrderList.Orders[i:])
+							currentOrderList.Orders[i] = internalPressOrder
+							return 
+						}
+						tempNum = order.Floor
+					}
+					if tempNum == elevatorState.Destination {
+						fmt.Println("tempNum == elevatorState.Destination")
+
+						for j, order2 := range currentOrderList.Orders {
+							fmt.Println("Length, ", len(currentOrderList.Orders), ", j, ", j)
+							if j > i {
+								if order2.Floor < internalPressOrder.Floor {
+									fmt.Println("The other IF STATEMENT")
+
+									currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+									copy(currentOrderList.Orders[j+1:], currentOrderList.Orders[j:])
+									currentOrderList.Orders[j] = internalPressOrder
+									return 
+								} else if j == len(currentOrderList.Orders)-1 {
+									fmt.Println("This third STATEMENT")
+
+									currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+									copy(currentOrderList.Orders[j+2:], currentOrderList.Orders[j+1:])
+									currentOrderList.Orders[j+1] = internalPressOrder
+									return
+								}
+							}
+						}
+					}
+				}
+			}
+		} else {
+			tempNum = definitions.N_FLOORS -1
+			fmt.Println("You are going down")
+			if currentOrderList.Orders[0].Floor == elevatorState.Destination { /* You can add in front of currentOrderList */
+				fmt.Println("First order is the destination floor")
+				currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+				copy(currentOrderList.Orders[1:], currentOrderList.Orders[:])
+				currentOrderList.Orders[0] = internalPressOrder
+				return 
+			} else { /* There are orders before destinationOrder */
+				for i, order := range currentOrderList.Orders {
+					fmt.Println("Order[", i, "]: ", order)
+					if order.Floor < tempNum { // To check where you turn
+						fmt.Println(" order.Floor > tempNum ")
+						if order.Floor < internalPressOrder.Floor && elevatorState.LastFloor < internalPressOrder.Floor {
+							fmt.Println("This IF STATEMENT")
+							currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+							copy(currentOrderList.Orders[i+1:], currentOrderList.Orders[i:])
+							currentOrderList.Orders[i] = internalPressOrder
+							return 
+						}
+						tempNum = order.Floor
+					}
+					if tempNum == elevatorState.Destination {
+						fmt.Println("tempNum == elevatorState.Destination")
+
+						for j, order2 := range currentOrderList.Orders {
+							fmt.Println("Length, ", len(currentOrderList.Orders), ", j, ", j)
+							if j > i {
+								if order2.Floor > internalPressOrder.Floor {
+									fmt.Println("The other IF STATEMENT")
+
+									currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+									copy(currentOrderList.Orders[j+1:], currentOrderList.Orders[j:])
+									currentOrderList.Orders[j] = internalPressOrder
+									return 
+								} else if j == len(currentOrderList.Orders)-1 {
+									fmt.Println("This third STATEMENT")
+
+									currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+									copy(currentOrderList.Orders[j+2:], currentOrderList.Orders[j+1:])
+									currentOrderList.Orders[j+1] = internalPressOrder
+									return 
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}else {
+		currentOrderList.Orders = append(currentOrderList.Orders, internalPressOrder)
+	}
 }
