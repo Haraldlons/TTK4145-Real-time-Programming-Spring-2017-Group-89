@@ -46,8 +46,9 @@ func Run() {
 	newInternalButtonOrderChan := make(chan def.Order)
 
 	completedCurrentOrder := make(chan bool)
-	orderListForExecuteOrders := make(chan def.Orders)
-	updatedOrderList := make(chan def.Orders)
+	orderListForExecuteOrders := make(chan definitions.Orders)
+	updatedOrderList := make(chan definitions.Orders)
+	orderListForLightsChan := make(chan definitions.Orders)
 
 	// Channel for sending kill signal to all network-related goroutines
 	// stopListening map[string] chan bool {
@@ -65,7 +66,6 @@ func Run() {
 	elevatorStateToMasterChan := make(chan def.ElevatorState)
 	extButToMaster := make(chan def.Order)
 	sendMessageToMaster := make(chan bool)
-
 	go printEntireElevatorNetworkOnUpdate(elevatorStateChanForPrinting, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, lastRecievedMSGFromMasterChanForPrinting, mutex)
 
 	// elevatorStateChanMap := make(map[string] chan def.ElevatorState)
@@ -81,17 +81,20 @@ func Run() {
 	// go handleInternalButtonPresses(internalButtonsPressesChan)
 	// go handleExternalButtonPresses(externalButtonsPressesChan)
 
-
-	go network.ListenToMasterUpdates(updatedOrderList, slave_id, lastRecievedMSGFromMasterChanForPrinting/*, mutex*/)
+	go network.ListenToMasterUpdates(updatedOrderList, slave_id, lastRecievedMSGFromMasterChanForPrinting /*, mutex*/)
 	go printExternalPresses(externalButtonsPressesChan, slave_id, lastSentMsgToMasterChanForPrinting, extButToMaster, sendMessageToMaster)
 	go printInternalPresses(internalButtonsPressesChan, newInternalButtonOrderChan, sendMessageToMaster)
 
-	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, slave_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster, sendMessageToMaster, newInternalButtonOrderChan)
+	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, slave_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster, sendMessageToMaster, newInternalButtonOrderChan, orderListForLightsChan)
 
 	// go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, elevatorStateChanForPrinting, elevatorStateToMaster)
 
 	go elevator.ExecuteOrders(orderListForExecuteOrders, completedCurrentOrder, elevatorStateToMasterChan, elevatorStateChanForPrinting)
+
+	go keepTrackOfExLights(orderListForLightsChan)
+
 	go sendUpdatesToMaster(slave_id, elevatorStateToMasterChan, orderListForSendingToMaster, extButToMaster, sendMessageToMaster, lastSentMsgToMasterChanForPrinting, newInternalButtonOrderChan)
+
 	// fmt.Println("GOROUTINES HAVE STARTED!")
 	// go watchdog.CheckIfElevatorIsStuck(executeOrdersIsAliveChan)
 
@@ -306,6 +309,46 @@ func printNicely(updateNrMap map[string]int, elevatorState def.ElevatorState, or
 
 }
 
+func keepTrackOfLights(orderListForLightsChan chan definitions.Orders) {
+
+	orderList := definitions.Orders{}
+	internalLightsOn := []bool{false, false, false, false}
+	externalLightsOn := []bool{false, false, false, false}
+	fmt.Println("externalLightsOn:", externalLightsOn)
+
+	for {
+		select {
+		case orderList = <-orderListForLightsChan:
+			internalLightsOn = []bool{false, false, false, false}
+			externalLightsOn = []bool{false, false, false, false}
+
+			for i, order := range orderList {
+				if order.Direction == 0 {
+					/*Internal light*/
+					// Elev_set_button_lamp(button int, floor int, value int) {
+					driver.Elev_set_button_lamp(2, order.Floor, 1)
+					internalLightsOn[order.Floor] = true
+				} else {
+					/*External light*/
+					driver.Elev_set_button_lamp(0, order.Floor, 1)
+					driver.Elev_set_button_lamp(1, order.Floor, 1)
+					externalLightsOn[order.Floor] = true
+				}
+			}
+			for i := 0; i < def.N_FLOORS; i++ {
+				if internalLightsOn[i] == false {
+					driver.Elev_set_button_lamp(2, i, 0)
+				}
+				if externalLightsOn[i] == false {
+					driver.Elev_set_button_lamp(1, i, 0)
+					driver.Elev_set_button_lamp(0, i, 0)
+				}
+			}
+		}
+	}
+
+}
+
 func Change_master() bool { /*Do we need this?*/
 	return true
 }
@@ -389,11 +432,11 @@ func printInternalPresses(internalButtonsChan <-chan [def.N_FLOORS]int, newInter
 			// isFirstButtonPress = false
 			// default:
 			// 	fmt.Println("No button pressed")
-				time.Sleep(time.Millisecond * 300)
+			time.Sleep(time.Millisecond * 300)
 			driver.Elev_set_button_lamp(2, getFloorFromInternalPress(list), 1)
 			time.Sleep(time.Millisecond * 200)
 			driver.Elev_set_button_lamp(2, getFloorFromInternalPress(list), 0)
-				
+
 		}
 	}
 }

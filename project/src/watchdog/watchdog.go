@@ -54,7 +54,11 @@ func CheckIfMasterIsAliveRegularly(/*stopListening map[string] chan bool*/) {
 	// }
 }
 
+<<<<<<< HEAD
+func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders, newInternalButtonOrderChan chan definitions.Order, orderListForLightsChan chan<- definitions.Orders)
+=======
 func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan def.Orders, orderListForExecuteOrders chan<- def.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- def.Orders, lastSentMsgToMasterChanForPrinting chan<- def.MSG_to_master, orderListForSendingToMaster chan def.Orders, sendMessageToMaster chan bool, newInternalButtonOrderChan chan def.Order) {
+>>>>>>> 0081a511b474cdd10d9bf9b894f7e3bacf925a3a
 
 	currentOrderList := def.Orders{}
 	storage.LoadOrdersFromFile(1, &currentOrderList)
@@ -74,7 +78,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 				// if currentOrderList != updatedOrderList { /*If orderlist from master is identical to our copy*/
 				fmt.Println("40")
 				select {
-				case <-completedCurrentOrder:
+				case <-completedCurrentOrder: /*This is a trick to avoid circular dependencies*/
 					fmt.Println("40,5")
 				default:
 					fmt.Println("41")
@@ -88,6 +92,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 				}
 				orderListForSendingToMaster <- currentOrderList
 				fmt.Println("44,5")
+				orderListForLightsChan <- currentOrderList
 			} else {
 				fmt.Println("THEY ARE THE SAMMMEEMEMEMEMEMEMEMMEMEME")
 			}
@@ -116,6 +121,22 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			sendMessageToMaster <- true
 
 			fmt.Println("50")
+<<<<<<< HEAD
+			orderListForLightsChan<- currentOrderList
+			fmt.Println("50,25")
+		case newInternalButtonPress = <-newInternalButtonOrderChan:
+			fmt.Println("50,5")
+			currentOrderList = distributeInternalOrderToOrderList(newInternalButtonpress, currentOrderList, elevatorState)
+			fmt.Println("51")
+			orderListForExecuteOrders <- currentOrderList
+			fmt.Println("52")
+			orderListChanForPrinting <- currentOrderList
+			fmt.Println("53")
+			orderListForSendingToMaster <- currentOrderList
+			fmt.Println("54")
+			orderListForLightsChan <- currentOrderList
+			fmt.Println("55")
+=======
 		// case newInternalButtonPress = <-newInternalButtonOrderChan:
 		// 	fmt.Println("50,5")
 		// 	currentOrderList = distributeInternalOrderToOrderList(newInternalButtonPress, currentOrderList, elevatorState)
@@ -126,6 +147,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 		// 	fmt.Println("53")
 		// 	orderListForSendingToMaster <- currentOrderList
 		// 	fmt.Println("54")
+>>>>>>> 0081a511b474cdd10d9bf9b894f7e3bacf925a3a
 		}
 	}
 }
