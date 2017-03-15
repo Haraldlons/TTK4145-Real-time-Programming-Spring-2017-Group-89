@@ -3,18 +3,13 @@ package network
 import (
 	"../def"
 	"../storage"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
-	// "math"
-	//"bufio"
-	// "log"
-	//"os"
-	//"strconv"
-	"bytes"
-	"strings"
 )
 
 func SendSlaveIsAliveRegularly(slave_id string, stopSendingChan chan bool) {
@@ -28,7 +23,7 @@ func SendSlaveIsAliveRegularly(slave_id string, stopSendingChan chan bool) {
 
 	defer udpBroadcast.Close()
 
-	msg := []byte(slave_id)	
+	msg := []byte(slave_id)
 	for {
 		select {
 		case <-stopSendingChan:
@@ -40,22 +35,22 @@ func SendSlaveIsAliveRegularly(slave_id string, stopSendingChan chan bool) {
 }
 
 func SendMasterIsAliveRegularly(master_id string, stopSendingChan chan bool) {
-	udpAddr, _ := net.ResolveUDPAddr("udp", def.BcAddress+def.MasterIsAlivePort)
-	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
-
-	if err != nil { //Can't connect to the interwebs
-		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+def.MasterIsAlivePort)
-		udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
-	}
-
-	defer udpBroadcast.Close()
-
 	msg := []byte(master_id)
 	for {
 		select {
 		case <-stopSendingChan:
 			return
 		default:
+			// SUPER UGLY BUT KEEPS MASTER ALIVE WHEN CABLE IS UNPLUGGED
+			udpAddr, _ := net.ResolveUDPAddr("udp", def.BcAddress+def.MasterIsAlivePort)
+			udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
+
+			if err != nil { //Can't connect to the interwebs
+				udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+def.MasterIsAlivePort)
+				udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
+			}
+
+			defer udpBroadcast.Close()
 			udpBroadcast.Write(msg)
 			time.Sleep(time.Millisecond * 200)
 		}
@@ -83,29 +78,7 @@ func ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap map[string]chan strin
 			for key := range updatedSlaveIdChanMap {
 				updatedSlaveIdChanMap[key] <- slave_id
 			}
-			time.Sleep(time.Millisecond*50) 
-		}
-	}
-}
-
-func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListeningChan chan bool) {
-	udpAddr, _ := net.ResolveUDPAddr("udp", def.MasterIsAlivePort)
-	udpListen, _ := net.ListenUDP("udp", udpAddr)
-	defer udpListen.Close()
-
-	buf := make([]byte, 16)
-	for {
-		select {
-		case <-stopListeningChan:
-			return
-		default:
-			udpListen.ReadFromUDP(buf)
-			n := bytes.IndexByte(buf, 0)
-			master_id := string(buf[:n])
-
-			// Send update to masterIsAliveChan
-			masterIsAliveChan <- master_id
-			time.Sleep(time.Millisecond*100)
+			time.Sleep(time.Millisecond * 50)
 		}
 	}
 }
@@ -115,7 +88,6 @@ func CheckIfMasterAlreadyExist() bool {
 
 	udpAddr, _ := net.ResolveUDPAddr("udp", def.MasterIsAlivePort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
-
 	defer udpListen.Close()
 
 	listenChan := make(chan string)
@@ -128,18 +100,14 @@ func CheckIfMasterAlreadyExist() bool {
 			master_id := string(buf[:n])
 
 			listenChan <- master_id
-			time.Sleep(time.Millisecond*100)
 		}
 	}()
-
-	time.Sleep(100 * time.Millisecond)
 
 	for {
 		select {
 		case <-listenChan:
 			return true
 		case <-time.After(2 * time.Second): // Master assumed dead
-			time.Sleep(time.Second)
 			return false
 		}
 	}
@@ -156,14 +124,10 @@ func SendUpdatesToMaster(msg def.MSG_to_master, lastSentMsgToMasterChanForPrinti
 
 	defer udpBroadcast.Close()
 
-	fmt.Println("Sending OrderList to Master: \n", msg)
-	fmt.Println("------------------------------------")
-
 	// Send message on channel to print-function
 	fmt.Println("SENDING MSG TO PRINT")
 	lastSentMsgToMasterChanForPrinting <- msg
 	fmt.Println("SENT MSG TO PRINT")
-
 
 	b, _ := json.Marshal(msg)
 
@@ -205,13 +169,13 @@ func ListenToMasterUpdates(updatedOrderList chan def.Orders, elevator_id string,
 				//TODO
 			}
 			// mutex.Unlock()
-		
-			// Send message over local channel 
+
+			// Send message over local channel
 			listenChan <- msg
 
 			// Send message over channel to print-function
 			lastRecievedMSGFromMasterChanForPrinting <- msg
-			time.Sleep(time.Millisecond*100)
+			time.Sleep(time.Millisecond * 100)
 		}
 	}()
 
@@ -226,8 +190,8 @@ func ListenToMasterUpdates(updatedOrderList chan def.Orders, elevator_id string,
 			updatedOrderList <- MSG_to_slave.Elevators.OrderMap[elevator_id]
 			fmt.Println("RECIEVED!!!!!!!!!!!!!!!!!")
 			// mutex.Unlock()
-			time.Sleep(time.Millisecond*50) // wait 50 ms TODO
-		case <- stopListening:
+			time.Sleep(time.Millisecond * 50) // wait 50 ms TODO
+		case <-stopListening:
 			// return
 		}
 	}
@@ -258,9 +222,11 @@ func ListenToSlave(msgChan chan def.MSG_to_master) {
 		for {
 			// Listen for messages
 			udpListen.ReadFromUDP(buf)
+
 			// Two first bytes contains the size of the JSON byte array
 			jsonByteLength := int(buf[0])*255 + int(buf[1])
 			msg := def.MSG_to_master{}
+
 			// Convert back to struct
 			if jsonByteLength > 0 {
 				// Decode message
@@ -278,7 +244,6 @@ func ListenToSlave(msgChan chan def.MSG_to_master) {
 }
 
 func SendToSlave(msg def.MSG_to_slave, mutex *sync.Mutex) {
-
 	udpAddr, err := net.ResolveUDPAddr("udp", def.BcAddress+def.MasterToSlavePort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
@@ -287,22 +252,17 @@ func SendToSlave(msg def.MSG_to_slave, mutex *sync.Mutex) {
 		udpAddr, err = net.ResolveUDPAddr("udp", "localhost"+def.MasterToSlavePort)
 		udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
 	}
-	//check(_)
-
 	defer udpBroadcast.Close()
-	buf, _ := json.Marshal(msg)
-	// fmt.Println("JSON in ByteArray:", buf)
-	jsonByteLength := len(buf)
+
+	// Convert to byte array
+	byteArr, _ := json.Marshal(msg)
+	jsonByteLength := len(byteArr)
+
+	// Use first and second byte of message to send length
 	firstByte := jsonByteLength / 255
-	// fmt.Println("firstByte", firstByte)
 	secondByte := jsonByteLength - firstByte*255
-	// fmt.Println("secondByte:",secondByte)
-	// fmt.Println("JSONByteArrayLength:",jsonByteLength)
+	byteArr = append([]byte{byte(secondByte)}, byteArr...)
+	byteArr = append([]byte{byte(firstByte)}, byteArr...)
 
-	// fmt.Println(byte(len(buf)))
-
-	buf = append([]byte{byte(secondByte)}, buf...)
-	buf = append([]byte{byte(firstByte)}, buf...)
-
-	udpBroadcast.Write(buf)
+	udpBroadcast.Write(byteArr)
 }

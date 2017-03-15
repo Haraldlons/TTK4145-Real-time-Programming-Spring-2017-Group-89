@@ -2,63 +2,60 @@ package watchdog
 
 import (
 	"../def"
-	// "../master"
+	"../driver"
 	"../network"
 	"../storage"
-	// "net"
 	"fmt"
-	"time"
+	"net"
 	"os"
-	"../driver"
 	"os/exec"
+	"time"
 )
 
-// var timeLimit = 10 * time.Second
-// var listenTimer = 100 * time.Millisecond
+func CheckIfMasterIsAliveRegularly(masterIsAliveChan chan string, stopListening chan bool) {
+	udpAddr, _ := net.ResolveUDPAddr("udp", def.MasterIsAlivePort)
+	udpListen, _ := net.ListenUDP("udp", udpAddr)
+	defer udpListen.Close()
 
-// func SendNetworkAlive(udpBroadcast *net.UDPConn) bool { // Possibly unnesces
-// 	msg := make([]byte, 1024)
-// 	numLines, err := udpBroadcast.Write(msg)
-// 	return err != nil
-// }
+	listenChan := make(chan strings)
 
-func CheckIfMasterIsAliveRegularly(stopListening chan bool) {
-	masterIsAliveChan := make(chan string)
+	go func() {
+		buf := make([]byte, 16)
+		for {
+			udpListen.ReadFromUDP(buf)
+			n := bytes.IndexByte(buf, 0)
+			master_id := string(buf[:n])
+			listenChan <- master_id
+		}
+	}()
 
-	go network.ListenAfterAliveMasterRegularly(masterIsAliveChan, stopListening)
 	for {
 		select {
-		case /*master_id := */ <-masterIsAliveChan:
-
-		// fmt.Println("Master is still alive: , ", master_id)
-
+		case master_id := <-listenChan:
+			// Send Id of master over channel
+			masterIsAliveChan <- master_id
 		case <-time.After(time.Second * 3):
 			fmt.Println("Master is not alive for the last three seconds")
 			driver.Elev_set_motor_direction(def.DIR_STOP)
-			go func(){
-				for i := 0; i < 50; i++ {
-					// Send kill signal
+			go func() {
+				for i := 0; i < 5; i++ {
+					// Send kill signal to all network processes
 					stopListening <- true
 				}
-				}()
+			}()
 
-			// Kill all network processes
-			// stopListening <- true
-			time.Sleep(time.Second*5)
+			time.Sleep(time.Second * 5)
 
 			// Spawn new master
 			newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
 			newSlave.Run()
 
-			time.Sleep(time.Second*10)
+			time.Sleep(time.Second * 10)
 			os.Exit(1)
 		}
+
 	}
-
-	// if master_id == "" {
-	// }
 }
-
 
 func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan def.Orders, orderListForExecuteOrders chan<- def.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- def.Orders, lastSentMsgToMasterChanForPrinting chan<- def.MSG_to_master, orderListForSendingToMaster chan def.Orders, sendMessageToMaster chan bool, newInternalButtonOrderChan chan def.Order, orderListForLightsChan chan<- def.Orders) {
 
@@ -153,14 +150,12 @@ func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesAliveM
 				fmt.Println("Creating new timer for:", slave_id)
 				timerMap[slave_id] = time.NewTimer(deadTime)
 			}
-			// fmt.Println("Slave ", slave_id, "is alive!")
 
 			// We have to use a mutex, as maps are passed by reference
 			// mutex.Lock()
 			allSlavesAliveMap[slave_id] = true
 			// mutex.Unlock()
 
-			// fmt.Println("Resetting timer for:", slave_id)
 			// Resetting timer, as slave is alive
 			timerMap[slave_id].Stop()
 			timerMap[slave_id].Reset(deadTime)
@@ -168,7 +163,6 @@ func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesAliveM
 			for id, timer := range timerMap {
 				select {
 				case <-timer.C: // deadTime has passed
-					// fmt.Println("\nSlave ", id, "is assumed dead\n")
 					// mutex.Lock()
 					allSlavesAliveMap[id] = false // Slave is assumed dead
 					// mutex.Unlock()
@@ -180,21 +174,7 @@ func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesAliveM
 		}
 		// Send map of all slaves to all channels
 		for key := range allSlavesAliveMapChanMap {
-			// fmt.Println("allSlavesAliveMap in watchdog:", allSlavesAliveMap)
 			allSlavesAliveMapChanMap[key] <- allSlavesAliveMap
 		}
 	}
 }
-
-// func ElevatorAlive(aliveMessageFromElevatorFunctionsChanMap map[string]chan bool) {
-// 	deadTime := time.Second * 3          // Time until reboot is needed
-// 	killTimer := time.NewTimer(deadTime) // Initialize timer
-
-// 	select {}
-// 	for {
-// 		if isAlive {
-// 			killTimer.Stop()
-// 			killTimer.Reset(deadTime)
-// 		}
-// 	}
-// }
