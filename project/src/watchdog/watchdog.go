@@ -132,47 +132,58 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 }
 
 func distributeInternalOrderToOrderList(internalPressOrder definitions.Order, currentOrderList definitions.Orders, elevatorState definitions.ElevatorState) definitions.Orders {
-// 	newOrderList := definitions.Orders{}
+	newOrderList := definitions.Orders{}
 
-// 	if master.CheckForDublicateOrder(currentOrderList, internalPressOrder.Floor) {
-// 		return currentOrderList
-// 	}
+	if master.CheckForDublicateOrder(currentOrderList, internalPressOrder.Floor) {
+		return currentOrderList
+	}
 
-// 	tempNum := 0
+	tempNum := 0
 
-// 	if elevatorState.LastFloor < internalPressOrder.Floor && internalPressOrder.Floor < elevatorState.Destination {
-// 		// You are going up
-// 		if currentOrderList.Orders[0] == elevatorState.Destination { /* You can add in front of currentOrderList */
-// 			newOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
-// 			copy(newOrderList.Orders[1:], newOrderList.Orders[:])
-// 			newOrderList.Orders[0] = internalPressOrder
-// 			return newOrderList
-// 		}else { /* There are orders before destinationOrder */
-// 			for i, order := range currentOrderList.Orders{
-// 				if order.Floor > tempNum {
-// 					if order.Floor > internalPressOrder.Floor {
-// 						// newOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
-// 						// newOrderList.Orders = append(currentOrderList[i:], 
-// 						// copy(newOrderList.Orders[i+1:],  newOrderList.Orders[i:])
-// 						// newOrderList.Orders[0] = internalPressOrder
-// 						return newOrderList
-// 					}
-// 					tempNum = order.Floor
-// 				}else {
+	if elevatorState.LastFloor < internalPressOrder.Floor && internalPressOrder.Floor < elevatorState.Destination {
+		// You are going up
+		if currentOrderList.Orders[0] == elevatorState.Destination { /* You can add in front of currentOrderList */
+			newOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+			copy(newOrderList.Orders[1:], newOrderList.Orders[:])
+			newOrderList.Orders[0] = internalPressOrder
+			return newOrderList
+		}else { /* There are orders before destinationOrder */
+			for i, order := range currentOrderList.Orders{
+				if order.Floor > tempNum { // To check where you turn
+					if order.Floor > internalPressOrder.Floor {
+						newOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+						copy(newOrderList.Orders[i+1:],  newOrderList.Orders[i:])
+						newOrderList.Orders[i] = internalPressOrder
+						return newOrderList
+					}
+					tempNum = order.Floor
+				}
+			}
+		}
+	}else if {
+		// You are going down
+		tempNum = definitions.N_FLOOR-1
+		if currentOrderList.Orders[0] == elevatorState.Destination { /* You can add in front of currentOrderList */
+			newOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+			copy(newOrderList.Orders[1:], newOrderList.Orders[:])
+			newOrderList.Orders[0] = internalPressOrder
+			return newOrderList
+		}else { /* There are orders before destinationOrder */
+			for i, order := range currentOrderList.Orders{
+				if order.Floor < tempNum { // To check where you turn
+					if order.Floor < internalPressOrder.Floor {
+						newOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+						copy(newOrderList.Orders[i+1:],  newOrderList.Orders[i:])
+						newOrderList.Orders[i] = internalPressOrder
+						return newOrderList
+					}
+					tempNum = order.Floor
+				}
+			}
 
-// 				}
-// 			}
+		}
+	}
 
-// 		}
-
-// 	}else if {
-// 		// You are going down
-// 		tempNum = definitions.N_FLOOR-1
-// 	}
-
-// 	// if internalPressOrder.Floor > elevatorState.LastFloor && internalPressOrder.Direction == elevatorState.Direction {
-
-// 	// }
 	return definitions.Orders{}
 }
 
