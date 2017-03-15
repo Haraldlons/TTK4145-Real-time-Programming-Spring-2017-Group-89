@@ -97,6 +97,10 @@ func Run() {
 	// go watchdog.CheckIfElevatorIsStuck(executeOrdersIsAliveChan)
 
 	for {
+		select {
+		case <- stopListeningAndSending:
+			return
+		}
 		time.Sleep(time.Second)
 	}
 }

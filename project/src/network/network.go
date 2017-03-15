@@ -37,7 +37,7 @@ func SendSlaveIsAliveRegularly(slave_id string, stopSendingChan chan bool) {
 	for {
 		select {
 		case <-stopSendingChan:
-			return
+			// return
 		default:
 			udpBroadcast.Write(msg)
 			time.Sleep(time.Millisecond * 200)
@@ -237,7 +237,7 @@ func ListenToMasterUpdates(updatedOrderList chan def.Orders, elevator_id string,
 			// mutex.Unlock()
 			time.Sleep(time.Millisecond*50) // wait 50 ms TODO
 		case <- stopListening:
-			return
+			// return
 		}
 	}
 

@@ -3,22 +3,16 @@ package master
 import (
 	"../def"
 	"../watchdog"
-	// "../driver"
 	"../network"
-	// "../storage"
 	"fmt"
 	"math"
 	"os/exec"
-	// "string"
-	// "math/rand"
-	// "net"
 	"sync"
 	"time"
 )
 
 func Run() {
 	fmt.Println("I'm a MASTER!")
-
 
 	// Spawn new "personal" slaves
 	newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
@@ -37,7 +31,6 @@ func Run() {
 
 	// Channels for sending a map with alive-status of all slaves connected to the network
 	allSlavesAliveMapChanMap := map[string]chan map[string]bool{
-		// "toKeepTrackOfAllAliveSlaves": make(chan map[string]bool),
 		"toRun":                     make(chan map[string]bool),
 		"toHandleUpdatesFromSlaves": make(chan map[string]bool),
 	}
@@ -46,7 +39,6 @@ func Run() {
 	// Channels for sending the id of a slave from the listener to others
 	updatedSlaveIdChanMap := map[string]chan string{
 		"toWatchdog": make(chan string),
-		// "toKeepTrackOfAllAliveSlaves": make(chan string),
 	}
 
 
@@ -78,27 +70,18 @@ func updateOrders(orders *def.Orders, externalButtonPress def.Order, elevatorSta
 		distributeInternalOrderToOrderList(externalButtonPress, orders, elevatorState)
 	}
 	if CheckForDuplicateOrder(orders, externalButtonPress.Floor) { // TODO: DO NOT REMOVE ORDERS ALONG THE SAME DIRECTION
-		// fmt.Println("This order is already in the queue!")
-		// fmt.Println("\nORDERS BEFORE findAndReplaceOrderIfSameDirection():", orders)
 		findAndReplaceOrderIfSameDirection(orders, externalButtonPress, elevatorState.Direction) //TODO
-		// fmt.Println("ORDERS AFTER findAndReplaceOrderIfSameDirection():", orders, "\n")
 		return
 	}
-
-	// fmt.Println("Orders received by updateOrders():", orders)
-	// fmt.Println("Elevatorstate received by updateOrders():", elevatorState)
-	// fmt.Println("ExternalButtonPress received by updateOrders():", externalButtonPress)
 
 	if len(orders.Orders) > 0 { // For safety
 		// Check to see if order should be placed first based on current elevator state
 		if elevatorState.Direction == externalButtonPress.Direction && FloorIsInbetween(orders.Orders[0].Floor, externalButtonPress.Floor, elevatorState.LastFloor, elevatorState.Direction) {
 			// Insert Order in first position
-			// fmt.Println("Inserting order in first postion")
 
 			orders.Orders = append(orders.Orders, def.Order{})
 			copy(orders.Orders[1:], orders.Orders[:])
 			orders.Orders[0] = externalButtonPress
-			// fmt.Println("Orders returned by updateOrders():", orders)
 			return
 		}
 
@@ -111,22 +94,18 @@ func updateOrders(orders *def.Orders, externalButtonPress def.Order, elevatorSta
 			case def.DIR_UP:
 				if externalButtonPress.Floor < orders.Orders[i].Floor {
 					// Insert Order in position (i)
-					// fmt.Println("Inserting order in postion", i)
 					orders.Orders = append(orders.Orders, def.Order{})
 					copy(orders.Orders[i+1:], orders.Orders[i:])
 					orders.Orders[i] = externalButtonPress
-					// fmt.Println("Orders returned by updateOrders():", orders)
 					return
 				}
 			case def.DIR_DOWN:
 				if externalButtonPress.Floor > orders.Orders[i].Floor {
 					// Insert Order in position (i+1)
-					// fmt.Println("Inserting order in postion", i)
 
 					orders.Orders = append(orders.Orders, def.Order{})
 					copy(orders.Orders[i+1:], orders.Orders[i:])
 					orders.Orders[i] = externalButtonPress
-					// fmt.Println("Orders returned by updateOrders():", orders)
 					return
 
 				}
@@ -136,9 +115,7 @@ func updateOrders(orders *def.Orders, externalButtonPress def.Order, elevatorSta
 		}
 	}
 	// Place order at back of orderList
-	// fmt.Println("Placing order at back of order list")
 	orders.Orders = append(orders.Orders, externalButtonPress)
-	// fmt.Println("Orders returned by updateOrders():", orders)
 }
 
 // Don't accept more orders to same floor. Assume every person gets on elevator.
@@ -259,8 +236,6 @@ func handleUpdatesFromSlaves(totalOrderListChan chan def.Elevators, allSlavesAli
 	for {
 		select {
 		case msg := <-msgChan: // New message received
-			// fmt.Println("List of orders from msgChan:", msg.Orders)
-			// fmt.Println("List of orders from totalOrderList:", totalOrderList.OrderMap[msg.Id])
 			// Update totalOrderList with information from message
 			fmt.Println("---------------------------------")
 			mutex.Lock()
@@ -298,15 +273,10 @@ func handleUpdatesFromSlaves(totalOrderListChan chan def.Elevators, allSlavesAli
 				mutex.Unlock()
 			}
 
-			// fmt.Println("Total order list: ", totalOrderList)
 
 			// Send updates to channel
 			totalOrderListChan <- totalOrderList
-			// go func() {
-			// 	completedUpdateOfOrderList <- true
-			// }()
 			time.Sleep(time.Millisecond * 100)
-		// case slavesAliveMap = <- slavesAliveMapToHandleUpdatesFromSlavesChan /*To be implemented*/
 		case allSlavesAliveMap = <- allSlavesAliveMapChanMap: // Update on wether slaves are alive or not
 			for slave_id, isAlive := range allSlavesAliveMap {
 				// If a slave has died
@@ -315,7 +285,6 @@ func handleUpdatesFromSlaves(totalOrderListChan chan def.Elevators, allSlavesAli
 					mutex.Lock()
 					delete(totalOrderList.OrderMap, slave_id)
 					delete(totalOrderList.ElevatorStateMap, slave_id)
-					fmt.Println("TOTALORDERLIST AFTER DELETION OF DEAD SLAVE:", totalOrderList)
 					mutex.Unlock()
 				}
 			}
@@ -329,7 +298,6 @@ func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan def.Elevators, mutex 
 	for {
 		select {
 		case totalOrderList := <-totalOrderListChan:
-			// fmt.Println("Length of totalOrderlist: ", len(totalOrderList.OrderMap))
 			if len(totalOrderList.OrderMap) != 0 {
 				msg := def.MSG_to_slave{Elevators: totalOrderList}
 				fmt.Println("Message sent to slave:", msg)
@@ -344,7 +312,6 @@ func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan def.Elevators, mutex 
 // Used to redistribute active orders of elevators that have died
 func redistributeOrders(allSlavesAliveMap map[string]bool, totalOrderListChan chan<- def.Elevators, master_id string) {
 	totalOrderList := def.Elevators{}
-	// storage.LoadElevatorsFromFile(&totalOrderList) //TODO
 
 	// Loop through the id of every currently alive slave
 	for id_slaves, isAlive := range allSlavesAliveMap {

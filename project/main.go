@@ -43,7 +43,7 @@ func main() {
 		for {
 			if network.CheckIfMasterAlreadyExist() {
 				slave.Run()
-				// master.Run()
+				master.Run()
 			} else {
 				master.Run()
 			}
