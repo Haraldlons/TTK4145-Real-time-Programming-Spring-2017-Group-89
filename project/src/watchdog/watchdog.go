@@ -8,6 +8,9 @@ import (
 	// "net"
 	"fmt"
 	"time"
+	"os"
+	"../driver"
+	"os/exec"
 )
 
 // var timeLimit = 10 * time.Second
@@ -19,9 +22,8 @@ import (
 // 	return err != nil
 // }
 
-func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
+func CheckIfMasterIsAliveRegularly(/*stopListening map[string] chan bool*/) {
 	masterIsAliveChan := make(chan string)
-
 	stopListening := make(chan bool)
 
 	go network.ListenAfterAliveMasterRegularly(masterIsAliveChan, stopListening)
@@ -33,9 +35,17 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 
 		case <-time.After(time.Second * 3):
 			fmt.Println("Master is not alive for the last three seconds")
-			stopListening <- true
-			fmt.Println("Has send stopListening signal to network.ListenAfterAliveMasterRegularly")
-			masterHasDiedChan <- true
+			driver.Elev_set_motor_direction(def.DIR_STOP)
+
+			// Kill all network processes
+			// stopListening <- true
+			time.Sleep(time.Second*2)
+
+			// Spawn new master
+			newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+			newSlave.Run()
+			time.Sleep(time.Second*2)
+			os.Exit(1)
 			return
 		}
 	}

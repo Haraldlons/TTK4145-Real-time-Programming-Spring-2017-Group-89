@@ -45,15 +45,14 @@ func Run() {
 	stopSendingImAliveMessage := make(chan bool)
 	newInternalButtonOrderChan := make(chan def.Order)
 
-	// stopRecievingImAliveMessage := make(chan bool)
-	masterHasDiedChan := make(chan bool)
 	completedCurrentOrder := make(chan bool)
 	orderListForExecuteOrders := make(chan def.Orders)
 	updatedOrderList := make(chan def.Orders)
 
-	// Channels for listening to updates in elevatorState variables
-
-	// Channels for setting updates in elevatorState
+	// Channel for sending kill signal to all network-related goroutines
+	// stopListening map[string] chan bool {
+		// ""
+	// }
 
 	// Channels for printing in a nice format
 	elevatorStateChanForPrinting := make(chan def.ElevatorState)
@@ -75,7 +74,7 @@ func Run() {
 	// elevatorStateChanMap["forFloorUpdates"] = ElevatorStateForFloorUpdatesChan
 
 	go network.SendSlaveIsAliveRegularly(slave_id, stopSendingImAliveMessage)
-	go watchdog.CheckIfMasterIsAliveRegularly(masterHasDiedChan)
+	go watchdog.CheckIfMasterIsAliveRegularly()
 
 	go buttons.Check_button_internal(internalButtonsPressesChan)
 	go buttons.Check_button_external(externalButtonsPressesChan)
@@ -97,14 +96,7 @@ func Run() {
 	// go watchdog.CheckIfElevatorIsStuck(executeOrdersIsAliveChan)
 
 	for {
-		select {
-		case <-masterHasDiedChan:
-			fmt.Println("Master is not alive.")
-			stopSendingImAliveMessage <- true
-			// stopRecievingImAliveMessage <- true
-			time.Sleep(time.Second)
-			return // Turns into master
-		}
+		time.Sleep(time.Second)
 	}
 }
 
