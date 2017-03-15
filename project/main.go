@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./src/definitions"
+	"./src/def"
 	"./src/slave"
 	//"./src/driver"
 	// "./src/elevator"
@@ -11,7 +11,7 @@ import (
 	// "./src/storage"
 	"./src/master"
 	// "./src/watchdog"
-	"fmt"
+	// "fmt"
 	// "log"
 	// "os"
 	// "os/exec"
@@ -19,18 +19,7 @@ import (
 	"time"
 )
 
-var delay = 50 * time.Millisecond
-var elevatorActive = false
-var port string = ":46723"
-
-// var elevatorState = definitions.ElevatorState{2, 0}
-var msg = make([]byte, 8)
-
 func main() {
-	fmt.Println("Main function started")
-	// go slave.Run()
-	// go master.Run()
-	// go network.SetupNetwork()
 
 	go func() {
 		stopSignal := 0
@@ -40,7 +29,7 @@ func main() {
 			// fmt.Println("Stopsignal: ", stopSignal)
 			if stopSignal != 0 {
 				// setOrderOverNetwork(0)
-				driver.Elev_set_motor_direction(definitions.DIR_STOP)
+				driver.Elev_set_motor_direction(def.DIR_STOP)
 				// fmt.Println("Stopping program, with stop signal: ", stopSignal)
 				// fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())
 				time.Sleep(100 * time.Millisecond)
@@ -49,8 +38,7 @@ func main() {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}()
-	// udpAddr, _ := net.ResolveUDPAddr("udp", port)
-	// fmt.Println("udpAddr", udpAddr)
+
 	go func() {
 		for {
 			if network.CheckIfMasterAlreadyExist() {
@@ -65,5 +53,4 @@ func main() {
 	for {
 		time.Sleep(time.Second)
 	}
-
 }
