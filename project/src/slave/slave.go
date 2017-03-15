@@ -50,6 +50,7 @@ func Run() {
 	completedCurrentOrder := make(chan bool)
 	orderListForExecuteOrders := make(chan definitions.Orders)
 	updatedOrderList := make(chan definitions.Orders)
+	orderListForLightsChan := make(chan definitions.Orders)
 
 	// Channels for listening to updates in elevatorState variables
 
@@ -66,7 +67,6 @@ func Run() {
 	elevatorStateToMasterChan := make(chan definitions.ElevatorState)
 	extButToMaster := make(chan definitions.Order)
 	sendMessageToMaster := make(chan bool)
-
 	go printEntireElevatorNetworkOnUpdate(elevatorStateChanForPrinting, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, lastRecievedMSGFromMasterChanForPrinting, mutex)
 
 	// elevatorStateChanMap := make(map[string] chan definitions.ElevatorState)
@@ -85,13 +85,16 @@ func Run() {
 	go printExternalPresses(externalButtonsPressesChan, elevator_id, lastSentMsgToMasterChanForPrinting, extButToMaster, sendMessageToMaster)
 	go printInternalPresses(internalButtonsPressesChan, newInternalButtonOrderChan)
 
-	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, elevator_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster, newInternalButtonOrderChan)
+	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, elevator_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster, newInternalButtonOrderChan, orderListForExternalLights, orderListForLightsChan)
 	go network.ListenToMasterUpdates(updatedOrderList, elevator_id, lastRecievedMSGFromMasterChanForPrinting)
 
 	// go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, elevatorStateChanForPrinting, elevatorStateToMaster)
 
 	go elevator.ExecuteOrders(orderListForExecuteOrders, completedCurrentOrder, elevatorStateToMasterChan, elevatorStateChanForPrinting)
 	go sendUpdatesToMaster(elevator_id, elevatorStateToMasterChan, orderListForSendingToMaster, extButToMaster, sendMessageToMaster, lastSentMsgToMasterChanForPrinting)
+
+	go keepTrackOfExternalLights(orderListForLightsChan)
+
 	// fmt.Println("GOROUTINES HAVE STARTED!")
 	// go watchdog.CheckIfElevatorIsStuck(executeOrdersIsAliveChan)
 
@@ -305,6 +308,43 @@ func printNicely(updateNrMap map[string]int, elevatorState definitions.ElevatorS
 	fmt.Println("------------------------------------------------------------")
 	fmt.Println("------------------------------------------------------------")
 	fmt.Println("------------------------------------------------------------")
+
+}
+
+func keepTrackOfLights(orderListForLightsChan chan definitions.Orders) {
+
+	orderList := definitions.Orders{}
+	internalLightsOn := []bool{false, false, false, false}
+	externalLightsOn := []bool{false, false, false, false}
+	fmt.Println("externalLightsOn:", externalLightsOn)
+
+	for {
+		select {
+		case orderList = <-orderListForLightsChan:
+			for i, order := range orderList {
+				if order.Direction == 0 {
+					/*Internal light*/
+					// Elev_set_button_lamp(button int, floor int, value int) {
+					driver.Elev_set_button_lamp(2, order.Floor, 1)
+					internalLightsOn[order.Floor] = true
+				} else {
+					/*External light*/
+					driver.Elev_set_button_lamp(0, order.Floor, 1)
+					driver.Elev_set_button_lamp(1, order.Floor, 1)
+					externalLightsOn[order.Floor] = true
+				}
+			}
+			for i := 0; i < def.N_FLOORS; i++ {
+				if internalLightsOn[i] == false {
+					driver.Elev_set_button_lamp(2, i, 0)
+				}
+				if externalLightsOn[i] == false {
+					driver.Elev_set_button_lamp(1, i, 0)
+					driver.Elev_set_button_lamp(0, i, 0)
+				}
+			}
+		}
+	}
 
 }
 
