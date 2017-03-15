@@ -22,21 +22,14 @@ import (
 	"strings"
 )
 
-var bcAddress string = "129.241.187.255"
 
-// var bcAddress string = "localhost"
-var port string = ":46723"
-var masterIsAlivePort string = ":46721"
-var slaveIsAlivePort string = ":46720"
-var masterToSlavePort string = ":18900"
-var slaveToMasterPort string = ":18901"
 
 var delay100ms = 100 * time.Millisecond
 
 func SendSlaveIsAliveRegularly(elevator_id string, stopSendingChan chan bool) {
 	// fmt.Println("Sending ImAliveMessage over network")
 
-	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveIsAlivePort)
+	udpAddr, err := net.ResolveUDPAddr("udp", def.BcAddress+def.SlaveIsAlivePort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
 	defer func() {
@@ -45,7 +38,7 @@ func SendSlaveIsAliveRegularly(elevator_id string, stopSendingChan chan bool) {
 	}()
 
 	if err != nil { //Can't connect to the interwebs
-		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+masterIsAlivePort)
+		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+def.MasterIsAlivePort)
 		udpBroadcast, _ = net.DialUDP("udp", nil, udpAddr)
 	}
 
@@ -65,7 +58,7 @@ func SendSlaveIsAliveRegularly(elevator_id string, stopSendingChan chan bool) {
 func ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap map[string]chan string, stopListeningChan chan bool) {
 
 	// Create listen Conn
-	udpAddr, _ := net.ResolveUDPAddr("udp", slaveIsAlivePort)
+	udpAddr, _ := net.ResolveUDPAddr("udp", def.SlaveIsAlivePort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
 	defer udpListen.Close()
 
@@ -94,10 +87,10 @@ func ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap map[string]chan strin
 }
 
 func SendMasterIsAliveRegularly(master_id string, stopSendingChan chan bool) {
-	udpAddr, _ := net.ResolveUDPAddr("udp", bcAddress+masterIsAlivePort)
+	udpAddr, _ := net.ResolveUDPAddr("udp", def.BcAddress+def.MasterIsAlivePort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 	if err != nil { //Can't connect to the interwebs
-		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+masterIsAlivePort)
+		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+def.MasterIsAlivePort)
 		udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
 	}
 
@@ -121,7 +114,7 @@ func SendMasterIsAliveRegularly(master_id string, stopSendingChan chan bool) {
 
 func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListeningChan chan bool) {
 	// fmt.Println("Listening to check if master is alive")
-	udpAddr, _ := net.ResolveUDPAddr("udp", masterIsAlivePort)
+	udpAddr, _ := net.ResolveUDPAddr("udp", def.MasterIsAlivePort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
 	defer udpListen.Close()
 
@@ -149,7 +142,7 @@ func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListenin
 func CheckIfMasterAlreadyExist() bool {
 	fmt.Print("Are there any Masters here? ")
 
-	udpAddr, _ := net.ResolveUDPAddr("udp", masterIsAlivePort)
+	udpAddr, _ := net.ResolveUDPAddr("udp", def.MasterIsAlivePort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
 
 	defer udpListen.Close()
@@ -184,11 +177,11 @@ func CheckIfMasterAlreadyExist() bool {
 }
 
 func SendUpdatesToMaster(msg def.MSG_to_master, lastSentMsgToMasterChanForPrinting chan<- def.MSG_to_master) {
-	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveToMasterPort)
+	udpAddr, err := net.ResolveUDPAddr("udp", def.BcAddress+def.SlaveToMasterPort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
 	if err != nil { //Can't connect to the interwebs
-		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+slaveToMasterPort)
+		udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+def.SlaveToMasterPort)
 		udpBroadcast, _ = net.DialUDP("udp", nil, udpAddr)
 	}
 
@@ -218,7 +211,7 @@ func SendUpdatesToMaster(msg def.MSG_to_master, lastSentMsgToMasterChanForPrinti
 func ListenToMasterUpdates(updatedOrderList chan def.Orders, elevator_id string, lastRecievedMSGFromMasterChanForPrinting chan<- def.MSG_to_slave, /*mutex *sync.Mutex*/) {
 	fmt.Println("Listening after Updates from Master")
 
-	udpAddr, _ := net.ResolveUDPAddr("udp", masterToSlavePort)
+	udpAddr, _ := net.ResolveUDPAddr("udp", def.MasterToSlavePort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
 	defer udpListen.Close()
 
@@ -283,7 +276,7 @@ func GetLocalIP() (string, error) {
 
 func ListenToSlave(msgChan chan def.MSG_to_master) {
 	fmt.Println("Listening after messages from slave")
-	udpAddr, _ := net.ResolveUDPAddr("udp", slaveToMasterPort)
+	udpAddr, _ := net.ResolveUDPAddr("udp", def.SlaveToMasterPort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
 
 	defer udpListen.Close()
@@ -315,12 +308,12 @@ func ListenToSlave(msgChan chan def.MSG_to_master) {
 
 func SendToSlave(msg def.MSG_to_slave, mutex *sync.Mutex) {
 
-	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+masterToSlavePort)
+	udpAddr, err := net.ResolveUDPAddr("udp", def.BcAddress+def.MasterToSlavePort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
 	if err != nil { //Can't connect to the interwebs
 		fmt.Println("err is not nil", err)
-		udpAddr, err = net.ResolveUDPAddr("udp", "localhost"+masterToSlavePort)
+		udpAddr, err = net.ResolveUDPAddr("udp", "localhost"+def.MasterToSlavePort)
 		udpBroadcast, err = net.DialUDP("udp", nil, udpAddr)
 	}
 	//check(_)

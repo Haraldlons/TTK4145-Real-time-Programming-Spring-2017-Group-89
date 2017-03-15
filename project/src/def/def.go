@@ -18,9 +18,13 @@ const (
 	//Extra states
 	IDLE      int = -1 // Used in the destination field of "Order"
 	// MOVING    int = 1
-	// DOOR_OPEN int = 2
+	// DOOR_OPEN int = 
 
-	
+	BcAddress string = "129.241.187.255"
+	MasterIsAlivePort string = ":46721"
+	SlaveIsAlivePort string = ":46720"
+	MasterToSlavePort string = ":18900"
+	SlaveToMasterPort string = ":18901"	
 )
 
 type Order struct {
