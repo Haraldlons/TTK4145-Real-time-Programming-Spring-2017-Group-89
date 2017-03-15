@@ -27,7 +27,7 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	go network.ListenAfterAliveMasterRegularly(masterIsAliveChan, stopListening)
 	for {
 		select {
-		case /*master_id := */<-masterIsAliveChan:
+		case /*master_id := */ <-masterIsAliveChan:
 
 		// fmt.Println("Master is still alive: , ", master_id)
 
@@ -44,11 +44,7 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	// }
 }
 
-<<<<<<< HEAD
-func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders, newInternalButtonOrderChan chan definitions.Order, orderListForLightsChan chan<- definitions.Orders)
-=======
-func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan def.Orders, orderListForExecuteOrders chan<- def.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- def.Orders, lastSentMsgToMasterChanForPrinting chan<- def.MSG_to_master, orderListForSendingToMaster chan def.Orders, sendMessageToMaster chan bool, newInternalButtonOrderChan chan def.Order) {
->>>>>>> 0081a511b474cdd10d9bf9b894f7e3bacf925a3a
+func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan def.Orders, orderListForExecuteOrders chan<- def.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- def.Orders, lastSentMsgToMasterChanForPrinting chan<- def.MSG_to_master, orderListForSendingToMaster chan def.Orders, sendMessageToMaster chan bool, newInternalButtonOrderChan chan def.Order, orderListForLightsChan chan<- definitions.Orders) {
 
 	currentOrderList := def.Orders{}
 	storage.LoadOrdersFromFile(1, &currentOrderList)
@@ -110,38 +106,12 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			orderListForSendingToMaster <- currentOrderList
 			sendMessageToMaster <- true
 
-			fmt.Println("50")
-<<<<<<< HEAD
-			orderListForLightsChan<- currentOrderList
-			fmt.Println("50,25")
-		case newInternalButtonPress = <-newInternalButtonOrderChan:
-			fmt.Println("50,5")
-			currentOrderList = distributeInternalOrderToOrderList(newInternalButtonpress, currentOrderList, elevatorState)
-			fmt.Println("51")
-			orderListForExecuteOrders <- currentOrderList
-			fmt.Println("52")
-			orderListChanForPrinting <- currentOrderList
-			fmt.Println("53")
-			orderListForSendingToMaster <- currentOrderList
-			fmt.Println("54")
 			orderListForLightsChan <- currentOrderList
-			fmt.Println("55")
-=======
-		// case newInternalButtonPress = <-newInternalButtonOrderChan:
-		// 	fmt.Println("50,5")
-		// 	currentOrderList = distributeInternalOrderToOrderList(newInternalButtonPress, currentOrderList, elevatorState)
-		// 	fmt.Println("51")
-		// 	orderListForExecuteOrders <- currentOrderList
-		// 	fmt.Println("52")
-		// 	orderListChanForPrinting <- currentOrderList
-		// 	fmt.Println("53")
-		// 	orderListForSendingToMaster <- currentOrderList
-		// 	fmt.Println("54")
->>>>>>> 0081a511b474cdd10d9bf9b894f7e3bacf925a3a
+			fmt.Println("50,25")
+
 		}
 	}
 }
-
 
 func checkIfChangedOrderList(lastOrderList def.Orders, currentOrderList def.Orders) bool {
 	if len(lastOrderList.Orders) != len(currentOrderList.Orders) {
@@ -154,7 +124,6 @@ func checkIfChangedOrderList(lastOrderList def.Orders, currentOrderList def.Orde
 	}
 	return false
 }
-
 
 func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesAliveMapChanMap map[string](chan map[string]bool)) {
 	allSlavesAliveMap := make(map[string]bool)
