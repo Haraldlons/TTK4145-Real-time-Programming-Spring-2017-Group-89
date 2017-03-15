@@ -1,7 +1,7 @@
 package master
 
 import (
-	"../definitions"
+	"../def"
 	"../watchdog"
 	// "../driver"
 	"../network"
@@ -30,7 +30,7 @@ func Run() {
 	mutex := &sync.Mutex{}
 
 	// Channel for passing totalOrderList from listener->handler->sender
-	totalOrderListChan := make(chan definitions.Elevators) // Channel for passing totalOrderList
+	totalOrderListChan := make(chan def.Elevators) // Channel for passing totalOrderList
 
 	// Channel for sending kill-signal to all network-related goroutines
 	stopSendingChan := make(chan bool)
@@ -72,8 +72,8 @@ func Run() {
 }
 
 // Update order list in "orders" object with the command defined by externalButtonPress
-func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorState definitions.ElevatorState) {
-	if externalButtonPress.Direction == definitions.DIR_STOP {
+func updateOrders(orders *def.Orders, externalButtonPress def.Order, elevatorState def.ElevatorState) {
+	if externalButtonPress.Direction == def.DIR_STOP {
 		/*Detected internal button press*/
 		distributeInternalOrderToOrderList(externalButtonPress, orders, elevatorState)
 	}
@@ -95,7 +95,7 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 			// Insert Order in first position
 			// fmt.Println("Inserting order in first postion")
 
-			orders.Orders = append(orders.Orders, definitions.Order{})
+			orders.Orders = append(orders.Orders, def.Order{})
 			copy(orders.Orders[1:], orders.Orders[:])
 			orders.Orders[0] = externalButtonPress
 			// fmt.Println("Orders returned by updateOrders():", orders)
@@ -108,22 +108,22 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 		direction := orders.Orders[i].Direction
 		if externalButtonPress.Direction == direction { // Elevator is moving in the right direction
 			switch direction {
-			case definitions.DIR_UP:
+			case def.DIR_UP:
 				if externalButtonPress.Floor < orders.Orders[i].Floor {
 					// Insert Order in position (i)
 					// fmt.Println("Inserting order in postion", i)
-					orders.Orders = append(orders.Orders, definitions.Order{})
+					orders.Orders = append(orders.Orders, def.Order{})
 					copy(orders.Orders[i+1:], orders.Orders[i:])
 					orders.Orders[i] = externalButtonPress
 					// fmt.Println("Orders returned by updateOrders():", orders)
 					return
 				}
-			case definitions.DIR_DOWN:
+			case def.DIR_DOWN:
 				if externalButtonPress.Floor > orders.Orders[i].Floor {
 					// Insert Order in position (i+1)
 					// fmt.Println("Inserting order in postion", i)
 
-					orders.Orders = append(orders.Orders, definitions.Order{})
+					orders.Orders = append(orders.Orders, def.Order{})
 					copy(orders.Orders[i+1:], orders.Orders[i:])
 					orders.Orders[i] = externalButtonPress
 					// fmt.Println("Orders returned by updateOrders():", orders)
@@ -142,7 +142,7 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 }
 
 // Don't accept more orders to same floor. Assume every person gets on elevator.
-func checkForDuplicateOrder(orders *definitions.Orders, buttonPressedFloor int) bool {
+func checkForDuplicateOrder(orders *def.Orders, buttonPressedFloor int) bool {
 	for _, order := range orders.Orders {
 		if order.Floor == buttonPressedFloor {
 			return true
@@ -151,7 +151,7 @@ func checkForDuplicateOrder(orders *definitions.Orders, buttonPressedFloor int) 
 	return false
 }
 
-func findAndReplaceOrderIfSameDirection(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorDirection int) {
+func findAndReplaceOrderIfSameDirection(orders *def.Orders, externalButtonPress def.Order, elevatorDirection int) {
 	// No point if orderList only has one order
 	if len(orders.Orders) > 1 { 
 		return
@@ -168,10 +168,10 @@ func findAndReplaceOrderIfSameDirection(orders *definitions.Orders, externalButt
 
 func FloorIsInbetween(orderFloor int, buttonFloor int, elevatorLastFloor int, elevatorDirection int) bool {
 	switch elevatorDirection {
-	case definitions.DIR_UP:
+	case def.DIR_UP:
 		return buttonFloor > elevatorLastFloor &&
 			buttonFloor < orderFloor
-	case definitions.DIR_DOWN:
+	case def.DIR_DOWN:
 		return buttonFloor < elevatorLastFloor &&
 			buttonFloor > orderFloor
 	default:
@@ -181,8 +181,8 @@ func FloorIsInbetween(orderFloor int, buttonFloor int, elevatorLastFloor int, el
 }
 
 // Returns id of best suited elevator, assuming elevatorStates is a map with ids
-func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState, externalButtonPress definitions.Order, master_id string) string {
-	minCost := 2 * definitions.N_FLOORS
+func findLowestCostElevator(elevatorStates map[string]def.ElevatorState, externalButtonPress def.Order, master_id string) string {
+	minCost := 2 * def.N_FLOORS
 	bestElevator_id := master_id
 	destinationFloor := externalButtonPress.Floor
 	destinationDirection := externalButtonPress.Direction
@@ -191,7 +191,7 @@ func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState,
 		travelDirection := findTravelDirection(elevatorState.LastFloor, destinationFloor)
 		tempCost := int(math.Abs(float64(destinationFloor - elevatorState.LastFloor)))
 
-		if elevatorState.Destination == definitions.IDLE {
+		if elevatorState.Destination == def.IDLE {
 			// Elevator is idle
 			tempCost = tempCost - 1 // Prioritize idle elevators
 		} else if elevatorState.Destination != destinationFloor {
@@ -215,38 +215,38 @@ func findLowestCostElevator(elevatorStates map[string]definitions.ElevatorState,
 
 func findTravelDirection(startFloor int, destinationFloor int) int {
 	if destinationFloor > startFloor {
-		return definitions.DIR_UP
+		return def.DIR_UP
 	} else if destinationFloor == startFloor {
-		return definitions.DIR_UP
+		return def.DIR_UP
 	} else {
-		return definitions.DIR_DOWN
+		return def.DIR_DOWN
 	}
 }
 
 // Returns true if elevator passes destinationFloor on it's way to elevatorDestination
 func elevatorPassesDestinationFloor(travelDirection int, destinationFloor int, elevatorDestination int) bool {
-	return (travelDirection == definitions.DIR_UP && destinationFloor-elevatorDestination < 0) ||
-		(travelDirection == definitions.DIR_DOWN && destinationFloor-elevatorDestination > 0)
+	return (travelDirection == def.DIR_UP && destinationFloor-elevatorDestination < 0) ||
+		(travelDirection == def.DIR_DOWN && destinationFloor-elevatorDestination > 0)
 }
 
 // Returns true if elevator can not go straight to destinationFloor
-func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destinationDirection int, elevState definitions.ElevatorState) bool {
+func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destinationDirection int, elevState def.ElevatorState) bool {
 	return (elevatorPassesDestinationFloor(travelDirection, destinationFloor, elevState.Destination) &&
 		travelDirection != destinationDirection) || // Elevator is traveling in the opposite direction of Order
 		travelDirection != elevState.Direction || // Elevator is moving in the opposite direction relative to destination
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
 
-func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, allSlavesAliveMapChanMap chan map[string]bool, elevator_id string, mutex *sync.Mutex) {
+func handleUpdatesFromSlaves(totalOrderListChan chan def.Elevators, allSlavesAliveMapChanMap chan map[string]bool, elevator_id string, mutex *sync.Mutex) {
 	// Initialize local channel
-	msgChan := make(chan definitions.MSG_to_master)
+	msgChan := make(chan def.MSG_to_master)
 
 	// Initialize totalOrderList
-	totalOrderList := definitions.Elevators{}
+	totalOrderList := def.Elevators{}
 
 	// Initialize maps in totalOrderList
-	totalOrderList.OrderMap = make(map[string]definitions.Orders)
-	totalOrderList.ElevatorStateMap = make(map[string]definitions.ElevatorState)
+	totalOrderList.OrderMap = make(map[string]def.Orders)
+	totalOrderList.ElevatorStateMap = make(map[string]def.ElevatorState)
 
 	// Initialize map of aliveSlaves
 	allSlavesAliveMap := make(map[string]bool)
@@ -280,7 +280,7 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, allS
 			for _, externalButtonPress := range msg.ExternalButtonPresses {
 
 				mutex.Lock() // For accesing maps
-				if externalButtonPress.Direction == definitions.DIR_STOP {
+				if externalButtonPress.Direction == def.DIR_STOP {
 					// Actually an internal button press. Has to be executed by sender
 					bestElevator_id = msg.Id
 					fmt.Println("Internal button press. Best elevator is sender:", bestElevator_id)
@@ -324,14 +324,14 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, allS
 }
 
 // When totalorderlist is updated, send to all slaves
-func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators, mutex *sync.Mutex) {
+func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan def.Elevators, mutex *sync.Mutex) {
 
 	for {
 		select {
 		case totalOrderList := <-totalOrderListChan:
 			// fmt.Println("Length of totalOrderlist: ", len(totalOrderList.OrderMap))
 			if len(totalOrderList.OrderMap) != 0 {
-				msg := definitions.MSG_to_slave{Elevators: totalOrderList}
+				msg := def.MSG_to_slave{Elevators: totalOrderList}
 				fmt.Println("Message sent to slave:", msg)
 				network.SendToSlave(msg, mutex)
 			}
@@ -342,8 +342,8 @@ func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators
 
 // Function to be ran when program is booting.
 // Used to redistribute active orders of elevators that have died
-func redistributeOrders(allSlavesAliveMap map[string]bool, totalOrderListChan chan<- definitions.Elevators, master_id string) {
-	totalOrderList := definitions.Elevators{}
+func redistributeOrders(allSlavesAliveMap map[string]bool, totalOrderListChan chan<- def.Elevators, master_id string) {
+	totalOrderList := def.Elevators{}
 	// storage.LoadElevatorsFromFile(&totalOrderList) //TODO
 
 	// Loop through the id of every currently alive slave
@@ -390,7 +390,7 @@ func compareIdsAndReturnLargest(id_1 string, id_2 string) string {
 	return largest
 }
 
-func distributeInternalOrderToOrderList(internalPressOrder definitions.Order, currentOrderList *definitions.Orders, elevatorState definitions.ElevatorState){
+func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrderList *def.Orders, elevatorState def.ElevatorState){
 
 	if checkForDuplicateOrder(currentOrderList, internalPressOrder.Floor) {
 		return
@@ -404,7 +404,7 @@ func distributeInternalOrderToOrderList(internalPressOrder definitions.Order, cu
 			fmt.Println("You are going up")
 			if currentOrderList.Orders[0].Floor == elevatorState.Destination { /* You can add in front of currentOrderList */
 				fmt.Println("First order is the destination floor")
-				currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+				currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 				copy(currentOrderList.Orders[1:], currentOrderList.Orders[:])
 				currentOrderList.Orders[0] = internalPressOrder
 				return
@@ -415,7 +415,7 @@ func distributeInternalOrderToOrderList(internalPressOrder definitions.Order, cu
 						fmt.Println(" order.Floor > tempNum ")
 						if order.Floor > internalPressOrder.Floor && elevatorState.LastFloor < internalPressOrder.Floor {
 							fmt.Println("This IF STATEMENT")
-							currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+							currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 							copy(currentOrderList.Orders[i+1:], currentOrderList.Orders[i:])
 							currentOrderList.Orders[i] = internalPressOrder
 							return 
@@ -431,14 +431,14 @@ func distributeInternalOrderToOrderList(internalPressOrder definitions.Order, cu
 								if order2.Floor < internalPressOrder.Floor {
 									fmt.Println("The other IF STATEMENT")
 
-									currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+1:], currentOrderList.Orders[j:])
 									currentOrderList.Orders[j] = internalPressOrder
 									return 
 								} else if j == len(currentOrderList.Orders)-1 {
 									fmt.Println("This third STATEMENT")
 
-									currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+2:], currentOrderList.Orders[j+1:])
 									currentOrderList.Orders[j+1] = internalPressOrder
 									return
@@ -449,11 +449,11 @@ func distributeInternalOrderToOrderList(internalPressOrder definitions.Order, cu
 				}
 			}
 		} else {
-			tempNum = definitions.N_FLOORS -1
+			tempNum = def.N_FLOORS -1
 			fmt.Println("You are going down")
 			if currentOrderList.Orders[0].Floor == elevatorState.Destination { /* You can add in front of currentOrderList */
 				fmt.Println("First order is the destination floor")
-				currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+				currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 				copy(currentOrderList.Orders[1:], currentOrderList.Orders[:])
 				currentOrderList.Orders[0] = internalPressOrder
 				return 
@@ -464,7 +464,7 @@ func distributeInternalOrderToOrderList(internalPressOrder definitions.Order, cu
 						fmt.Println(" order.Floor > tempNum ")
 						if order.Floor < internalPressOrder.Floor && elevatorState.LastFloor < internalPressOrder.Floor {
 							fmt.Println("This IF STATEMENT")
-							currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+							currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 							copy(currentOrderList.Orders[i+1:], currentOrderList.Orders[i:])
 							currentOrderList.Orders[i] = internalPressOrder
 							return 
@@ -480,14 +480,14 @@ func distributeInternalOrderToOrderList(internalPressOrder definitions.Order, cu
 								if order2.Floor > internalPressOrder.Floor {
 									fmt.Println("The other IF STATEMENT")
 
-									currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+1:], currentOrderList.Orders[j:])
 									currentOrderList.Orders[j] = internalPressOrder
 									return 
 								} else if j == len(currentOrderList.Orders)-1 {
 									fmt.Println("This third STATEMENT")
 
-									currentOrderList.Orders = append(currentOrderList.Orders, definitions.Order{})
+									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+2:], currentOrderList.Orders[j+1:])
 									currentOrderList.Orders[j+1] = internalPressOrder
 									return 

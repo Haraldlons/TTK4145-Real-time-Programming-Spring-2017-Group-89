@@ -1,16 +1,16 @@
 package buttons
 
 import (
-	"../definitions"
+	"../def"
 	"../driver"
 	// "fmt"
 	"time"
 )
 
-func Check_button_internal(buttonPressesChan chan [definitions.N_FLOORS]int) {
+func Check_button_internal(buttonPressesChan chan [def.N_FLOORS]int) {
 	pressed := driver.Elev_get_button_signal(2, 0)
-	var buttonArray [definitions.N_FLOORS]int
-	// var lastButtonArray [definitions.N_FLOORS]int
+	var buttonArray [def.N_FLOORS]int
+	// var lastButtonArray [def.N_FLOORS]int
 
 	// fmt.Println("buttonArray: ", buttonArray)
 	// fmt.Println("Check_button_internal started. Button pressed: ", pressed)
@@ -18,7 +18,7 @@ func Check_button_internal(buttonPressesChan chan [definitions.N_FLOORS]int) {
 	// lastButtonArray[last_i] = 2
 	for {
 
-		for i := 0; i < definitions.N_FLOORS; i++ {
+		for i := 0; i < def.N_FLOORS; i++ {
 			pressed = driver.Elev_get_button_signal(2, i)
 
 			// fmt.Println("What is pressed: ", i , ": ", pressed)
@@ -45,17 +45,17 @@ func Check_button_internal(buttonPressesChan chan [definitions.N_FLOORS]int) {
 // 	press := driver.Elev_get_button_signal(int, int)
 // }
 // PLEASE; FOR GODS SAKE: DONT LOOK AT THE CODE!!
-func Check_button_external(buttonPressesChan chan [definitions.N_FLOORS][2]int) {
+func Check_button_external(buttonPressesChan chan [def.N_FLOORS][2]int) {
 	pressed := driver.Elev_get_button_signal(1, 0)
-	var buttonArray [definitions.N_FLOORS][2]int
+	var buttonArray [def.N_FLOORS][2]int
 	// fmt.Println("buttonArray: ", buttonArray)
 	// fmt.Println("Check_button_internal started. Button pressed: ", pressed)
-	// var lastButtonArray [definitions.N_FLOORS][2]int
+	// var lastButtonArray [def.N_FLOORS][2]int
 	// last_i := 0 /*Random number above N_FLOORS*/
 	// last_j := 0
 	// isFirstTime := true
 	for {
-		for i := 0; i < definitions.N_FLOORS; i++ {
+		for i := 0; i < def.N_FLOORS; i++ {
 			for j := 0; j < 2; j++ {
 				pressed = driver.Elev_get_button_signal(j, i)
 				// fmt.Println("What is pressed: ", i , ": ", pressed)

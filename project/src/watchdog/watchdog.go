@@ -1,7 +1,7 @@
 package watchdog
 
 import (
-	"../definitions"
+	"../def"
 	// "../master"
 	"../network"
 	"../storage"
@@ -44,14 +44,14 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	// }
 }
 
-func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders, sendMessageToMaster chan bool, newInternalButtonOrderChan chan definitions.Order) {
+func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan def.Orders, orderListForExecuteOrders chan<- def.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- def.Orders, lastSentMsgToMasterChanForPrinting chan<- def.MSG_to_master, orderListForSendingToMaster chan def.Orders, sendMessageToMaster chan bool, newInternalButtonOrderChan chan def.Order) {
 
-	currentOrderList := definitions.Orders{}
+	currentOrderList := def.Orders{}
 	storage.LoadOrdersFromFile(1, &currentOrderList)
 	fmt.Println("Loaded totalOrderlist from a file. Result: ", currentOrderList)
 	orderListForExecuteOrders <- currentOrderList
-	// newInternalButtonPress := definitions.Order{}
-	lastOrderList := definitions.Orders{}
+	// newInternalButtonPress := def.Order{}
+	lastOrderList := def.Orders{}
 
 	for {
 		select {
@@ -87,7 +87,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			fmt.Println("CurrentOrderlist in special case:", currentOrderList)
 			if len(currentOrderList.Orders) > 0 {
 				fmt.Println("completedCurrentOrder23")
-				currentOrderList = definitions.Orders{currentOrderList.Orders[1:]}
+				currentOrderList = def.Orders{currentOrderList.Orders[1:]}
 				fmt.Println("orderListafterSlice: ", currentOrderList)
 			}
 			orderListForExecuteOrders <- currentOrderList
@@ -97,7 +97,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			fmt.Println("46.5")
 			orderListChanForPrinting <- currentOrderList
 			fmt.Println("47")
-			// msg := definitions.MSG_to_master{Orders: currentOrderList, Id: elevator_id}
+			// msg := def.MSG_to_master{Orders: currentOrderList, Id: elevator_id}
 			// fmt.Println("msg_to_master: ", msg)
 			fmt.Println("48")
 			// network.SendUpdatesToMaster(msg, lastSentMsgToMasterChanForPrinting)
@@ -121,7 +121,7 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 }
 
 
-func checkIfChangedOrderList(lastOrderList definitions.Orders, currentOrderList definitions.Orders) bool {
+func checkIfChangedOrderList(lastOrderList def.Orders, currentOrderList def.Orders) bool {
 	if len(lastOrderList.Orders) != len(currentOrderList.Orders) {
 		return true
 	}

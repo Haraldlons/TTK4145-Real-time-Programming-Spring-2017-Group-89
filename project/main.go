@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./src/definitions"
+	"./src/def"
 	"./src/slave"
 	//"./src/driver"
 	// "./src/elevator"
@@ -29,7 +29,7 @@ func main() {
 			// fmt.Println("Stopsignal: ", stopSignal)
 			if stopSignal != 0 {
 				// setOrderOverNetwork(0)
-				driver.Elev_set_motor_direction(definitions.DIR_STOP)
+				driver.Elev_set_motor_direction(def.DIR_STOP)
 				// fmt.Println("Stopping program, with stop signal: ", stopSignal)
 				// fmt.Println("Another call to Elev_get_stop_signal(): ", driver.Elev_get_stop_signal())
 				time.Sleep(100 * time.Millisecond)

@@ -1,7 +1,7 @@
 package network
 
 import (
-	"../definitions"
+	"../def"
 	// "../driver"
 	// "../buttons"
 	"../storage"
@@ -183,7 +183,7 @@ func CheckIfMasterAlreadyExist() bool {
 	}
 }
 
-func SendUpdatesToMaster(msg definitions.MSG_to_master, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master) {
+func SendUpdatesToMaster(msg def.MSG_to_master, lastSentMsgToMasterChanForPrinting chan<- def.MSG_to_master) {
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+slaveToMasterPort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
@@ -215,16 +215,16 @@ func SendUpdatesToMaster(msg definitions.MSG_to_master, lastSentMsgToMasterChanF
 	udpBroadcast.Write(b)
 }
 
-func ListenToMasterUpdates(updatedOrderList chan definitions.Orders, elevator_id string, lastRecievedMSGFromMasterChanForPrinting chan<- definitions.MSG_to_slave, /*mutex *sync.Mutex*/) {
+func ListenToMasterUpdates(updatedOrderList chan def.Orders, elevator_id string, lastRecievedMSGFromMasterChanForPrinting chan<- def.MSG_to_slave, /*mutex *sync.Mutex*/) {
 	fmt.Println("Listening after Updates from Master")
 
 	udpAddr, _ := net.ResolveUDPAddr("udp", masterToSlavePort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
 	defer udpListen.Close()
 
-	msg := definitions.MSG_to_slave{}
+	msg := def.MSG_to_slave{}
 
-	listenChan := make(chan definitions.MSG_to_slave)
+	listenChan := make(chan def.MSG_to_slave)
 
 	go func() {
 		buf := make([]byte, 65536) /*2^16 = max recovery size*/
@@ -281,7 +281,7 @@ func GetLocalIP() (string, error) {
 	return localIP, nil
 }
 
-func ListenToSlave(msgChan chan definitions.MSG_to_master) {
+func ListenToSlave(msgChan chan def.MSG_to_master) {
 	fmt.Println("Listening after messages from slave")
 	udpAddr, _ := net.ResolveUDPAddr("udp", slaveToMasterPort)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
@@ -296,7 +296,7 @@ func ListenToSlave(msgChan chan definitions.MSG_to_master) {
 			udpListen.ReadFromUDP(buf)
 			// Two first bytes contains the size of the JSON byte array
 			jsonByteLength := int(buf[0])*255 + int(buf[1])
-			msg := definitions.MSG_to_master{}
+			msg := def.MSG_to_master{}
 			// Convert back to struct
 			if jsonByteLength > 0 {
 				// Decode message
@@ -313,7 +313,7 @@ func ListenToSlave(msgChan chan definitions.MSG_to_master) {
 	}
 }
 
-func SendToSlave(msg definitions.MSG_to_slave, mutex *sync.Mutex) {
+func SendToSlave(msg def.MSG_to_slave, mutex *sync.Mutex) {
 
 	udpAddr, err := net.ResolveUDPAddr("udp", bcAddress+masterToSlavePort)
 	udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)

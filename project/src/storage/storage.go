@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"../definitions"
+	"../def"
 	// "../driver"
 	// "../slave"
 	// "./src/network"
@@ -111,7 +111,7 @@ func SaveJSONtoFile(state interface{}) { //TODO DELETE
 }
 
 
-func SaveElevatorsToFile(elevators definitions.Elevators) {
+func SaveElevatorsToFile(elevators def.Elevators) {
 	fmt.Println("Saving elevators to file")
 	fileName := FILENAME_ELEVATORS
 	outFile, err := os.Create(FILEPATH + fileName)
@@ -123,7 +123,7 @@ func SaveElevatorsToFile(elevators definitions.Elevators) {
 	checkError(err)
 }
 
-func LoadElevatorsFromFile(elevators *definitions.Elevators) {
+func LoadElevatorsFromFile(elevators *def.Elevators) {
 	fmt.Println("Loading elevators from file")
 	fileName := FILENAME_ELEVATORS
 	inFile, err := os.Open(FILEPATH + fileName)
