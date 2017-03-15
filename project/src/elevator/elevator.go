@@ -17,6 +17,8 @@ func ExecuteOrders(orderListForExecuteOrders <-chan definitions.Orders, complete
  	orderList := definitions.Orders{}
  	floorSensorValue := -1
 
+ 	// time.Sleep(time.Millisecond*1000)
+
 
 
 	// elevatorState := storage.LoadElevatorStateFromFile(updateElevatorState)
@@ -76,6 +78,7 @@ func ExecuteOrders(orderListForExecuteOrders <-chan definitions.Orders, complete
 				if floorSensorValue >= 0 {
 					elevatorState.LastFloor = floorSensorValue
 					elevatorState.Destination = findDestination(orderList)
+					driver.Elev_set_floor_indicator(floorSensorValue)
 				}
 
 				if floorSensorValue == orderList.Orders[0].Floor {

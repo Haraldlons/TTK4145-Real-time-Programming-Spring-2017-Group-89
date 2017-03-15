@@ -15,14 +15,12 @@ const (
 	ON               bool = true
 	OFF              bool = false
 
-	//States
-	IDLE      int = -1
-	MOVING    int = 1
-	DOOR_OPEN int = 2
+	//Extra states
+	IDLE      int = -1 // Used in the destination field of "Order"
+	// MOVING    int = 1
+	// DOOR_OPEN int = 2
 
-	LOCAL_LISTEN_PORT     int = 20020
-	BROADCAST_LISTEN_PORT int = 30020
-	MESSAGE_SIZE          int = 1024
+	
 )
 
 type Order struct {
@@ -54,10 +52,4 @@ type MSG_to_master struct {
 
 type MSG_to_slave struct {
 	Elevators Elevators
-}
-
-type TestMessage struct {
-	Name string
-	Body string
-	Time int64
 }

@@ -32,9 +32,9 @@ func Run() {
 	driver.Elev_set_motor_direction(definitions.DIR_STOP)
 
 	//Get IP address
-	elevator_id, err := network.GetLocalIP()
+	slave_id, err := network.GetLocalIP()
 	if err != nil {
-		elevator_id = "localhost"
+		slave_id = "localhost"
 	}
 
 	mutex := &sync.Mutex{}
@@ -72,7 +72,7 @@ func Run() {
 	// elevatorStateChanMap["forExternalPresses"] = elevatorStateForExternalPresses
 	// elevatorStateChanMap["forFloorUpdates"] = ElevatorStateForFloorUpdatesChan
 
-	go network.SendSlaveIsAliveRegularly(44, stopSendingImAliveMessage)
+	go network.SendSlaveIsAliveRegularly(slave_id, stopSendingImAliveMessage)
 	go watchdog.CheckIfMasterIsAliveRegularly(masterHasDiedChan)
 
 	go buttons.Check_button_internal(internalButtonsPressesChan)
@@ -80,16 +80,16 @@ func Run() {
 	// go handleInternalButtonPresses(internalButtonsPressesChan)
 	// go handleExternalButtonPresses(externalButtonsPressesChan)
 
-	go printExternalPresses(externalButtonsPressesChan, elevator_id, lastSentMsgToMasterChanForPrinting, extButToMaster, sendMessageToMaster)
+	go printExternalPresses(externalButtonsPressesChan, slave_id, lastSentMsgToMasterChanForPrinting, extButToMaster, sendMessageToMaster)
 	go printInternalPresses(internalButtonsPressesChan)
 
-	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, elevator_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster)
-	go network.ListenToMasterUpdates(updatedOrderList, elevator_id, lastRecievedMSGFromMasterChanForPrinting)
+	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, slave_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster, sendMessageToMaster)
+	go network.ListenToMasterUpdates(updatedOrderList, slave_id, lastRecievedMSGFromMasterChanForPrinting/*, mutex*/)
 
 	// go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, elevatorStateChanForPrinting, elevatorStateToMaster)
 
 	go elevator.ExecuteOrders(orderListForExecuteOrders, completedCurrentOrder, elevatorStateToMasterChan, elevatorStateChanForPrinting)
-	go sendUpdatesToMaster(elevator_id, elevatorStateToMasterChan, orderListForSendingToMaster, extButToMaster, sendMessageToMaster, lastSentMsgToMasterChanForPrinting)
+	go sendUpdatesToMaster(slave_id, elevatorStateToMasterChan, orderListForSendingToMaster, extButToMaster, sendMessageToMaster, lastSentMsgToMasterChanForPrinting)
 	// fmt.Println("GOROUTINES HAVE STARTED!")
 	// go watchdog.CheckIfElevatorIsStuck(executeOrdersIsAliveChan)
 
@@ -197,13 +197,13 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 	}
 }
 
-func sendUpdatesToMaster(elevator_id string, elevatorStateToMaster chan definitions.ElevatorState, orderListForSendingToMaster chan definitions.Orders, extButToMaster chan definitions.Order, sendMessageToMaster chan bool, lastSentMsgToMasterChanForPrinting chan definitions.MSG_to_master) {
+func sendUpdatesToMaster(slave_id string, elevatorStateToMaster chan definitions.ElevatorState, orderListForSendingToMaster chan definitions.Orders, extButToMaster chan definitions.Order, sendMessageToMaster chan bool, lastSentMsgToMasterChanForPrinting chan definitions.MSG_to_master) {
 
 	elevatorState := definitions.ElevatorState{}
 	orderList := definitions.Orders{}
 	externalButtonpresses := []definitions.Order{}
 	externalButtonpress := definitions.Order{}
-	msg_to_master := definitions.MSG_to_master{Orders: orderList, ElevatorState: elevatorState, ExternalButtonPresses: externalButtonpresses, Id: elevator_id}
+	msg_to_master := definitions.MSG_to_master{Orders: orderList, ElevatorState: elevatorState, ExternalButtonPresses: externalButtonpresses, Id: slave_id}
 
 	for {
 		select {
@@ -310,7 +310,7 @@ func Change_master() bool { /*Do we need this?*/
 	return true
 }
 
-func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int, elevator_id string, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, extButToMaster chan definitions.Order, sendMessageToMaster chan bool) {
+func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int, slave_id string, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, extButToMaster chan definitions.Order, sendMessageToMaster chan bool) {
 	// orderList := definitions.Orders{}
 	// msg_to_master := definitions.MSG_to_master{}
 	// go func() {
@@ -347,7 +347,7 @@ func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int,
 			// fmt.Println("------------------------------------")
 			// fmt.Println("------------------------------------")
 			// fmt.Println("msg_to_master.ExternalButtonPresses", msg_to_master.ExternalButtonPresses)
-			// network.SendUpdatesToMaster(msg_to_master, elevatorState, elevator_id, lastSentMsgToMasterChanForPrinting)
+			// network.SendUpdatesToMaster(msg_to_master, elevatorState, slave_id, lastSentMsgToMasterChanForPrinting)
 			// msg_to_master.ExternalButtonPresses = []definitions.Order{}
 
 			// go findFloorAngGoTo(externalButtonsChan)

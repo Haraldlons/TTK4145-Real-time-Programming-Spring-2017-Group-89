@@ -11,7 +11,7 @@ import (
 	// "./src/storage"
 	"./src/master"
 	// "./src/watchdog"
-	"fmt"
+	// "fmt"
 	// "log"
 	// "os"
 	// "os/exec"
@@ -19,18 +19,7 @@ import (
 	"time"
 )
 
-var delay = 50 * time.Millisecond
-var elevatorActive = false
-var port string = ":46723"
-
-// var elevatorState = definitions.ElevatorState{2, 0}
-var msg = make([]byte, 8)
-
 func main() {
-	fmt.Println("Main function started")
-	// go slave.Run()
-	// go master.Run()
-	// go network.SetupNetwork()
 
 	go func() {
 		stopSignal := 0
@@ -49,8 +38,7 @@ func main() {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}()
-	// udpAddr, _ := net.ResolveUDPAddr("udp", port)
-	// fmt.Println("udpAddr", udpAddr)
+
 	go func() {
 		for {
 			if network.CheckIfMasterAlreadyExist() {
@@ -65,5 +53,4 @@ func main() {
 	for {
 		time.Sleep(time.Second)
 	}
-
 }

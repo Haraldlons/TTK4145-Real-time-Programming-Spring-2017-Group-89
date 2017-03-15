@@ -27,7 +27,7 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	go network.ListenAfterAliveMasterRegularly(masterIsAliveChan, stopListening)
 	for {
 		select {
-		// case master_id := <-masterIsAliveChan:
+		case /*master_id := */<-masterIsAliveChan:
 
 		// fmt.Println("Master is still alive: , ", master_id)
 
@@ -44,14 +44,13 @@ func CheckIfMasterIsAliveRegularly(masterHasDiedChan chan bool) {
 	// }
 }
 
-func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders) {
+func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan definitions.Orders, orderListForExecuteOrders chan<- definitions.Orders, completedCurrentOrder <-chan bool, elevator_id string, orderListChanForPrinting chan<- definitions.Orders, lastSentMsgToMasterChanForPrinting chan<- definitions.MSG_to_master, orderListForSendingToMaster chan definitions.Orders, sendMessageToMaster chan bool) {
 
 
 	currentOrderList := definitions.Orders{}
 	storage.LoadOrdersFromFile(1, &currentOrderList)
 	fmt.Println("Loaded totalOrderlist from a file. Result: ", currentOrderList)
 	orderListForExecuteOrders <- currentOrderList
-	time.Sleep(50 * time.Millisecond)
 
 	// internalPressOrder := definitions.Order{}
 
@@ -118,14 +117,17 @@ func TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList <-chan de
 			fmt.Println("45")
 			fmt.Println("46")
 			storage.SaveOrdersToFile(1, currentOrderList)
+			fmt.Println("46.5")
 			orderListChanForPrinting <- currentOrderList
 			fmt.Println("47")
-			msg := definitions.MSG_to_master{Orders: currentOrderList, Id: elevator_id}
+			// msg := definitions.MSG_to_master{Orders: currentOrderList, Id: elevator_id}
 			// fmt.Println("msg_to_master: ", msg)
 			fmt.Println("48")
-			network.SendUpdatesToMaster(msg, lastSentMsgToMasterChanForPrinting)
+			// network.SendUpdatesToMaster(msg, lastSentMsgToMasterChanForPrinting)
 			fmt.Println("49")
 			orderListForSendingToMaster <- currentOrderList
+			sendMessageToMaster <- true
+
 			fmt.Println("50")
 		}
 	}
@@ -189,15 +191,15 @@ func checkIfChangedOrderList(lastOrderList definitions.Orders, currentOrderList 
 }
 
 
-func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesMapChanMap map[string](chan map[string]bool)) {
-	allSlavesMap := make(map[string]bool)
+func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesAliveMapChanMap map[string](chan map[string]bool)) {
+	allSlavesAliveMap := make(map[string]bool)
 	deadTime := time.Second * 3 // 3 seconds and slave is assumed dead
 	timerMap := make(map[string]*time.Timer)
 
 	for {
 		select {
 		case slave_id := <-updatedSlaveIdChan:
-			if allSlavesMap[slave_id] == false { // If slave is new
+			if allSlavesAliveMap[slave_id] == false { // If slave is new
 				fmt.Println("Creating new timer for:", slave_id)
 				timerMap[slave_id] = time.NewTimer(deadTime)
 			}
@@ -205,7 +207,7 @@ func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesMapCha
 
 			// We have to use a mutex, as maps are passed by reference
 			// mutex.Lock()
-			allSlavesMap[slave_id] = true
+			allSlavesAliveMap[slave_id] = true
 			// mutex.Unlock()
 
 			fmt.Println("Resetting timer for:", slave_id)
@@ -218,7 +220,7 @@ func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesMapCha
 				case <-timer.C: // deadTime has passed
 					fmt.Println("\nSlave ", id, "is assumed dead\n")
 					// mutex.Lock()
-					allSlavesMap[id] = false // Slave is assumed dead
+					allSlavesAliveMap[id] = false // Slave is assumed dead
 					// mutex.Unlock()
 
 				default: // Needed to avoid blocking of channels
@@ -227,8 +229,9 @@ func KeepTrackOfAllAliveSlaves(updatedSlaveIdChan <-chan string, allSlavesMapCha
 			}
 		}
 		// Send map of all slaves to all channels
-		for key := range allSlavesMapChanMap {
-			allSlavesMapChanMap[key] <- allSlavesMap
+		for key := range allSlavesAliveMapChanMap {
+			fmt.Println("allSlavesAliveMap in watchdog:", allSlavesAliveMap)
+			allSlavesAliveMapChanMap[key] <- allSlavesAliveMap
 		}
 	}
 }

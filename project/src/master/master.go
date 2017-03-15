@@ -36,7 +36,7 @@ func Run() {
 	stopSendingChan := make(chan bool)
 
 	// Channels for sending a map with alive-status of all slaves connected to the network
-	allSlavesMapChanMap := map[string]chan map[string]bool{
+	allSlavesAliveMapChanMap := map[string]chan map[string]bool{
 		// "toKeepTrackOfAllAliveSlaves": make(chan map[string]bool),
 		"toRun":                     make(chan map[string]bool),
 		"toHandleUpdatesFromSlaves": make(chan map[string]bool),
@@ -50,32 +50,34 @@ func Run() {
 	}
 
 
-
 	// Send alive messages from master regularly
 	go network.SendMasterIsAliveRegularly(master_id, stopSendingChan)
 
 	// Listen after alive slaves and keep track of alive ones
 	go network.ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap, stopSendingChan)
-	go watchdog.KeepTrackOfAllAliveSlaves(updatedSlaveIdChanMap["toWatchdog"], allSlavesMapChanMap)
+	go watchdog.KeepTrackOfAllAliveSlaves(updatedSlaveIdChanMap["toWatchdog"], allSlavesAliveMapChanMap)
 
 	// Receive messages from slaves, handle, then send to all slaves
-	go handleUpdatesFromSlaves(totalOrderListChan, master_id, mutex)
-	go sendMessageToSlavesOnUpdate(totalOrderListChan)
+	go handleUpdatesFromSlaves(totalOrderListChan, allSlavesAliveMapChanMap["toHandleUpdatesFromSlaves"], master_id, mutex)
+	go sendMessageToSlavesOnUpdate(totalOrderListChan, mutex)
 
 	for {
 		select {
 		// Blocking statement to listen for changes in slaves' status
-		case allSlavesMap := <-allSlavesMapChanMap["toRun"]:
+		case allSlavesAliveMap := <-allSlavesAliveMapChanMap["toRun"]:
 			// If any slaves died, their last known orders will be redistributed to alive slaves
-			redistributeOrders(allSlavesMap, totalOrderListChan, master_id)
+			go redistributeOrders(allSlavesAliveMap, totalOrderListChan, master_id)
 		}
 	}
 }
 
 // Update order list in "orders" object with the command defined by externalButtonPress
 func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorState definitions.ElevatorState) {
-	if CheckForDuplicateOrder(orders, externalButtonPress.Floor) {
-		fmt.Println("This order is already in the queue!")
+	if CheckForDuplicateOrder(orders, externalButtonPress.Floor) { // TODO: DO NOT REMOVE ORDERS ALONG THE SAME DIRECTION
+		// fmt.Println("This order is already in the queue!")
+		// fmt.Println("\nORDERS BEFORE findAndReplaceOrderIfSameDirection():", orders)
+		findAndReplaceOrderIfSameDirection(orders, externalButtonPress, elevatorState.Direction) //TODO
+		// fmt.Println("ORDERS AFTER findAndReplaceOrderIfSameDirection():", orders, "\n")
 		return
 	}
 
@@ -137,12 +139,27 @@ func updateOrders(orders *definitions.Orders, externalButtonPress definitions.Or
 
 // Don't accept more orders to same floor. Assume every person gets on elevator.
 func CheckForDuplicateOrder(orders *definitions.Orders, buttonPressedFloor int) bool {
-	for i := range orders.Orders {
-		if orders.Orders[i].Floor == buttonPressedFloor {
+	for _, order := range orders.Orders {
+		if order.Floor == buttonPressedFloor {
 			return true
 		}
 	}
 	return false
+}
+
+func findAndReplaceOrderIfSameDirection(orders *definitions.Orders, externalButtonPress definitions.Order, elevatorDirection int) {
+	// No point if orderList only has one order
+	if len(orders.Orders) > 1 { 
+		return
+	}
+	for i:= range orders.Orders {
+		// Elevator is moving in the same direction as the buttonPress
+		// TODO: THE ABOVE STATEMENT IS PRETTY MUCH NEVER CORRECT
+		if orders.Orders[i].Floor == externalButtonPress.Floor && externalButtonPress.Direction == elevatorDirection {
+			orders.Orders[i].Direction = externalButtonPress.Direction // Change direction of order
+			return
+		}
+	}
 }
 
 func FloorIsInbetween(orderFloor int, buttonFloor int, elevatorLastFloor int, elevatorDirection int) bool {
@@ -216,24 +233,26 @@ func elevatorHasAdditionalCost(travelDirection int, destinationFloor int, destin
 		destinationFloor == elevState.LastFloor // Elevator has probably passed destination
 }
 
-func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elevator_id string, mutex *sync.Mutex) {
+func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, allSlavesAliveMapChanMap chan map[string]bool, elevator_id string, mutex *sync.Mutex) {
+	// Initialize local channel
 	msgChan := make(chan definitions.MSG_to_master)
-	// completedUpdateOfOrderList := make(chan bool)
-	// go func() {
-	// completedUpdateOfOrderList <- true
-	// }()
 
+	// Initialize totalOrderList
 	totalOrderList := definitions.Elevators{}
-	// Initialize maps
+
+	// Initialize maps in totalOrderList
 	totalOrderList.OrderMap = make(map[string]definitions.Orders)
 	totalOrderList.ElevatorStateMap = make(map[string]definitions.ElevatorState)
+
+	// Initialize map of aliveSlaves
+	allSlavesAliveMap := make(map[string]bool)
+
+	
 
 	// Start goroutine to listen for updates from slaves
 	go network.ListenToSlave(msgChan)
 
 	for {
-		// 	select {
-		// 	case <-completedUpdateOfOrderList:
 		select {
 		case msg := <-msgChan: // New message received
 			// fmt.Println("List of orders from msgChan:", msg.Orders)
@@ -265,7 +284,6 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 				updateOrders(&orders, msg.ExternalButtonPresses[i], elevatorStateMap[bestElevator_id])
 				totalOrderList.OrderMap[bestElevator_id] = orders
 				mutex.Unlock()
-
 			}
 
 			// fmt.Println("Total order list: ", totalOrderList)
@@ -277,12 +295,24 @@ func handleUpdatesFromSlaves(totalOrderListChan chan definitions.Elevators, elev
 			// }()
 			time.Sleep(time.Millisecond * 100)
 		// case slavesAliveMap = <- slavesAliveMapToHandleUpdatesFromSlavesChan /*To be implemented*/
+		case allSlavesAliveMap = <- allSlavesAliveMapChanMap: // Update on wether slaves are alive or not
+			for slave_id, isAlive := range allSlavesAliveMap {
+				// If a slave has died
+				if !isAlive {
+					// Delete slave from totalOrderList
+					mutex.Lock()
+					delete(totalOrderList.OrderMap, slave_id)
+					delete(totalOrderList.ElevatorStateMap, slave_id)
+					fmt.Println("TOTALORDERLIST AFTER DELETION OF DEAD SLAVE:", totalOrderList)
+					mutex.Unlock()
+				}
+			}
 		}
 	}
 }
 
 // When totalorderlist is updated, send to all slaves
-func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators) {
+func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators, mutex *sync.Mutex) {
 
 	for {
 		select {
@@ -294,19 +324,18 @@ func sendMessageToSlavesOnUpdate(totalOrderListChan <-chan definitions.Elevators
 				network.SendToSlave(msg, mutex)
 			}
 		}
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
 // Function to be ran when program is booting.
 // Used to redistribute active orders of elevators that have died
-func redistributeOrders(allSlavesMap map[string]bool, totalOrderListChan chan<- definitions.Elevators, master_id string) {
-	defer fmt.Println("Orders have been redistributed and sent to network")
+func redistributeOrders(allSlavesAliveMap map[string]bool, totalOrderListChan chan<- definitions.Elevators, master_id string) {
 	totalOrderList := definitions.Elevators{}
 	storage.LoadElevatorsFromFile(&totalOrderList)
 
 	// Loop through the id of every currently alive slave
-	for id_slaves, isAlive := range allSlavesMap {
+	for id_slaves, isAlive := range allSlavesAliveMap {
 		// Loop through maps of every elevator loaded from storage
 		for id := range totalOrderList.OrderMap {
 			if id_slaves == id && !isAlive { // Dead elevator
@@ -319,25 +348,25 @@ func redistributeOrders(allSlavesMap map[string]bool, totalOrderListChan chan<- 
 						updatedOrders := totalOrderList.OrderMap[id]
 						updateOrders(&updatedOrders, orders[i], totalOrderList.ElevatorStateMap[elevator_id])
 						totalOrderList.OrderMap[id] = updatedOrders
+						// Send updates to channel, which in turn is sent over network
+						fmt.Println("Orders have been redistributed and sent to network")
+						totalOrderListChan <- totalOrderList
 					}
 				}
 			}
 		}
 	}
-
-	// Send updates to channel, which in turn is sent over network
-	totalOrderListChan <- totalOrderList
 }
 
-// func keepTrackOfAllAliveSlaves(updatedSlaveIdChanMap map[string]chan string, allSlavesMapChanMap map[string]chan map[string]bool, master_id string) {
-// 	allSlavesMap := make(map[string]bool)
+// func keepTrackOfAllAliveSlaves(updatedSlaveIdChanMap map[string]chan string, allSlavesAliveMapChanMap map[string]chan map[string]bool, master_id string) {
+// 	allSlavesAliveMap := make(map[string]bool)
 // 	go network.ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap)
 // 	for {
 // 		select {
 // 		// Receive status of all slaves from watchdog
-// 		case allSlavesMap = <-allSlavesMapChanMap["toKeepTrackOfAllAliveSlaves"]:
+// 		case allSlavesAliveMap = <-allSlavesAliveMapChanMap["toKeepTrackOfAllAliveSlaves"]:
 // 			// Send status to Run()
-// 			allSlavesMapChanMap["toRun"] <- allSlavesMap
+// 			allSlavesAliveMapChanMap["toRun"] <- allSlavesAliveMap
 // 		}
 // 	}
 // }
