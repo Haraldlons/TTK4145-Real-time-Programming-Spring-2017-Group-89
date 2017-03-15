@@ -43,6 +43,8 @@ func Run() {
 	internalButtonsPressesChan := make(chan [definitions.N_FLOORS]int)
 	externalButtonsPressesChan := make(chan [definitions.N_FLOORS][2]int)
 	stopSendingImAliveMessage := make(chan bool)
+	newInternalButtonOrderChan := make(chan definitions.Order)
+
 	// stopRecievingImAliveMessage := make(chan bool)
 	masterHasDiedChan := make(chan bool)
 	completedCurrentOrder := make(chan bool)
@@ -81,9 +83,9 @@ func Run() {
 	// go handleExternalButtonPresses(externalButtonsPressesChan)
 
 	go printExternalPresses(externalButtonsPressesChan, elevator_id, lastSentMsgToMasterChanForPrinting, extButToMaster, sendMessageToMaster)
-	go printInternalPresses(internalButtonsPressesChan)
+	go printInternalPresses(internalButtonsPressesChan, newInternalButtonOrderChan)
 
-	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, elevator_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster)
+	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, elevator_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster, newInternalButtonOrderChan)
 	go network.ListenToMasterUpdates(updatedOrderList, elevator_id, lastRecievedMSGFromMasterChanForPrinting)
 
 	// go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, elevatorStateChanForPrinting, elevatorStateToMaster)
@@ -116,15 +118,15 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			fmt.Println("Current updated elevator state:", elevatorState)
 			fmt.Println("--------------------------------")
 			fmt.Println("0")
-	
-				elevatorStateChanForExecuteOrders <- elevatorState
-				fmt.Println("1")
-				fmt.Println("2")
-				fmt.Println("3")
-				fmt.Println("4")
-				elevatorStateChanForPrinting <- elevatorState
-				fmt.Println("5")
-				elevatorStateToMaster <- elevatorState
+
+			elevatorStateChanForExecuteOrders <- elevatorState
+			fmt.Println("1")
+			fmt.Println("2")
+			fmt.Println("3")
+			fmt.Println("4")
+			elevatorStateChanForPrinting <- elevatorState
+			fmt.Println("5")
+			elevatorStateToMaster <- elevatorState
 		case updatedFloor := <-updateElevatorStateFloor:
 			fmt.Println("updateFloor")
 			elevatorState.LastFloor = updatedFloor
@@ -153,7 +155,7 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 				fmt.Println("10")
 				elevatorStateToMaster <- elevatorState
 				fmt.Println("11")
-		}
+			}
 		case updateDirection := <-updateElevatorStateDirection:
 			fmt.Println("12")
 			elevatorState.Direction = updateDirection
@@ -179,8 +181,8 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 			// fmt.Println("Current updated elevator state:", elevatorState)
 			// fmt.Println("--------------------------------")
 			select {
-				case elevatorState.Direction = <-updateElevatorStateDirection:
-				default:
+			case elevatorState.Direction = <-updateElevatorStateDirection:
+			default:
 				elevatorStateChanForExecuteOrders <- elevatorState
 				fmt.Println("20")
 				fmt.Println("21")
@@ -190,7 +192,7 @@ func listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState <-chan 
 				fmt.Println("24")
 				elevatorStateToMaster <- elevatorState
 				fmt.Println("25")
-					
+
 			}
 		}
 		time.Sleep(50 * time.Millisecond)
@@ -367,7 +369,7 @@ func printExternalPresses(externalButtonsChan chan [definitions.N_FLOORS][2]int,
 	}
 }
 
-func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
+func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int, newInternalButtonOrderChan chan definitions.Order) {
 	// stopCurrentOrder := make(chan int) // Doesn't matter which data type.
 	// isFirstButtonPress := true
 	for {
@@ -380,10 +382,11 @@ func printInternalPresses(internalButtonsChan chan [definitions.N_FLOORS]int) {
 			// 	stopCurrentOrder <- 1
 			// } //Value in channel doesn't matter
 			// go findFloorAndGoTo(internalButtonsChan, <-internalButtonsChan, stopCurrentOrder)
-			
+
 			time.Sleep(time.Millisecond * 200)
-			o := getFloorFromInternalPress(list)
+			floor := getFloorFromInternalPress(list)
 			fmt.Println("Decoded to going to FLOOR INTERNAL PRESS:", o)
+			newInternalButtonOrderChan <- definitions.Order{Floor: floor, Direction: 0}
 			// isFirstButtonPress = false
 			// default:
 			// 	fmt.Println("No button pressed")
