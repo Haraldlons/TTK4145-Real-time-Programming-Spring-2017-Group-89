@@ -85,7 +85,7 @@ func Run() {
 	go printExternalPresses(externalButtonsPressesChan, elevator_id, lastSentMsgToMasterChanForPrinting, extButToMaster, sendMessageToMaster)
 	go printInternalPresses(internalButtonsPressesChan, newInternalButtonOrderChan)
 
-	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, elevator_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster, newInternalButtonOrderChan, orderListForExternalLights, orderListForLightsChan)
+	go watchdog.TakeInUpdatesInOrderListAndSendUpdatesOnChannels(updatedOrderList, orderListForExecuteOrders, completedCurrentOrder, elevator_id, orderListChanForPrinting, lastSentMsgToMasterChanForPrinting, orderListForSendingToMaster, newInternalButtonOrderChan,, orderListForLightsChan)
 	go network.ListenToMasterUpdates(updatedOrderList, elevator_id, lastRecievedMSGFromMasterChanForPrinting)
 
 	// go listenToUpdatesToElevatorStateAndSendOnChannels(updateElevatorState, elevatorStateChanForExecuteOrders, updateElevatorStateFloor, updateElevatorStateDirection, updateElevatorDestinationChan, elevatorStateChanForPrinting, elevatorStateToMaster)
@@ -93,7 +93,7 @@ func Run() {
 	go elevator.ExecuteOrders(orderListForExecuteOrders, completedCurrentOrder, elevatorStateToMasterChan, elevatorStateChanForPrinting)
 	go sendUpdatesToMaster(elevator_id, elevatorStateToMasterChan, orderListForSendingToMaster, extButToMaster, sendMessageToMaster, lastSentMsgToMasterChanForPrinting)
 
-	go keepTrackOfExternalLights(orderListForLightsChan)
+	go keepTrackOfExLights(orderListForLightsChan)
 
 	// fmt.Println("GOROUTINES HAVE STARTED!")
 	// go watchdog.CheckIfElevatorIsStuck(executeOrdersIsAliveChan)
@@ -321,6 +321,9 @@ func keepTrackOfLights(orderListForLightsChan chan definitions.Orders) {
 	for {
 		select {
 		case orderList = <-orderListForLightsChan:
+			internalLightsOn = []bool{false, false, false, false}
+			externalLightsOn = []bool{false, false, false, false}
+
 			for i, order := range orderList {
 				if order.Direction == 0 {
 					/*Internal light*/
