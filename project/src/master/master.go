@@ -77,7 +77,7 @@ func updateOrders(orders *def.Orders, externalButtonPress def.Order, elevatorSta
 		/*Detected internal button press*/
 		distributeInternalOrderToOrderList(externalButtonPress, orders, elevatorState)
 	}
-	if checkForDuplicateOrder(orders, externalButtonPress.Floor) { // TODO: DO NOT REMOVE ORDERS ALONG THE SAME DIRECTION
+	if CheckForDuplicateOrder(orders, externalButtonPress.Floor) { // TODO: DO NOT REMOVE ORDERS ALONG THE SAME DIRECTION
 		// fmt.Println("This order is already in the queue!")
 		// fmt.Println("\nORDERS BEFORE findAndReplaceOrderIfSameDirection():", orders)
 		findAndReplaceOrderIfSameDirection(orders, externalButtonPress, elevatorState.Direction) //TODO
@@ -142,7 +142,7 @@ func updateOrders(orders *def.Orders, externalButtonPress def.Order, elevatorSta
 }
 
 // Don't accept more orders to same floor. Assume every person gets on elevator.
-func checkForDuplicateOrder(orders *def.Orders, buttonPressedFloor int) bool {
+func CheckForDuplicateOrder(orders *def.Orders, buttonPressedFloor int) bool {
 	for _, order := range orders.Orders {
 		if order.Floor == buttonPressedFloor {
 			return true
@@ -392,7 +392,7 @@ func compareIdsAndReturnLargest(id_1 string, id_2 string) string {
 
 func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrderList *def.Orders, elevatorState def.ElevatorState){
 
-	if checkForDuplicateOrder(currentOrderList, internalPressOrder.Floor) {
+	if CheckForDuplicateOrder(currentOrderList, internalPressOrder.Floor) {
 		return
 	}
 

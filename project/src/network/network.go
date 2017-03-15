@@ -186,7 +186,7 @@ func SendUpdatesToMaster(msg def.MSG_to_master, lastSentMsgToMasterChanForPrinti
 	udpBroadcast.Write(b)
 }
 
-func ListenToMasterUpdates(updatedOrderList chan def.Orders, elevator_id string, lastRecievedMSGFromMasterChanForPrinting chan<- def.MSG_to_slave, /*mutex *sync.Mutex*/) {
+func ListenToMasterUpdates(updatedOrderList chan def.Orders, elevator_id string, lastRecievedMSGFromMasterChanForPrinting chan<- def.MSG_to_slave, stopListening chan bool) {
 	fmt.Println("Listening after Updates from Master")
 
 	udpAddr, _ := net.ResolveUDPAddr("udp", def.MasterToSlavePort)
@@ -236,6 +236,8 @@ func ListenToMasterUpdates(updatedOrderList chan def.Orders, elevator_id string,
 			fmt.Println("RECIEVED!!!!!!!!!!!!!!!!!")
 			// mutex.Unlock()
 			time.Sleep(time.Millisecond*50) // wait 50 ms TODO
+		case <- stopListening:
+			return
 		}
 	}
 

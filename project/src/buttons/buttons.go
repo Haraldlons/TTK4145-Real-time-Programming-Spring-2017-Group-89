@@ -28,7 +28,7 @@ func Check_button_internal(buttonPressesChan chan [def.N_FLOORS]int) {
 				// if buttonArray != lastButtonArray {
 					// lastButtonArray[last_i] = 0
 					buttonPressesChan <- buttonArray
-					time.Sleep(500 * time.Millisecond)
+					time.Sleep(200 * time.Millisecond)
 				// }
 				// last_i = i
 				// fmt.Println("Button pressed: " ,i, ": ", pressed)
