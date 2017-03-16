@@ -197,6 +197,7 @@ func sendUpdatesToMaster(slave_id string, elevatorStateToMaster chan def.Elevato
 			fmt.Println("Message ready to be sent to master: ", msg_to_master)
 			network.SendUpdatesToMaster(msg_to_master, lastSentMsgToMasterChanForPrinting)
 			externalButtonpresses = []def.Order{}
+			msg_to_master.ExternalButtonPresses = externalButtonpresses
 		}
 		time.Sleep(time.Millisecond * 50)
 	}
@@ -330,7 +331,6 @@ func Change_master() bool { /*Do we need this?*/
 }
 
 func printExternalPresses(externalButtonsChan chan [def.N_FLOORS][2]int, slave_id string, lastSentMsgToMasterChanForPrinting chan<- def.MSG_to_master, extButToMaster chan def.Order, sendMessageToMaster chan bool) {
-	
 
 	for {
 		select {
@@ -340,7 +340,8 @@ func printExternalPresses(externalButtonsChan chan [def.N_FLOORS][2]int, slave_i
 			extButToMaster <- externalButtonOrder
 			time.Sleep(time.Millisecond * 100)
 			sendMessageToMaster <- true
-			
+
+		}
 	}
 }
 

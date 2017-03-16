@@ -36,11 +36,11 @@ func CheckIfMasterIsAliveRegularly(stopListening chan bool) {
 			time.Sleep(time.Second * 5)
 
 			// Spawn new master
-			newSlave := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-			newSlave.Run()
+			newMaster := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+			newMaster.Run()
 
-			time.Sleep(time.Second * 10)
 			os.Exit(1)
+			// time.Sleep(time.Second * 10)
 		}
 	}
 
