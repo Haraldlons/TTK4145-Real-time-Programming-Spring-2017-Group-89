@@ -1,1 +1,1 @@
-{"OrderMap":{"localhost":{"Orders":[]}},"ElevatorStateMap":{"localhost":{"LastFloor":0,"Direction":-1,"Destination":0}}}
+{"OrderMap":{"129.241.187.148":{"Orders":[]}},"ElevatorStateMap":{"129.241.187.148":{"LastFloor":2,"Direction":-1,"Destination":2}}}

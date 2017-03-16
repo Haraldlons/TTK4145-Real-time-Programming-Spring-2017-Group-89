@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 )
 
@@ -22,28 +23,29 @@ func CheckForMultipleMasters(master_id string) {
 		select {
 		case last_master_id := <-lastAliveMasterChan:
 			fmt.Println("Last master id: ", last_master_id)
-
-			// case <-time.After(time.Second * 3):
-			// 	fmt.Println("Master is not alive for the last three seconds")
-			// 	driver.Elev_set_motor_direction(def.DIR_STOP)
-			// 	go func() {
-			// 		for i := 0; i < 50; i++ {
-			// 			// Send kill signal
-			// 			stopListening <- true
-			// 		}
-			// 	}()
-
-			// 	// Kill all network processes
-			// 	// stopListening <- true
-			// 	// time.Sleep(time.Second * 5)
-
-			// 	// Spawn new master
-			// 	newMaster := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
-			// 	newMaster.Run()
-
-			// 	os.Exit(1)
-			// 	// time.Sleep(time.Second * 10)
+			if last_master_id != master_id { // Another master is alive
+				if findLowestMasterId(master_id, last_master_id) == master_id {
+					os.Exit(1)
+				}
+			}
 		}
+	}
+}
+
+func findLowestMasterId(id_1 string, id_2 string) string {
+	if len(id_1) < len(id_2) {
+		return id_1
+	} else if len(id_1) > len(id_2) {
+		return id_2
+	}
+
+	num1, _ := strconv.ParseInt(id_1[12:], 0, 64) // last number of IP address
+	num2, _ := strconv.ParseInt(id_2[12:], 0, 64)
+
+	if num1 < num2 {
+		return id_1
+	} else {
+		return id_2
 	}
 }
 
