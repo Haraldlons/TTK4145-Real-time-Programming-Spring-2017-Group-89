@@ -4,20 +4,21 @@ package def
 
 const (
 	//General constants
-	N_ELEVS          int  = 3
-	N_FLOORS         int  = 4
-	DIR_UP           int  = 1
-	DIR_DOWN         int  = -1
-	DIR_STOP         int  = 0
+	N_ELEVS  int = 3
+	N_FLOORS int = 4
+	DIR_UP   int = 1
+	DIR_DOWN int = -1
+	DIR_STOP int = 0
 
 	//Extra states
-	IDLE      int = -1 // Used in the destination field of "Order"
+	IDLE int = -1 // Used in the destination field of "Order"
 
-	BcAddress string = "129.241.187.255"
-	MasterIsAlivePort string = ":46721"
-	SlaveIsAlivePort string = ":46720"
-	MasterToSlavePort string = ":18900"
-	SlaveToMasterPort string = ":18901"	
+	BcAddress           string = "129.241.187.255"
+	MasterIsAlivePort   string = ":46721"
+	MultipleMastersPort string = ":46722" // Port for masters to check if other masters exist
+	SlaveIsAlivePort    string = ":46720"
+	MasterToSlavePort   string = ":18900"
+	SlaveToMasterPort   string = ":18901"
 )
 
 type Order struct {

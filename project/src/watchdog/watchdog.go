@@ -13,10 +13,44 @@ import (
 	"time"
 )
 
+func CheckForMultipleMasters(master_id string) {
+	lastAliveMasterChan := make(chan string)
+	dummyChan := make(chan bool)
+
+	go network.ListenAfterAliveMasterRegularly(lastAliveMasterChan, dummyChan, def.MultipleMastersPort)
+	for {
+		select {
+		case last_master_id := <-lastAliveMasterChan:
+			fmt.Println("Last master id: ", last_master_id)
+
+			// case <-time.After(time.Second * 3):
+			// 	fmt.Println("Master is not alive for the last three seconds")
+			// 	driver.Elev_set_motor_direction(def.DIR_STOP)
+			// 	go func() {
+			// 		for i := 0; i < 50; i++ {
+			// 			// Send kill signal
+			// 			stopListening <- true
+			// 		}
+			// 	}()
+
+			// 	// Kill all network processes
+			// 	// stopListening <- true
+			// 	// time.Sleep(time.Second * 5)
+
+			// 	// Spawn new master
+			// 	newMaster := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+			// 	newMaster.Run()
+
+			// 	os.Exit(1)
+			// 	// time.Sleep(time.Second * 10)
+		}
+	}
+}
+
 func CheckIfMasterIsAliveRegularly(stopListening chan bool) {
 	masterIsAliveChan := make(chan string)
 
-	go network.ListenAfterAliveMasterRegularly(masterIsAliveChan, stopListening)
+	go network.ListenAfterAliveMasterRegularly(masterIsAliveChan, stopListening, def.MasterIsAlivePort)
 	for {
 		select {
 		case /*master_id := */ <-masterIsAliveChan:

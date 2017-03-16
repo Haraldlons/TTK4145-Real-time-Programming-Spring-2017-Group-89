@@ -38,18 +38,18 @@ func SendSlaveIsAliveRegularly(slave_id string, stopSendingChan chan bool) {
 	}
 }
 
-func SendMasterIsAliveRegularly(master_id string, stopSendingChan chan bool) {
+func SendMasterIsAliveRegularly(master_id string, stopSendingChan chan bool, port string) {
 	msg := []byte(master_id)
 	for {
 		select {
 		case <-stopSendingChan:
 			return
 		default:
-			udpAddr, err := net.ResolveUDPAddr("udp", def.BcAddress+def.MasterIsAlivePort)
+			udpAddr, err := net.ResolveUDPAddr("udp", def.BcAddress+port)
 			udpBroadcast, err := net.DialUDP("udp", nil, udpAddr)
 
 			if err != nil { //Can't connect to the interwebs
-				udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+def.MasterIsAlivePort)
+				udpAddr, _ = net.ResolveUDPAddr("udp", "localhost"+port)
 				udpBroadcast, _ = net.DialUDP("udp", nil, udpAddr)
 			}
 			udpBroadcast.Write(msg)
@@ -86,8 +86,8 @@ func ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap map[string]chan strin
 	}
 }
 
-func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListeningChan chan bool) {
-	udpAddr, _ := net.ResolveUDPAddr("udp", def.MasterIsAlivePort)
+func ListenAfterAliveMasterRegularly(masterIsAliveChan chan string, stopListeningChan chan bool, port string) {
+	udpAddr, _ := net.ResolveUDPAddr("udp", port)
 	udpListen, _ := net.ListenUDP("udp", udpAddr)
 	defer udpListen.Close()
 

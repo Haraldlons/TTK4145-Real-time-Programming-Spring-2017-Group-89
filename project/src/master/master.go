@@ -2,8 +2,8 @@ package master
 
 import (
 	"../def"
-	"../watchdog"
 	"../network"
+	"../watchdog"
 	"fmt"
 	"math"
 	"os/exec"
@@ -35,15 +35,15 @@ func Run() {
 		"toHandleUpdatesFromSlaves": make(chan map[string]bool),
 	}
 
-
 	// Channels for sending the id of a slave from the listener to others
 	updatedSlaveIdChanMap := map[string]chan string{
 		"toWatchdog": make(chan string),
 	}
 
-
 	// Send alive messages from master regularly
-	go network.SendMasterIsAliveRegularly(master_id, stopSendingChan)
+	go network.SendMasterIsAliveRegularly(master_id, stopSendingChan, def.MasterIsAlivePort)
+	go network.SendMasterIsAliveRegularly(master_id, stopSendingChan, def.MultipleMastersPort)
+	go watchdog.CheckForMultipleMasters(master_id)
 
 	// Listen after alive slaves and keep track of alive ones
 	go network.ListenAfterAliveSlavesRegularly(updatedSlaveIdChanMap, stopSendingChan)
@@ -130,10 +130,10 @@ func CheckForDuplicateOrder(orders *def.Orders, buttonPressedFloor int) bool {
 
 func findAndReplaceOrderIfSameDirection(orders *def.Orders, externalButtonPress def.Order, elevatorDirection int) {
 	// No point if orderList only has one order
-	if len(orders.Orders) > 1 { 
+	if len(orders.Orders) > 1 {
 		return
 	}
-	for i:= range orders.Orders {
+	for i := range orders.Orders {
 		// Elevator is moving in the same direction as the buttonPress
 		// TODO: THE ABOVE STATEMENT IS PRETTY MUCH NEVER CORRECT
 		if orders.Orders[i].Floor == externalButtonPress.Floor && externalButtonPress.Direction == elevatorDirection {
@@ -228,8 +228,6 @@ func handleUpdatesFromSlaves(totalOrderListChan chan def.Elevators, allSlavesAli
 	// Initialize map of aliveSlaves
 	allSlavesAliveMap := make(map[string]bool)
 
-	
-
 	// Start goroutine to listen for updates from slaves
 	go network.ListenToSlave(msgChan)
 
@@ -273,11 +271,10 @@ func handleUpdatesFromSlaves(totalOrderListChan chan def.Elevators, allSlavesAli
 				mutex.Unlock()
 			}
 
-
 			// Send updates to channel
 			totalOrderListChan <- totalOrderList
 			time.Sleep(time.Millisecond * 100)
-		case allSlavesAliveMap = <- allSlavesAliveMapChanMap: // Update on wether slaves are alive or not
+		case allSlavesAliveMap = <-allSlavesAliveMapChanMap: // Update on wether slaves are alive or not
 			for slave_id, isAlive := range allSlavesAliveMap {
 				// If a slave has died
 				if !isAlive {
@@ -357,7 +354,7 @@ func compareIdsAndReturnLargest(id_1 string, id_2 string) string {
 	return largest
 }
 
-func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrderList *def.Orders, elevatorState def.ElevatorState){
+func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrderList *def.Orders, elevatorState def.ElevatorState) {
 
 	if CheckForDuplicateOrder(currentOrderList, internalPressOrder.Floor) {
 		return
@@ -380,7 +377,7 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 							currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 							copy(currentOrderList.Orders[i+1:], currentOrderList.Orders[i:])
 							currentOrderList.Orders[i] = internalPressOrder
-							return 
+							return
 						}
 						tempNum = order.Floor
 					}
@@ -391,7 +388,7 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+1:], currentOrderList.Orders[j:])
 									currentOrderList.Orders[j] = internalPressOrder
-									return 
+									return
 								} else if j == len(currentOrderList.Orders)-1 {
 									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+2:], currentOrderList.Orders[j+1:])
@@ -404,12 +401,12 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 				}
 			}
 		} else {
-			tempNum = def.N_FLOORS -1
+			tempNum = def.N_FLOORS - 1
 			if currentOrderList.Orders[0].Floor == elevatorState.Destination { /* You can add in front of currentOrderList */
 				currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 				copy(currentOrderList.Orders[1:], currentOrderList.Orders[:])
 				currentOrderList.Orders[0] = internalPressOrder
-				return 
+				return
 			} else { /* There are orders before destinationOrder */
 				for i, order := range currentOrderList.Orders {
 					if order.Floor < tempNum { // To check where you turn
@@ -417,7 +414,7 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 							currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 							copy(currentOrderList.Orders[i+1:], currentOrderList.Orders[i:])
 							currentOrderList.Orders[i] = internalPressOrder
-							return 
+							return
 						}
 						tempNum = order.Floor
 					}
@@ -428,12 +425,12 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+1:], currentOrderList.Orders[j:])
 									currentOrderList.Orders[j] = internalPressOrder
-									return 
+									return
 								} else if j == len(currentOrderList.Orders)-1 {
 									currentOrderList.Orders = append(currentOrderList.Orders, def.Order{})
 									copy(currentOrderList.Orders[j+2:], currentOrderList.Orders[j+1:])
 									currentOrderList.Orders[j+1] = internalPressOrder
-									return 
+									return
 								}
 							}
 						}
@@ -441,7 +438,7 @@ func distributeInternalOrderToOrderList(internalPressOrder def.Order, currentOrd
 				}
 			}
 		}
-	}else {
+	} else {
 		currentOrderList.Orders = append(currentOrderList.Orders, internalPressOrder)
 	}
 }
