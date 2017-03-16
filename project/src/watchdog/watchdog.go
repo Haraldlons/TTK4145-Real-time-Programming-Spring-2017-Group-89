@@ -33,7 +33,7 @@ func CheckIfMasterIsAliveRegularly(stopListening chan bool) {
 
 			// Kill all network processes
 			// stopListening <- true
-			time.Sleep(time.Second * 5)
+			// time.Sleep(time.Second * 5)
 
 			// Spawn new master
 			newMaster := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")

@@ -40,14 +40,14 @@ func main() {
 	}()
 
 	go func() {
-		for {
-			if network.CheckIfMasterAlreadyExist() {
-				slave.Run()
-				master.Run()
-			} else {
-				master.Run()
-			}
+		// for {
+		if network.CheckIfMasterAlreadyExist() {
+			slave.Run()
+			// master.Run()
+		} else {
+			master.Run()
 		}
+		// }
 
 	}()
 	for {
