@@ -1,0 +1,154 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+
+\title{TTK4145 Spring-2017, Exercise 9}
+\author{Petter H. Wiik & Harald Lønsethagen}
+\date{March 2017}
+
+\begin{document}
+
+\maketitle
+
+\section*{Task 1:}
+\subsection*{1.}
+    \textit{Why do we assign priorities to tasks?}\\
+\textbf{Answer:}\\
+To determine the order of use of resources of the system.
+    
+\subsection*{2.}
+    \textit{What features must a scheduler have for it to be usable for real-time systems?}\\
+    \textbf{Answer:}\\
+    The scheduler must provide ordering of the use of the resources in the system, and predicting the worst case behavior under this ordering. We have to be able to analyse the scheduler, so we know that every task meets it's deadline.
+    
+\section*{Task 2:}
+
+\textit{Draw Gantt charts to show how task set 1 executes:}
+
+\subsection*{1.}
+    \textit{Without priority inheritance} \\
+    \textbf{Answer:}\\
+    
+    \begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|l|l|l|l|l|l|l|l|l|l|l|l|l|l|l|}
+    \hline
+    Task/Time & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 & 14 \\ \hline
+    a         &   &   &   &   & E &   &   &   &   &   &    & Q  & V  & E  &    \\ \hline
+    b         &   &   & E & V &   & V & E & E & E &   &    &    &    &    &    \\ \hline
+    c         & E & Q &   &   &   &   &   &   &   & Q & Q  &    &    &    & E  \\ \hline
+    \end{tabular}
+    \end{table}
+        
+\subsection*{2.}   
+    \textit{With priority inheritance} \\
+    \textbf{Answer:}\\
+    
+    \begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|l|l|l|l|l|l|l|l|l|l|l|l|l|l|l|}
+    \hline
+    Task/Time & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 & 14 \\ \hline
+    a         &   &   &   &   & E &   &   & Q &   & V & E  &    &    &    &    \\ \hline
+    b         &   &   & E & V &   &   &   &   & V &   &    & E  & E  & E  &    \\ \hline
+    c         & E & Q &   &   &   & Q & Q &   &   &   &    &    &    &    & E  \\ \hline
+    \end{tabular}
+    \end{table}
+    
+    
+\section*{Task 3:}
+
+\subsection*{1.}
+\textit{What is priority inversion? What is unbounded priority inversion?}\\
+    \textbf{Answer:}\\
+It's when a task with higher priority has to wait on a task with lower priority. Higher priority task is then blocked. Unbounded priority inversion means that it's possible for the high priority task to wait for the low priority task forever.
+
+\subsection*{2.}
+\textit{Does priority inheritance avoid deadlocks?} \\
+    \textbf{Answer:}\\
+    No, priority inheritance does not avoid deadlocks. Deadlocks can occur when tasks acquire multiple priority inheritance recourses.
+    
+    
+\section*{Task 4:}
+\subsection*{1.}
+    \textit{There are a number of assumptions/conditions that must be true for the utilization and response time tests to be usable (The "simple task model"). What are these assumptions? Comment on how realistic they are.} \\
+    \textbf{Answer:} \\
+    \begin{itemize}
+        \item Fixed set of periodic, independent tasks with known periods. 
+        \item Constant worst-case execution times.
+        \item Deadlines equal to task periods. 
+        \item Tasks run on a single processor where overheads run in zero time. 
+        \item A critical instant is the instant when the processor runs with maximum load. 
+    \end{itemize}
+
+\subsection*{2.}
+\textit{Perform the utilization test for task set 2. Is the task set schedulable?}
+    \textbf{Answer:} \\
+    Utilization test: 
+    
+    \begin{equation}
+        U = \frac{15}{50} + \frac{10}{30} + \frac{5}{20} = \frac{53}{60} \approx 0.8833
+    \end{equation}
+    
+    \begin{equation}
+        n (2^{\frac{1}{n}} - 1) = 3 \cdot (2^{\frac{1}{3}} - 1) \approx 0.7798
+    \end{equation}
+    
+    $U \approx 0.8833 > n (2^{\frac{1}{n}} - 1) \approx 0.7798$ 
+    
+    Test fails, task set is not scheduable.
+
+\subsection*{3.}
+\textit{Perform response-time analysis for task set 2. Is the task set schedulable? If you got different results than in 2), explain why.} \\
+    \textbf{Answer:} \\
+    Task c:
+    \begin{equation}
+        w_0 = 5
+    \end{equation}
+    
+    $R_c = 5 \leq T_c = 20$ \\
+    
+    Task b:
+    \begin{equation}
+        w_0 = 10
+    \end{equation}
+    
+    \begin{equation}
+        w_1 = 10 + \ceil*{\frac{10}{20}} \cdot 5 = 15
+    \end{equation}
+
+    \begin{equation}
+        w_2 = 10 + \ceil*{\frac{15}{20}} \cdot 5 = 15
+    \end{equation}
+    
+    $R_b = 15 \leq 30$\\
+    
+    Task a:
+    \begin{equation}
+        w_0 = 15
+    \end{equation}
+    
+    \begin{equation}
+        w_1 = 15 + \ceil*{\frac{15}{30}} \cdot 10 + \ceil*{\frac{15}{20}} \cdot 5 = 15 + 10 + 5 = 30
+    \end{equation}
+    
+    \begin{equation}
+        w_2 = 15 + \ceil*{\frac{30}{30}} \cdot 10 + \ceil*{\frac{30}{20}} \cdot 5 = 15 + 10 + 10 = 35
+    \end{equation}
+    
+    \begin{equation}
+        w_1 = 15 + \ceil*{\frac{35}{30}} \cdot 10 + \ceil*{\frac{35}{20}} \cdot 5 = 15+20+10=45
+    \end{equation}
+    
+    \begin{equation}
+        w_1 = 15 + \ceil*{\frac{45}{30}} \cdot 10 + \ceil*{\frac{45}{20}} \cdot 5 = 15 + 20 + 15 = 50
+    \end{equation}
+    
+    \begin{equation}
+        w_1 = 15 + \ceil*{\frac{50}{30}} \cdot 10 + \ceil*{\frac{50}{20}} \cdot 5 = 15 + 20 + 15 = 50
+    \end{equation}
+    
+    $R_a = 50 \leq 50$
+
+\end{document}
